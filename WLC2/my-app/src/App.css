@@ -1,0 +1,35 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+.App-title {
+  font-family: 'Roboto', sans-serif; /* You can replace with your preferred font */
+  font-size: 4rem;
+  font-weight: bold;
+  color: #3262ca; /* Adjust color as needed */
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5); /* Optional: adds a subtle shadow */
+  margin-top: 20px;
+}
+
+.App-header {
+  background-image: url('./Background/86343.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: rgb(255, 255, 255);
+}
+
+.App-link {
+  color: #61dafb;
+}

@@ -1,0 +1,33 @@
+.profile-container {
+  min-height: calc(100vh - 60px); /* Adjust 60px to match your Bottom Nav Bar height */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  position: relative;
+  background-image: url('../Background/86343.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.logout-button {
+  position: absolute;
+  bottom: 70px; /* Adjust this value to position above Bottom Nav Bar */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #d32f2f;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}

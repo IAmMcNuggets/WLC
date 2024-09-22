@@ -1,0 +1,14 @@
+.events-container {
+  min-height: calc(100vh - 60px); /* Adjust 60px to match your Bottom Nav Bar height */
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  position: relative;
+  background-image: url('../Background/86343.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+/* Add any other specific styles for your Events page components */
