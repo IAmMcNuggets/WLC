@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
-import { getAuthUrl, getAccessToken } from '../utils/currentRmsAuth';
 
 const EventsContainer = styled.div`
   min-height: 100vh;
@@ -11,112 +10,116 @@ const EventsContainer = styled.div`
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const EventsTitle = styled.h1`
   text-align: center;
   width: 100%;
   margin-top: 20px;
+  margin-bottom: 30px;
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 2.5rem;
+`;
+
+const EventsCard = styled.div`
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 30px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const EventList = styled.ul`
   list-style-type: none;
   padding: 0;
+  width: 100%;
 `;
 
 const EventItem = styled.li`
-  background-color: rgba(255, 255, 255, 0.8);
-  margin: 10px 0;
-  padding: 15px;
+  background-color: #f0f0f0;
   border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
+const LoadingMessage = styled.p`
+  color: #666;
+  font-style: italic;
+`;
+
+const ErrorMessage = styled.p`
+  color: #D8000C;
+  background-color: #FFBABA;
+  border-radius: 5px;
+  padding: 10px;
+  margin-top: 20px;
 `;
 
 interface Event {
   id: number;
   name: string;
-  starts_at: string;
-  ends_at: string;
+  start_date: string;
+  end_date: string;
 }
 
 function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const authenticate = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-
-      if (code) {
-        try {
-          const tokenData = await getAccessToken(code);
-          localStorage.setItem('currentRmsToken', tokenData.access_token);
-          fetchEvents(tokenData.access_token);
-        } catch (err) {
-          setError('Authentication failed');
-          setLoading(false);
-        }
-      } else {
-        const token = localStorage.getItem('currentRmsToken');
-        if (token) {
-          fetchEvents(token);
-        } else {
-          setLoading(false);
-        }
+    const fetchEvents = async () => {
+      try {
+        // Replace with your actual API endpoint
+        const response = await axios.get('/api/current-rms/events');
+        setEvents(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch events:', err);
+        setError('Failed to load events. Please try again later.');
+        setLoading(false);
       }
     };
 
-    authenticate();
+    fetchEvents();
   }, []);
 
-  const fetchEvents = async (token: string) => {
-    try {
-      const response = await axios.get('https://api.current-rms.com/api/v1/opportunities', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN
-        }
-      });
-      setEvents(response.data.opportunities);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to fetch events');
-      setLoading(false);
-    }
+  const formatDate = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
-
-  const handleLogin = () => {
-    window.location.href = getAuthUrl();
-  };
-
-  if (loading) return <EventsTitle>Loading...</EventsTitle>;
-  if (error) return <EventsTitle>{error}</EventsTitle>;
-
-  if (events.length === 0) {
-    return (
-      <EventsContainer>
-        <EventsTitle>No events found or not authenticated</EventsTitle>
-        <button onClick={handleLogin}>Log in with Current RMS</button>
-      </EventsContainer>
-    );
-  }
 
   return (
     <EventsContainer>
       <EventsTitle>Upcoming Events</EventsTitle>
-      <EventList>
-        {events.map((event) => (
-          <EventItem key={event.id}>
-            <h3>{event.name}</h3>
-            <p>Starts: {new Date(event.starts_at).toLocaleString()}</p>
-            <p>Ends: {new Date(event.ends_at).toLocaleString()}</p>
-          </EventItem>
-        ))}
-      </EventList>
+      <EventsCard>
+        {loading ? (
+          <LoadingMessage>Loading events...</LoadingMessage>
+        ) : error ? (
+          <ErrorMessage>{error}</ErrorMessage>
+        ) : events.length > 0 ? (
+          <EventList>
+            {events.map((event) => (
+              <EventItem key={event.id}>
+                <h3>{event.name}</h3>
+                <p>Start: {formatDate(event.start_date)}</p>
+                <p>End: {formatDate(event.end_date)}</p>
+              </EventItem>
+            ))}
+          </EventList>
+        ) : (
+          <p>No upcoming events found.</p>
+        )}
+      </EventsCard>
     </EventsContainer>
   );
 }

@@ -1,11 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { GoogleUser } from '../App';
-
-interface ProfileProps {
-  user: GoogleUser | null;
-  setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
-}
 
 const ProfileContainer = styled.div`
   min-height: 100vh;
@@ -20,19 +15,10 @@ const ProfileContainer = styled.div`
   align-items: center;
 `;
 
-const ProfileContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 600px;
-  margin-top: 5vh; // This will push the content up a bit
-`;
-
 const ProfileTitle = styled.h1`
   text-align: center;
   width: 100%;
-  margin-top: 0; // Removed top margin
+  margin-top: 20px;
   margin-bottom: 30px;
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
@@ -59,22 +45,25 @@ const ProfileImage = styled.img`
   margin-bottom: 20px;
   border: 3px solid #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  object-fit: cover;
 `;
 
 const ProfileInfo = styled.div`
-  margin-bottom: 20px;
   width: 100%;
+  margin-bottom: 20px;
 `;
 
 const InfoItem = styled.p`
   color: #555;
   margin: 10px 0;
   font-size: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const InfoLabel = styled.span`
   font-weight: bold;
-  display: block;
   margin-bottom: 5px;
 `;
 
@@ -82,40 +71,74 @@ const LogoutButton = styled.button`
   background-color: #f44336;
   color: white;
   border: none;
-  border-radius: 5px;
   padding: 10px 20px;
   font-size: 16px;
+  border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s;
+  width: 100%;
+  max-width: 200px;
 
   &:hover {
     background-color: #d32f2f;
   }
 `;
 
+interface ProfileProps {
+  user: GoogleUser | null;
+  setIsLoggedIn: (isLoggedIn: boolean) => void;
+}
+
 function Profile({ user, setIsLoggedIn }: ProfileProps) {
-  if (!user) return null;
+  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && user.picture) {
+      fetchImageAsDataUrl(user.picture);
+    }
+  }, [user]);
+
+  const fetchImageAsDataUrl = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => setImageDataUrl(reader.result as string);
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error fetching image:', error);
+    }
+  };
 
   const handleLogout = () => {
+    localStorage.removeItem('user');
     setIsLoggedIn(false);
-    // Add any additional logout logic here
   };
+
+  if (!user) {
+    return <ProfileContainer>No user data available</ProfileContainer>;
+  }
 
   return (
     <ProfileContainer>
-      <ProfileContent>
-        <ProfileTitle>Profile</ProfileTitle>
-        <ProfileCard>
-          <ProfileImage src={user.picture} alt="profile" />
-          <ProfileInfo>
-            <InfoLabel>Name:</InfoLabel>
-            <InfoItem>{user.name}</InfoItem>
-            <InfoLabel>Email:</InfoLabel>
-            <InfoItem>{user.email}</InfoItem>
-          </ProfileInfo>
-          <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
-        </ProfileCard>
-      </ProfileContent>
+      <ProfileTitle>User Profile</ProfileTitle>
+      <ProfileCard>
+        {imageDataUrl && (
+          <ProfileImage 
+            src={imageDataUrl} 
+            alt={user.name} 
+          />
+        )}
+        <ProfileInfo>
+          <InfoItem>
+            <InfoLabel>Name</InfoLabel> {user.name}
+          </InfoItem>
+          <InfoItem>
+            <InfoLabel>Email</InfoLabel> {user.email}
+          </InfoItem>
+        </ProfileInfo>
+        <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+      </ProfileCard>
     </ProfileContainer>
   );
 }

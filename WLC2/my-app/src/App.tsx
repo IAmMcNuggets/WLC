@@ -12,9 +12,10 @@ import BottomNavBar from './components/BottomNavBar';
 
 // Define and export the GoogleUser interface
 export interface GoogleUser {
-  email: string;
   name: string;
-  picture: string;
+  email: string;
+  picture?: string;  // Make it optional in case it's not always provided
+  // ... any other properties
 }
 
 const AppContainer = styled.div`
