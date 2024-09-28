@@ -30,24 +30,24 @@ const EventsCard = styled.div`
   border-radius: 10px;
   padding: 30px;
   width: 90%;
-  max-width: 600px;
+  max-width: 800px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
 `;
 
-const EventList = styled.ul`
+const OpportunityList = styled.ul`
   list-style-type: none;
   padding: 0;
   width: 100%;
 `;
 
-const EventItem = styled.li`
+const OpportunityItem = styled.li`
   background-color: #f0f0f0;
   border-radius: 5px;
-  margin-bottom: 10px;
-  padding: 15px;
+  margin-bottom: 15px;
+  padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
@@ -64,60 +64,93 @@ const ErrorMessage = styled.p`
   margin-top: 20px;
 `;
 
-interface Event {
+interface Opportunity {
   id: number;
-  name: string;
-  start_date: string;
-  end_date: string;
+  subject: string;
+  description: string;
+  starts_at: string;
+  ends_at: string;
+  status_name: string;
+  member: {
+    name: string;
+  };
+  venue: {
+    name: string;
+  } | null;
 }
 
+// Create an axios instance for Current RMS API
+const currentRMSApi = axios.create({
+  baseURL: 'https://YOUR_SUBDOMAIN.current-rms.com/api/v1',
+  headers: {
+    'X-SUBDOMAIN': 'YOUR_SUBDOMAIN',
+    'X-AUTH-TOKEN': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  }
+});
+
 function Events() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchOpportunities = async () => {
       try {
-        // Replace with your actual API endpoint
-        const response = await axios.get('/api/current-rms/events');
-        setEvents(response.data);
+        const startDate = new Date().toISOString().split('T')[0];
+        const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+        const response = await currentRMSApi.get('/opportunities', {
+          params: {
+            'filter[starts_at_gteq]': startDate,
+            'filter[starts_at_lteq]': endDate,
+            'filter[status]': '0,1,5,20', // Open, Provisional, Reserved, Active
+            'include[]': 'member,venue',
+            'per_page': 100, // Adjust as needed
+          }
+        });
+
+        setOpportunities(response.data.opportunities);
         setLoading(false);
       } catch (err) {
-        console.error('Failed to fetch events:', err);
-        setError('Failed to load events. Please try again later.');
+        console.error('Failed to fetch opportunities:', err);
+        setError('Failed to load opportunities. Please try again later.');
         setLoading(false);
       }
     };
 
-    fetchEvents();
+    fetchOpportunities();
   }, []);
 
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
     <EventsContainer>
-      <EventsTitle>Upcoming Events</EventsTitle>
+      <EventsTitle>Upcoming Opportunities</EventsTitle>
       <EventsCard>
         {loading ? (
-          <LoadingMessage>Loading events...</LoadingMessage>
+          <LoadingMessage>Loading opportunities...</LoadingMessage>
         ) : error ? (
           <ErrorMessage>{error}</ErrorMessage>
-        ) : events.length > 0 ? (
-          <EventList>
-            {events.map((event) => (
-              <EventItem key={event.id}>
-                <h3>{event.name}</h3>
-                <p>Start: {formatDate(event.start_date)}</p>
-                <p>End: {formatDate(event.end_date)}</p>
-              </EventItem>
+        ) : opportunities.length > 0 ? (
+          <OpportunityList>
+            {opportunities.map((opportunity) => (
+              <OpportunityItem key={opportunity.id}>
+                <h3>{opportunity.subject}</h3>
+                <p><strong>Description:</strong> {opportunity.description}</p>
+                <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
+                <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
+                <p><strong>Status:</strong> {opportunity.status_name}</p>
+                <p><strong>Client:</strong> {opportunity.member.name}</p>
+                {opportunity.venue && <p><strong>Venue:</strong> {opportunity.venue.name}</p>}
+              </OpportunityItem>
             ))}
-          </EventList>
+          </OpportunityList>
         ) : (
-          <p>No upcoming events found.</p>
+          <p>No upcoming opportunities found for the next month.</p>
         )}
       </EventsCard>
     </EventsContainer>
