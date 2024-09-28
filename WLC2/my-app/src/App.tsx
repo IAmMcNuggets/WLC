@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { jwtDecode } from "jwt-decode";
@@ -18,7 +18,7 @@ export interface GoogleUser {
 }
 
 const AppContainer = styled.div`
-  background-image: url('/path/to/your/background-image.jpg');
+  background-image: url('./Background/86343.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -26,8 +26,41 @@ const AppContainer = styled.div`
 `;
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<GoogleUser | null>(null);
+
+  useEffect(() => {
+    // Check if user is logged in when the app loads
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLoginSuccess = (credentialResponse: CredentialResponse) => {
+    if (credentialResponse.credential) {
+      const decoded: any = jwtDecode(credentialResponse.credential);
+      const googleUser: GoogleUser = {
+        email: decoded.email,
+        name: decoded.name,
+        picture: decoded.picture
+      };
+      setUser(googleUser);
+      setIsLoggedIn(true);
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(googleUser));
+    } else {
+      console.error('No credential received');
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsLoggedIn(false);
+    // Remove user data from localStorage
+    localStorage.removeItem('user');
+  };
 
   return (
     <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
@@ -39,20 +72,7 @@ function App() {
               <h1 className="App-title">GigFriend</h1>
               <div style={{ margin: '20px 0' }}>
                 <GoogleLogin
-                  onSuccess={(credentialResponse: CredentialResponse) => {
-                    if (credentialResponse.credential) {
-                      const decoded: any = jwtDecode(credentialResponse.credential);
-                      const googleUser: GoogleUser = {
-                        email: decoded.email,
-                        name: decoded.name,
-                        picture: decoded.picture
-                      };
-                      setUser(googleUser);
-                      setIsLoggedIn(true);
-                    } else {
-                      console.error('No credential received');
-                    }
-                  }}
+                  onSuccess={handleLoginSuccess}
                   onError={() => {
                     console.log('Login Failed');
                   }}
@@ -74,7 +94,7 @@ function App() {
               <Routes>
                 <Route path="/events" element={<Events />} />
                 <Route path="/timeclock" element={<Timeclock />} />
-                <Route path="/profile" element={<Profile user={user} setIsLoggedIn={setIsLoggedIn} />} />
+                <Route path="/profile" element={<Profile user={user} setIsLoggedIn={handleLogout} />} />
                 <Route path="*" element={<Navigate to="/events" replace />} />
               </Routes>
               <BottomNavBar />

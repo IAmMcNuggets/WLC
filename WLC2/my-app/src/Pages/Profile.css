@@ -4,11 +4,7 @@
   flex-direction: column;
   padding: 20px;
   position: relative;
-  background-image: url('../Background/86343.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
+ 
 
 .logout-button {
   position: absolute;
@@ -30,4 +26,5 @@
 .logout-button:hover {
   background-color: #d32f2f;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
 }

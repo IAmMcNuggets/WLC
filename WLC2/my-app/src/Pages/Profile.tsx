@@ -8,8 +8,6 @@ interface ProfileProps {
 }
 
 const ProfileContainer = styled.div`
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
   padding: 20px;
   box-sizing: border-box;
@@ -17,52 +15,67 @@ const ProfileContainer = styled.div`
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
-`;
-
-const ProfileTitle = styled.h1`
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const ProfileContent = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  flex: 1;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 5vh; // This will push the content up a bit
+`;
+
+const ProfileTitle = styled.h1`
+  text-align: center;
+  width: 100%;
+  margin-top: 0; // Removed top margin
+  margin-bottom: 30px;
+  color: black;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 2.5rem;
 `;
 
 const ProfileCard = styled.div`
   background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 15px;
+  border-radius: 10px;
   padding: 30px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  width: 90%;
   max-width: 400px;
-  width: 100%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 `;
 
 const ProfileImage = styled.img`
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  object-fit: cover;
+  width: 120px;
+  height: 120px;
+  border-radius: 60px;
+  margin-bottom: 20px;
   border: 3px solid #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+`;
+
+const ProfileInfo = styled.div`
   margin-bottom: 20px;
+  width: 100%;
 `;
 
-const ProfileName = styled.h2`
-  font-size: 24px;
-  color: #333;
-  margin-bottom: 10px;
-`;
-
-const ProfileEmail = styled.p`
+const InfoItem = styled.p`
+  color: #555;
+  margin: 10px 0;
   font-size: 16px;
-  color: #666;
-  margin-bottom: 20px;
+`;
+
+const InfoLabel = styled.span`
+  font-weight: bold;
+  display: block;
+  margin-bottom: 5px;
 `;
 
 const LogoutButton = styled.button`
@@ -90,12 +103,16 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
 
   return (
     <ProfileContainer>
-      <ProfileTitle>Profile</ProfileTitle>
       <ProfileContent>
+        <ProfileTitle>Profile</ProfileTitle>
         <ProfileCard>
           <ProfileImage src={user.picture} alt="profile" />
-          <ProfileName>{user.name}</ProfileName>
-          <ProfileEmail>{user.email}</ProfileEmail>
+          <ProfileInfo>
+            <InfoLabel>Name:</InfoLabel>
+            <InfoItem>{user.name}</InfoItem>
+            <InfoLabel>Email:</InfoLabel>
+            <InfoItem>{user.email}</InfoItem>
+          </ProfileInfo>
           <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
         </ProfileCard>
       </ProfileContent>
