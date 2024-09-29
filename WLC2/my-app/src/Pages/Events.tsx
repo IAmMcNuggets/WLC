@@ -14,11 +14,14 @@ const EventsContainer = styled.div`
   background-attachment: fixed;
 `;
 
-const EventsTitle = styled.h2`
-  color: #ffffff;
+const EventsTitle = styled.h1`
   text-align: center;
+  width: 100%;
+  margin-top: 20px;
   margin-bottom: 30px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  color: black;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 2.5rem;
 `;
 
 const EventsList = styled.div`
@@ -42,7 +45,7 @@ const EventCard = styled.div`
 `;
 
 const EventHeader = styled.div`
-  background-color: #4CAF50;
+  background-color: #1e88e5; // Changed to a blue color
   color: white;
   padding: 15px;
   font-weight: bold;
@@ -79,16 +82,29 @@ const ModalContent = styled.div`
   max-height: 80%;
   overflow-y: auto;
   position: relative;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ModalBody = styled.div`
+  flex-grow: 1;
+  margin-bottom: 20px;
 `;
 
 const CloseButton = styled.button`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
+  background-color: #1e88e5;
+  color: white;
   border: none;
-  font-size: 1.5rem;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 1rem;
   cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: center;
+
+  &:hover {
+    background-color: #1565c0;
+  }
 `;
 
 interface Participant {
@@ -200,31 +216,33 @@ function Events() {
       {selectedOpportunity && (
         <Modal onClick={closeModal}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <CloseButton onClick={closeModal}>&times;</CloseButton>
-            <h2>{selectedOpportunity.subject}</h2>
-            <p><strong>Date:</strong> {formatDate(selectedOpportunity.starts_at)} - {formatDate(selectedOpportunity.ends_at)}</p>
-            <p><strong>Description:</strong> {selectedOpportunity.description || 'No description provided'}</p>
-            <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
-            {selectedOpportunity.custom_fields && (
-              <>
-                <p><strong>Project Manager:</strong> {selectedOpportunity.custom_fields.project_manager}</p>
-                <p><strong>Dress Code:</strong> {selectedOpportunity.custom_fields.dress_code}</p>
-                <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
-                <p><strong>Event Time:</strong> {selectedOpportunity.custom_fields.event_start_time || 'Not provided'} - {selectedOpportunity.custom_fields.event_end_time || 'Not provided'}</p>
-              </>
-            )}
-            {selectedOpportunity.participants && selectedOpportunity.participants.length > 0 && (
-              <div>
-                <strong>Participants:</strong>
-                <ul>
-                  {selectedOpportunity.participants.map((participant) => (
-                    <li key={participant.id}>
-                      {participant.member_name} - {participant.assignment_type}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            <ModalBody>
+              <h2>{selectedOpportunity.subject}</h2>
+              <p><strong>Date:</strong> {formatDate(selectedOpportunity.starts_at)} - {formatDate(selectedOpportunity.ends_at)}</p>
+              <p><strong>Description:</strong> {selectedOpportunity.description || 'No description provided'}</p>
+              <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
+              {selectedOpportunity.custom_fields && (
+                <>
+                  <p><strong>Project Manager:</strong> {selectedOpportunity.custom_fields.project_manager}</p>
+                  <p><strong>Dress Code:</strong> {selectedOpportunity.custom_fields.dress_code}</p>
+                  <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
+                  <p><strong>Event Time:</strong> {selectedOpportunity.custom_fields.event_start_time || 'Not provided'} - {selectedOpportunity.custom_fields.event_end_time || 'Not provided'}</p>
+                </>
+              )}
+              {selectedOpportunity.participants && selectedOpportunity.participants.length > 0 && (
+                <div>
+                  <strong>Participants:</strong>
+                  <ul>
+                    {selectedOpportunity.participants.map((participant) => (
+                      <li key={participant.id}>
+                        {participant.member_name} - {participant.assignment_type}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </ModalBody>
+            <CloseButton onClick={closeModal}>Close</CloseButton>
           </ModalContent>
         </Modal>
       )}
