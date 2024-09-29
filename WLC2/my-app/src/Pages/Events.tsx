@@ -33,6 +33,7 @@ const EventCard = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   transition: all 0.3s ease;
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-5px);
@@ -57,25 +58,37 @@ const EventDate = styled.p`
   margin-bottom: 10px;
 `;
 
-const ExpandButton = styled.button`
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
-  cursor: pointer;
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  transition: background-color 0.3s ease;
-
-  &:hover {
-    background-color: #45a049;
-  }
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 `;
 
-const EventDetails = styled.div`
-  margin-top: 15px;
-  border-top: 1px solid #ddd;
-  padding-top: 15px;
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+  position: relative;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
 `;
 
 interface Participant {
@@ -117,7 +130,7 @@ function Events() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   useEffect(() => {
     const fetchOpportunities = async () => {
@@ -157,8 +170,12 @@ function Events() {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const toggleExpand = (id: number) => {
-    setExpandedId(expandedId === id ? null : id);
+  const openModal = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
+  };
+
+  const closeModal = () => {
+    setSelectedOpportunity(null);
   };
 
   return (
@@ -171,43 +188,45 @@ function Events() {
       ) : (
         <EventsList>
           {opportunities.map((opportunity) => (
-            <EventCard key={opportunity.id}>
+            <EventCard key={opportunity.id} onClick={() => openModal(opportunity)}>
               <EventHeader>{opportunity.subject}</EventHeader>
               <EventBody>
                 <EventDate>{formatDate(opportunity.starts_at)} - {formatDate(opportunity.ends_at)}</EventDate>
-                <ExpandButton onClick={() => toggleExpand(opportunity.id)}>
-                  {expandedId === opportunity.id ? 'Hide Details' : 'Show Details'}
-                </ExpandButton>
-                {expandedId === opportunity.id && (
-                  <EventDetails>
-                    <p><strong>Description:</strong> {opportunity.description || 'No description provided'}</p>
-                    <p><strong>Status:</strong> {opportunity.status_name}</p>
-                    {opportunity.custom_fields && (
-                      <>
-                        <p><strong>Project Manager:</strong> {opportunity.custom_fields.project_manager}</p>
-                        <p><strong>Dress Code:</strong> {opportunity.custom_fields.dress_code}</p>
-                        <p><strong>On-site Contact:</strong> {opportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
-                        <p><strong>Event Time:</strong> {opportunity.custom_fields.event_start_time || 'Not provided'} - {opportunity.custom_fields.event_end_time || 'Not provided'}</p>
-                      </>
-                    )}
-                    {opportunity.participants && opportunity.participants.length > 0 && (
-                      <div>
-                        <strong>Participants:</strong>
-                        <ul>
-                          {opportunity.participants.map((participant) => (
-                            <li key={participant.id}>
-                              {participant.member_name} - {participant.assignment_type}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </EventDetails>
-                )}
               </EventBody>
             </EventCard>
           ))}
         </EventsList>
+      )}
+      {selectedOpportunity && (
+        <Modal onClick={closeModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <CloseButton onClick={closeModal}>&times;</CloseButton>
+            <h2>{selectedOpportunity.subject}</h2>
+            <p><strong>Date:</strong> {formatDate(selectedOpportunity.starts_at)} - {formatDate(selectedOpportunity.ends_at)}</p>
+            <p><strong>Description:</strong> {selectedOpportunity.description || 'No description provided'}</p>
+            <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
+            {selectedOpportunity.custom_fields && (
+              <>
+                <p><strong>Project Manager:</strong> {selectedOpportunity.custom_fields.project_manager}</p>
+                <p><strong>Dress Code:</strong> {selectedOpportunity.custom_fields.dress_code}</p>
+                <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
+                <p><strong>Event Time:</strong> {selectedOpportunity.custom_fields.event_start_time || 'Not provided'} - {selectedOpportunity.custom_fields.event_end_time || 'Not provided'}</p>
+              </>
+            )}
+            {selectedOpportunity.participants && selectedOpportunity.participants.length > 0 && (
+              <div>
+                <strong>Participants:</strong>
+                <ul>
+                  {selectedOpportunity.participants.map((participant) => (
+                    <li key={participant.id}>
+                      {participant.member_name} - {participant.assignment_type}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </ModalContent>
+        </Modal>
       )}
     </EventsContainer>
   );
