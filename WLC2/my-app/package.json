@@ -46,5 +46,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://api.current-rms.com"
+  "proxy": "https://api.current-rms.com",
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+  }
 }
