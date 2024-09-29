@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
+import backgroundImage from '../assets/background.jpg'; // Adjust the path as needed
 
 const EventsContainer = styled.div`
   padding: 20px;
   max-width: 100%;
   margin: 0 auto;
+  min-height: 100vh;
+  background-image: url(${backgroundImage});
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 `;
 
 const EventsTitle = styled.h2`
-  color: #333;
+  color: #ffffff;
   text-align: center;
   margin-bottom: 30px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
 const EventsList = styled.div`
@@ -21,7 +28,7 @@ const EventsList = styled.div`
 `;
 
 const EventCard = styled.div`
-  background-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
