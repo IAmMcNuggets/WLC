@@ -3,65 +3,35 @@ import styled from 'styled-components';
 import axios from 'axios';
 
 const EventsContainer = styled.div`
-  min-height: 100vh;
   padding: 20px;
-  box-sizing: border-box;
-  background-image: url(${require('../Background/86343.jpg')});
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 `;
 
-const EventsTitle = styled.h1`
-  text-align: center;
-  width: 100%;
-  margin-top: 20px;
-  margin-bottom: 30px;
-  color: black;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  font-size: 2.5rem;
+const EventsTitle = styled.h2`
+  color: #333;
 `;
 
-const EventsCard = styled.div`
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
-  padding: 30px;
-  width: 90%;
-  max-width: 800px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const OpportunityList = styled.ul`
+const EventsList = styled.ul`
   list-style-type: none;
   padding: 0;
-  width: 100%;
 `;
 
-const OpportunityItem = styled.li`
-  background-color: #f0f0f0;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-`;
-
-const LoadingMessage = styled.p`
-  color: #666;
-  font-style: italic;
-`;
-
-const ErrorMessage = styled.p`
-  color: #D8000C;
-  background-color: #FFBABA;
-  border-radius: 5px;
+const EventItem = styled.li`
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  margin-bottom: 10px;
   padding: 10px;
-  margin-top: 20px;
+  cursor: pointer;
+`;
+
+const EventSummary = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const EventDetails = styled.div`
+  margin-top: 10px;
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
 `;
 
 interface Participant {
@@ -89,7 +59,6 @@ interface Opportunity {
   participants?: Participant[];
 }
 
-// Create an axios instance for Current RMS API
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 const currentRMSApi = axios.create({
   baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
@@ -104,14 +73,13 @@ function Events() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchOpportunities = async () => {
       try {
         const startDate = new Date().toISOString().split('T')[0];
         const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-        console.log('Fetching opportunities from', startDate, 'to', endDate);
 
         const response = await currentRMSApi.get('/opportunities', {
           params: {
@@ -122,14 +90,10 @@ function Events() {
             'per_page': 100,
           }
         });
-
-        console.log('Full API Response:', response.data);
         
         if (response.data.opportunities && Array.isArray(response.data.opportunities)) {
-          console.log('Number of opportunities fetched:', response.data.opportunities.length);
           setOpportunities(response.data.opportunities);
         } else {
-          console.log('No opportunities array found in the response');
           setError('Unexpected API response format');
         }
 
@@ -145,49 +109,62 @@ function Events() {
   }, []);
 
   const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   return (
     <EventsContainer>
-      <EventsTitle>Upcoming Opportunities</EventsTitle>
-      <EventsCard>
-        {loading ? (
-          <LoadingMessage>Loading opportunities...</LoadingMessage>
-        ) : error ? (
-          <ErrorMessage>{error}</ErrorMessage>
-        ) : opportunities.length > 0 ? (
-          <OpportunityList>
-            {opportunities.map((opportunity) => (
-              <OpportunityItem key={opportunity.id}>
-                <h3>{opportunity.subject}</h3>
-                <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
-                <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
-                {opportunity.custom_fields && (
-                  <>
-                    <p><strong>On-site Contact Phone:</strong> {opportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
-                  </>
-                )}
-                {opportunity.participants && opportunity.participants.length > 0 && (
-                  <div>
-                    <strong>Participants:</strong>
-                    <ul>
-                      {opportunity.participants.map((participant) => (
-                        <li key={participant.id}>
-                          {participant.member_name} - {participant.assignment_type}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </OpportunityItem>
-            ))}
-          </OpportunityList>
-        ) : (
-          <p>No upcoming opportunities found for the next month.</p>
-        )}
-      </EventsCard>
+      <EventsTitle>Upcoming Opportunities (Next 30 Days)</EventsTitle>
+      {loading ? (
+        <p>Loading opportunities...</p>
+      ) : error ? (
+        <p>{error}</p>
+      ) : (
+        <EventsList>
+          {opportunities.map((opportunity) => (
+            <EventItem key={opportunity.id} onClick={() => toggleExpand(opportunity.id)}>
+              <EventSummary>
+                <span>{opportunity.subject}</span>
+                <span>{formatDate(opportunity.starts_at)} - {formatDate(opportunity.ends_at)}</span>
+              </EventSummary>
+              {expandedId === opportunity.id && (
+                <EventDetails>
+                  <p><strong>Description:</strong> {opportunity.description || 'No description provided'}</p>
+                  <p><strong>Status:</strong> {opportunity.status_name}</p>
+                  <p><strong>Member ID:</strong> {opportunity.member_id}</p>
+                  <p><strong>Venue ID:</strong> {opportunity.venue_id}</p>
+                  {opportunity.custom_fields && (
+                    <>
+                      <p><strong>Project Manager:</strong> {opportunity.custom_fields.project_manager}</p>
+                      <p><strong>Dress Code:</strong> {opportunity.custom_fields.dress_code}</p>
+                      <p><strong>On-site Contact Phone:</strong> {opportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
+                      <p><strong>Event Start Time:</strong> {opportunity.custom_fields.event_start_time || 'Not provided'}</p>
+                      <p><strong>Event End Time:</strong> {opportunity.custom_fields.event_end_time || 'Not provided'}</p>
+                    </>
+                  )}
+                  {opportunity.participants && opportunity.participants.length > 0 && (
+                    <div>
+                      <strong>Participants:</strong>
+                      <ul>
+                        {opportunity.participants.map((participant) => (
+                          <li key={participant.id}>
+                            {participant.member_name} - {participant.assignment_type}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </EventDetails>
+              )}
+            </EventItem>
+          ))}
+        </EventsList>
+      )}
     </EventsContainer>
   );
 }
