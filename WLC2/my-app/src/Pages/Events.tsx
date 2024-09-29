@@ -111,24 +111,26 @@ function Events() {
         const startDate = new Date().toISOString().split('T')[0];
         const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+        console.log('Fetching opportunities from', startDate, 'to', endDate);
+
         const response = await currentRMSApi.get('/opportunities', {
           params: {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
             'include[]': 'participants',
-            'per_page': 1,
+            'per_page': 100,
           }
         });
 
         console.log('Full API Response:', response.data);
         
-        if (response.data.opportunities && response.data.opportunities.length > 0) {
-          const fetchedOpportunities = response.data.opportunities;
-          console.log('Fetched Opportunities:', JSON.stringify(fetchedOpportunities, null, 2));
-          setOpportunities(fetchedOpportunities);
+        if (response.data.opportunities && Array.isArray(response.data.opportunities)) {
+          console.log('Number of opportunities fetched:', response.data.opportunities.length);
+          setOpportunities(response.data.opportunities);
         } else {
-          console.log('No opportunities found in the response');
+          console.log('No opportunities array found in the response');
+          setError('Unexpected API response format');
         }
 
         setLoading(false);
