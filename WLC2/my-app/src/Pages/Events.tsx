@@ -81,10 +81,10 @@ interface Opportunity {
 
 // Create an axios instance for Current RMS API
 const currentRMSApi = axios.create({
-  baseURL: 'https://YOUR_SUBDOMAIN.current-rms.com/api/v1',
+  baseURL: `https://${process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN}.current-rms.com/api/v1`,
   headers: {
-    'X-SUBDOMAIN': 'YOUR_SUBDOMAIN',
-    'X-AUTH-TOKEN': 'YOUR_API_KEY',
+    'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
+    'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json'
   }
 });
