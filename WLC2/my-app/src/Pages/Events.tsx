@@ -82,7 +82,7 @@ interface Opportunity {
 // Create an axios instance for Current RMS API
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 const currentRMSApi = axios.create({
-  baseURL: `${corsProxy}https://${process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN}.current-rms.com/api/v1`,
+  baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
   headers: {
     'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
     'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
@@ -101,6 +101,9 @@ function Events() {
         const startDate = new Date().toISOString().split('T')[0];
         const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+        const url = `${currentRMSApi.defaults.baseURL}/opportunities`;
+        console.log('Requesting URL:', url);
+
         const response = await currentRMSApi.get('/opportunities', {
           params: {
             'filter[starts_at_gteq]': startDate,
@@ -111,6 +114,7 @@ function Events() {
           }
         });
 
+        console.log('Response:', response.data);
         setOpportunities(response.data.opportunities);
         setLoading(false);
       } catch (err) {
