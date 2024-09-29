@@ -158,19 +158,11 @@ function Events() {
         ) : opportunity ? (
           <OpportunityItem>
             <h3>{opportunity.subject}</h3>
-            <p><strong>Description:</strong> {opportunity.description || 'No description provided'}</p>
             <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
             <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
-            <p><strong>Status:</strong> {opportunity.status_name}</p>
-            <p><strong>Member ID:</strong> {opportunity.member_id}</p>
-            <p><strong>Venue ID:</strong> {opportunity.venue_id}</p>
             {opportunity.custom_fields && (
               <>
-                <p><strong>Project Manager:</strong> {opportunity.custom_fields.project_manager}</p>
-                <p><strong>Dress Code:</strong> {opportunity.custom_fields.dress_code}</p>
                 <p><strong>On-site Contact Phone:</strong> {opportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
-                <p><strong>Event Start Time:</strong> {opportunity.custom_fields.event_start_time || 'Not provided'}</p>
-                <p><strong>Event End Time:</strong> {opportunity.custom_fields.event_end_time || 'Not provided'}</p>
               </>
             )}
             {opportunity.participants && opportunity.participants.length > 0 && (
