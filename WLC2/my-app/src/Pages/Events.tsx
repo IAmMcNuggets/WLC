@@ -78,16 +78,13 @@ interface Opportunity {
   ends_at: string;
   status_name: string;
   member_id: number;
-  venue_id: number;
+  venue_id: number | null;
   custom_fields: {
-    project_manager: number;
-    dress_code: number;
-    'on-site_contact_phone': string;
-    event_start_time: string;
-    event_end_time: string;
-    deposit_terms: number;
-    billing_name: string;
-    billing_email: string;
+    project_manager?: string;
+    dress_code?: string;
+    'on-site_contact_phone'?: string;
+    event_start_time?: string;
+    event_end_time?: string;
   };
   participants?: Participant[];
 }
@@ -104,7 +101,7 @@ const currentRMSApi = axios.create({
 });
 
 function Events() {
-  const [opportunity, setOpportunity] = useState<any>(null);
+  const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -119,8 +116,8 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': 'member,venue,participants',
-            'per_page': 1, // This limits the response to 1 opportunity
+            'include[]': 'participants',
+            'per_page': 1,
           }
         });
 
@@ -177,11 +174,17 @@ function Events() {
               </>
             )}
             {opportunity.participants && opportunity.participants.length > 0 && (
-              <p>
-                <strong>Participants:</strong> {opportunity.participants.map((p: any) => p.member_name).join(', ')}
-              </p>
+              <div>
+                <strong>Participants:</strong>
+                <ul>
+                  {opportunity.participants.map((participant) => (
+                    <li key={participant.id}>
+                      {participant.member_name} - {participant.assignment_type}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
-            <p><strong>Raw Data:</strong> <pre>{JSON.stringify(opportunity, null, 2)}</pre></p>
           </OpportunityItem>
         ) : (
           <p>No upcoming opportunity found for the next month.</p>
