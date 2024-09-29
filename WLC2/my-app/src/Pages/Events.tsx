@@ -71,12 +71,12 @@ interface Opportunity {
   starts_at: string;
   ends_at: string;
   status_name: string;
-  member: {
+  member?: {
     name: string;
   };
-  venue: {
+  venue?: {
     name: string;
-  } | null;
+  };
 }
 
 // Create an axios instance for Current RMS API
@@ -114,8 +114,14 @@ function Events() {
           }
         });
 
-        console.log('Response:', response.data);
-        setOpportunities(response.data.opportunities);
+        console.log('Response data:', response.data);
+        if (response.data.opportunities) {
+          console.log('First opportunity:', response.data.opportunities[0]);
+        } else {
+          console.log('No opportunities found in the response');
+        }
+
+        setOpportunities(response.data.opportunities || []);
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch opportunities:', err);
@@ -149,7 +155,7 @@ function Events() {
                 <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
                 <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
                 <p><strong>Status:</strong> {opportunity.status_name}</p>
-                <p><strong>Client:</strong> {opportunity.member.name}</p>
+                {opportunity.member && <p><strong>Client:</strong> {opportunity.member.name}</p>}
                 {opportunity.venue && <p><strong>Venue:</strong> {opportunity.venue.name}</p>}
               </OpportunityItem>
             ))}
