@@ -70,13 +70,17 @@ interface Opportunity {
   description: string;
   starts_at: string;
   ends_at: string;
-  status_name: string;
   member?: {
     name: string;
   };
   venue?: {
     name: string;
   };
+  opportunity_members?: {
+    member: {
+      name: string;
+    };
+  }[];
 }
 
 // Create an axios instance for Current RMS API
@@ -101,25 +105,15 @@ function Events() {
         const startDate = new Date().toISOString().split('T')[0];
         const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-        const url = `${currentRMSApi.defaults.baseURL}/opportunities`;
-        console.log('Requesting URL:', url);
-
         const response = await currentRMSApi.get('/opportunities', {
           params: {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
-            'filter[status]': '0,1,5,20', // Open, Provisional, Reserved, Active
-            'include[]': 'member,venue',
-            'per_page': 100, // Adjust as needed
+            'filter[status]': '0,1,5,20',
+            'include[]': 'member,venue,opportunity_members.member',
+            'per_page': 100,
           }
         });
-
-        console.log('Response data:', response.data);
-        if (response.data.opportunities) {
-          console.log('First opportunity:', response.data.opportunities[0]);
-        } else {
-          console.log('No opportunities found in the response');
-        }
 
         setOpportunities(response.data.opportunities || []);
         setLoading(false);
@@ -154,9 +148,13 @@ function Events() {
                 <p><strong>Description:</strong> {opportunity.description}</p>
                 <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
                 <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
-                <p><strong>Status:</strong> {opportunity.status_name}</p>
                 {opportunity.member && <p><strong>Client:</strong> {opportunity.member.name}</p>}
                 {opportunity.venue && <p><strong>Venue:</strong> {opportunity.venue.name}</p>}
+                {opportunity.opportunity_members && opportunity.opportunity_members.length > 0 && (
+                  <p>
+                    <strong>Participants:</strong> {opportunity.opportunity_members.map(om => om.member.name).join(', ')}
+                  </p>
+                )}
               </OpportunityItem>
             ))}
           </OpportunityList>
