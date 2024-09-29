@@ -104,12 +104,12 @@ const currentRMSApi = axios.create({
 });
 
 function Events() {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [opportunity, setOpportunity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchOpportunities = async () => {
+    const fetchOpportunity = async () => {
       try {
         const startDate = new Date().toISOString().split('T')[0];
         const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -120,20 +120,29 @@ function Events() {
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
             'include[]': 'member,venue,participants',
-            'per_page': 100,
+            'per_page': 1, // This limits the response to 1 opportunity
           }
         });
 
-        setOpportunities(response.data.opportunities || []);
+        console.log('Full API Response:', response.data);
+        
+        if (response.data.opportunities && response.data.opportunities.length > 0) {
+          const fetchedOpportunity = response.data.opportunities[0];
+          console.log('Fetched Opportunity:', JSON.stringify(fetchedOpportunity, null, 2));
+          setOpportunity(fetchedOpportunity);
+        } else {
+          console.log('No opportunities found in the response');
+        }
+
         setLoading(false);
       } catch (err) {
-        console.error('Failed to fetch opportunities:', err);
-        setError('Failed to load opportunities. Please try again later.');
+        console.error('Failed to fetch opportunity:', err);
+        setError('Failed to load opportunity. Please try again later.');
         setLoading(false);
       }
     };
 
-    fetchOpportunities();
+    fetchOpportunity();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -143,38 +152,39 @@ function Events() {
 
   return (
     <EventsContainer>
-      <EventsTitle>Upcoming Opportunities</EventsTitle>
+      <EventsTitle>Upcoming Opportunity</EventsTitle>
       <EventsCard>
         {loading ? (
-          <LoadingMessage>Loading opportunities...</LoadingMessage>
+          <LoadingMessage>Loading opportunity...</LoadingMessage>
         ) : error ? (
           <ErrorMessage>{error}</ErrorMessage>
-        ) : opportunities.length > 0 ? (
-          <OpportunityList>
-            {opportunities.map((opportunity) => (
-              <OpportunityItem key={opportunity.id}>
-                <h3>{opportunity.subject}</h3>
-                <p><strong>Description:</strong> {opportunity.description || 'No description provided'}</p>
-                <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
-                <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
-                <p><strong>Status:</strong> {opportunity.status_name}</p>
-                <p><strong>Member ID:</strong> {opportunity.member_id}</p>
-                <p><strong>Venue ID:</strong> {opportunity.venue_id}</p>
+        ) : opportunity ? (
+          <OpportunityItem>
+            <h3>{opportunity.subject}</h3>
+            <p><strong>Description:</strong> {opportunity.description || 'No description provided'}</p>
+            <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
+            <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
+            <p><strong>Status:</strong> {opportunity.status_name}</p>
+            <p><strong>Member ID:</strong> {opportunity.member_id}</p>
+            <p><strong>Venue ID:</strong> {opportunity.venue_id}</p>
+            {opportunity.custom_fields && (
+              <>
                 <p><strong>Project Manager:</strong> {opportunity.custom_fields.project_manager}</p>
                 <p><strong>Dress Code:</strong> {opportunity.custom_fields.dress_code}</p>
                 <p><strong>On-site Contact Phone:</strong> {opportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
                 <p><strong>Event Start Time:</strong> {opportunity.custom_fields.event_start_time || 'Not provided'}</p>
                 <p><strong>Event End Time:</strong> {opportunity.custom_fields.event_end_time || 'Not provided'}</p>
-                {opportunity.participants && opportunity.participants.length > 0 && (
-                  <p>
-                    <strong>Participants:</strong> {opportunity.participants.map(p => p.member_name).join(', ')}
-                  </p>
-                )}
-              </OpportunityItem>
-            ))}
-          </OpportunityList>
+              </>
+            )}
+            {opportunity.participants && opportunity.participants.length > 0 && (
+              <p>
+                <strong>Participants:</strong> {opportunity.participants.map((p: any) => p.member_name).join(', ')}
+              </p>
+            )}
+            <p><strong>Raw Data:</strong> <pre>{JSON.stringify(opportunity, null, 2)}</pre></p>
+          </OpportunityItem>
         ) : (
-          <p>No upcoming opportunities found for the next month.</p>
+          <p>No upcoming opportunity found for the next month.</p>
         )}
       </EventsCard>
     </EventsContainer>
