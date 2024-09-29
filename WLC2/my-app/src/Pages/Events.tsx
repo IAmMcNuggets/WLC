@@ -115,6 +115,11 @@ function Events() {
           }
         });
 
+        console.log('API Response:', response.data);
+        if (response.data.opportunities && response.data.opportunities.length > 0) {
+          console.log('First opportunity:', response.data.opportunities[0]);
+        }
+
         setOpportunities(response.data.opportunities || []);
         setLoading(false);
       } catch (err) {
@@ -152,9 +157,10 @@ function Events() {
                 {opportunity.venue && <p><strong>Venue:</strong> {opportunity.venue.name}</p>}
                 {opportunity.opportunity_members && opportunity.opportunity_members.length > 0 && (
                   <p>
-                    <strong>Participants:</strong> {opportunity.opportunity_members.map(om => om.member.name).join(', ')}
+                    <strong>Participants:</strong> {opportunity.opportunity_members.map(om => om.member?.name || 'Unknown').join(', ')}
                   </p>
                 )}
+                <p><strong>Raw Opportunity Data:</strong> {JSON.stringify(opportunity)}</p>
               </OpportunityItem>
             ))}
           </OpportunityList>
