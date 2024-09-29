@@ -64,23 +64,32 @@ const ErrorMessage = styled.p`
   margin-top: 20px;
 `;
 
+interface Participant {
+  id: number;
+  member_name: string;
+  assignment_type: string;
+}
+
 interface Opportunity {
   id: number;
   subject: string;
   description: string;
   starts_at: string;
   ends_at: string;
-  member?: {
-    name: string;
+  status_name: string;
+  member_id: number;
+  venue_id: number;
+  custom_fields: {
+    project_manager: number;
+    dress_code: number;
+    'on-site_contact_phone': string;
+    event_start_time: string;
+    event_end_time: string;
+    deposit_terms: number;
+    billing_name: string;
+    billing_email: string;
   };
-  venue?: {
-    name: string;
-  };
-  opportunity_members?: {
-    member: {
-      name: string;
-    };
-  }[];
+  participants?: Participant[];
 }
 
 // Create an axios instance for Current RMS API
@@ -110,15 +119,10 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': 'member,venue,opportunity_members.member',
+            'include[]': 'member,venue,participants',
             'per_page': 100,
           }
         });
-
-        console.log('API Response:', response.data);
-        if (response.data.opportunities && response.data.opportunities.length > 0) {
-          console.log('First opportunity:', response.data.opportunities[0]);
-        }
 
         setOpportunities(response.data.opportunities || []);
         setLoading(false);
@@ -150,17 +154,22 @@ function Events() {
             {opportunities.map((opportunity) => (
               <OpportunityItem key={opportunity.id}>
                 <h3>{opportunity.subject}</h3>
-                <p><strong>Description:</strong> {opportunity.description}</p>
+                <p><strong>Description:</strong> {opportunity.description || 'No description provided'}</p>
                 <p><strong>Start:</strong> {formatDate(opportunity.starts_at)}</p>
                 <p><strong>End:</strong> {formatDate(opportunity.ends_at)}</p>
-                {opportunity.member && <p><strong>Client:</strong> {opportunity.member.name}</p>}
-                {opportunity.venue && <p><strong>Venue:</strong> {opportunity.venue.name}</p>}
-                {opportunity.opportunity_members && opportunity.opportunity_members.length > 0 && (
+                <p><strong>Status:</strong> {opportunity.status_name}</p>
+                <p><strong>Member ID:</strong> {opportunity.member_id}</p>
+                <p><strong>Venue ID:</strong> {opportunity.venue_id}</p>
+                <p><strong>Project Manager:</strong> {opportunity.custom_fields.project_manager}</p>
+                <p><strong>Dress Code:</strong> {opportunity.custom_fields.dress_code}</p>
+                <p><strong>On-site Contact Phone:</strong> {opportunity.custom_fields['on-site_contact_phone'] || 'Not provided'}</p>
+                <p><strong>Event Start Time:</strong> {opportunity.custom_fields.event_start_time || 'Not provided'}</p>
+                <p><strong>Event End Time:</strong> {opportunity.custom_fields.event_end_time || 'Not provided'}</p>
+                {opportunity.participants && opportunity.participants.length > 0 && (
                   <p>
-                    <strong>Participants:</strong> {opportunity.opportunity_members.map(om => om.member?.name || 'Unknown').join(', ')}
+                    <strong>Participants:</strong> {opportunity.participants.map(p => p.member_name).join(', ')}
                   </p>
                 )}
-                <p><strong>Raw Opportunity Data:</strong> {JSON.stringify(opportunity)}</p>
               </OpportunityItem>
             ))}
           </OpportunityList>
