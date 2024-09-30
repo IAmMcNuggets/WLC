@@ -123,6 +123,13 @@ interface Participant {
   assignment_type: string;
 }
 
+interface OpportunityItem {
+  id: number;
+  item_id: number;
+  name: string;
+  quantity: number;
+}
+
 interface Opportunity {
   id: number;
   subject: string;
@@ -140,6 +147,7 @@ interface Opportunity {
     event_end_time?: string;
   };
   participants?: Participant[];
+  opportunity_items?: OpportunityItem[];
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -169,7 +177,7 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': 'participants',
+            'include[]': ['participants', 'opportunity_items'],
             'per_page': 100,
           }
         });
@@ -248,6 +256,18 @@ function Events() {
                     {selectedOpportunity.participants.map((participant) => (
                       <li key={participant.id}>
                         {participant.member_name} - {participant.assignment_type}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
+                <div>
+                  <strong>Allocated Resources:</strong>
+                  <ul>
+                    {selectedOpportunity.opportunity_items.map((item) => (
+                      <li key={item.id}>
+                        {item.name} - Quantity: {item.quantity}
                       </li>
                     ))}
                   </ul>
