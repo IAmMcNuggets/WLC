@@ -129,7 +129,7 @@ interface OpportunityItem {
   name: string;
   quantity: number;
   item_type: string;
-  service_resource_member?: {
+  service_resource_contact?: {
     id: number;
     name: string;
   };
@@ -182,7 +182,7 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': ['participants', 'opportunity_items', 'opportunity_items.service_resource_member'],
+            'include[]': ['participants', 'opportunity_items', 'opportunity_items.service_resource_contact'],
             'per_page': 100,
           }
         });
@@ -273,8 +273,8 @@ function Events() {
                     {selectedOpportunity.opportunity_items.map((item) => (
                       <li key={item.id}>
                         {item.name} - Quantity: {item.quantity}
-                        {item.item_type === 'Service' && item.service_resource_member && (
-                          <span> - Assigned to: {item.service_resource_member.name}</span>
+                        {item.item_type === 'Service' && item.service_resource_contact && (
+                          <span> - Assigned Contact: {item.service_resource_contact.name}</span>
                         )}
                       </li>
                     ))}
