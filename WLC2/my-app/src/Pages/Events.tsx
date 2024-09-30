@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
-import backgroundImage from '../assets/background.jpg'; // Adjust the path as needed
+import backgroundImage from '../Background/86343.jpg';
 
 const EventsContainer = styled.div`
   padding: 20px;
