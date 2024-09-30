@@ -116,10 +116,11 @@ const ResourceItem = styled.li`
   margin-bottom: 10px;
 `;
 
-interface Member {
+interface Participant {
   id: number;
-  name: string;
-  bookable: boolean;
+  member_id: number;
+  member_name: string;
+  assignment_type: string;
 }
 
 interface Opportunity {
@@ -138,7 +139,7 @@ interface Opportunity {
     event_start_time?: string;
     event_end_time?: string;
   };
-  members?: Member[];
+  participants?: Participant[];
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -168,11 +169,13 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': 'members',
+            'include[]': 'participants',
             'per_page': 100,
           }
         });
         
+        console.log('API Response:', response.data); // Log the API response
+
         if (response.data.opportunities && Array.isArray(response.data.opportunities)) {
           setOpportunities(response.data.opportunities);
         } else {
@@ -238,15 +241,15 @@ function Events() {
                   <p><strong>Event Time:</strong> {selectedOpportunity.custom_fields.event_start_time || 'Not provided'} - {selectedOpportunity.custom_fields.event_end_time || 'Not provided'}</p>
                 </>
               )}
-              {selectedOpportunity.members && selectedOpportunity.members.length > 0 && (
+              {selectedOpportunity.participants && selectedOpportunity.participants.length > 0 && (
                 <div>
-                  <strong>Bookable Members:</strong>
+                  <strong>Associated Members:</strong>
                   <ul>
-                    {selectedOpportunity.members
-                      .filter(member => member.bookable)
-                      .map((member) => (
-                        <li key={member.id}>{member.name}</li>
-                      ))}
+                    {selectedOpportunity.participants.map((participant) => (
+                      <li key={participant.id}>
+                        {participant.member_name} - {participant.assignment_type}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
