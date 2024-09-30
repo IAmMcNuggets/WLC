@@ -116,18 +116,10 @@ const ResourceItem = styled.li`
   margin-bottom: 10px;
 `;
 
-interface Participant {
+interface Member {
   id: number;
-  member_name: string;
-  assignment_type: string;
-}
-
-interface OpportunityItem {
-  id: number;
-  item_id: number;
   name: string;
-  quantity: number;
-  service_resource_member_id?: number;
+  bookable: boolean;
 }
 
 interface Opportunity {
@@ -146,8 +138,7 @@ interface Opportunity {
     event_start_time?: string;
     event_end_time?: string;
   };
-  participants?: Participant[];
-  opportunity_items?: OpportunityItem[];
+  members?: Member[];
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -177,6 +168,7 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
+            'include[]': 'members',
             'per_page': 100,
           }
         });
@@ -203,23 +195,8 @@ function Events() {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const openModal = async (opportunity: Opportunity) => {
-    try {
-      const response = await currentRMSApi.get(`/opportunities/${opportunity.id}`, {
-        params: {
-          'include[]': ['participants', 'opportunity_items'],
-        }
-      });
-      
-      if (response.data && response.data.opportunity) {
-        setSelectedOpportunity(response.data.opportunity);
-      } else {
-        setError('Failed to fetch opportunity details');
-      }
-    } catch (err) {
-      console.error('Failed to fetch opportunity details:', err);
-      setError('Failed to load opportunity details. Please try again later.');
-    }
+  const openModal = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
   };
 
   const closeModal = () => {
@@ -261,30 +238,15 @@ function Events() {
                   <p><strong>Event Time:</strong> {selectedOpportunity.custom_fields.event_start_time || 'Not provided'} - {selectedOpportunity.custom_fields.event_end_time || 'Not provided'}</p>
                 </>
               )}
-              {selectedOpportunity.participants && selectedOpportunity.participants.length > 0 && (
+              {selectedOpportunity.members && selectedOpportunity.members.length > 0 && (
                 <div>
-                  <strong>Participants:</strong>
+                  <strong>Bookable Members:</strong>
                   <ul>
-                    {selectedOpportunity.participants.map((participant) => (
-                      <li key={participant.id}>
-                        {participant.member_name} - {participant.assignment_type}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
-                <div>
-                  <strong>Assigned Resources:</strong>
-                  <ul>
-                    {selectedOpportunity.opportunity_items.map((item) => (
-                      <li key={item.id}>
-                        {item.name} - Quantity: {item.quantity}
-                        {item.service_resource_member_id && (
-                          <span> - Service Resource ID: {item.service_resource_member_id}</span>
-                        )}
-                      </li>
-                    ))}
+                    {selectedOpportunity.members
+                      .filter(member => member.bookable)
+                      .map((member) => (
+                        <li key={member.id}>{member.name}</li>
+                      ))}
                   </ul>
                 </div>
               )}
