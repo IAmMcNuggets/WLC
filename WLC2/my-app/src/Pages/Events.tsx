@@ -107,6 +107,15 @@ const CloseButton = styled.button`
   }
 `;
 
+const ResourceList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+`;
+
+const ResourceItem = styled.li`
+  margin-bottom: 10px;
+`;
+
 interface Participant {
   id: number;
   member_name: string;
@@ -118,6 +127,10 @@ interface OpportunityItem {
   item_id: number;
   name: string;
   quantity: number;
+  service_resource_member?: {
+    id: number;
+    name: string;
+  };
 }
 
 interface Opportunity {
@@ -167,7 +180,7 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': ['participants', 'opportunity_items'],
+            'include[]': ['participants', 'opportunity_items', 'opportunity_items.service_resource_member'],
             'per_page': 100,
           }
         });
@@ -252,13 +265,16 @@ function Events() {
               {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
                 <div>
                   <strong>Assigned Resources:</strong>
-                  <ul>
+                  <ResourceList>
                     {selectedOpportunity.opportunity_items.map((item) => (
-                      <li key={item.id}>
+                      <ResourceItem key={item.id}>
                         {item.name} - Quantity: {item.quantity}
-                      </li>
+                        {item.service_resource_member && (
+                          <span> - Assigned to: {item.service_resource_member.name}</span>
+                        )}
+                      </ResourceItem>
                     ))}
-                  </ul>
+                  </ResourceList>
                 </div>
               )}
             </ModalBody>
