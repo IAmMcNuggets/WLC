@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
-import backgroundImage from '../Background/86343.jpg';
+import backgroundImage from '../assets/background.jpg'; // Adjust the path as needed
 
 const EventsContainer = styled.div`
   padding: 20px;
@@ -127,10 +127,7 @@ interface OpportunityItem {
   item_id: number;
   name: string;
   quantity: number;
-  service_resource_member?: {
-    id: number;
-    name: string;
-  };
+  service_resource_member_id?: number;
 }
 
 interface Opportunity {
@@ -180,7 +177,6 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'filter[status]': '0,1,5,20',
-            'include[]': ['participants', 'opportunity_items', 'opportunity_items.service_resource_member'],
             'per_page': 100,
           }
         });
@@ -207,8 +203,23 @@ function Events() {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const openModal = (opportunity: Opportunity) => {
-    setSelectedOpportunity(opportunity);
+  const openModal = async (opportunity: Opportunity) => {
+    try {
+      const response = await currentRMSApi.get(`/opportunities/${opportunity.id}`, {
+        params: {
+          'include[]': ['participants', 'opportunity_items'],
+        }
+      });
+      
+      if (response.data && response.data.opportunity) {
+        setSelectedOpportunity(response.data.opportunity);
+      } else {
+        setError('Failed to fetch opportunity details');
+      }
+    } catch (err) {
+      console.error('Failed to fetch opportunity details:', err);
+      setError('Failed to load opportunity details. Please try again later.');
+    }
   };
 
   const closeModal = () => {
@@ -217,7 +228,7 @@ function Events() {
 
   return (
     <EventsContainer>
-      <EventsTitle>Your Upcoming Events</EventsTitle>
+      <EventsTitle>Upcoming Opportunities</EventsTitle>
       {loading ? (
         <p>Loading Events...</p>
       ) : error ? (
@@ -265,16 +276,16 @@ function Events() {
               {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
                 <div>
                   <strong>Assigned Resources:</strong>
-                  <ResourceList>
+                  <ul>
                     {selectedOpportunity.opportunity_items.map((item) => (
-                      <ResourceItem key={item.id}>
+                      <li key={item.id}>
                         {item.name} - Quantity: {item.quantity}
-                        {item.service_resource_member && (
-                          <span> - Assigned to: {item.service_resource_member.name}</span>
+                        {item.service_resource_member_id && (
+                          <span> - Service Resource ID: {item.service_resource_member_id}</span>
                         )}
-                      </ResourceItem>
+                      </li>
                     ))}
-                  </ResourceList>
+                  </ul>
                 </div>
               )}
             </ModalBody>
