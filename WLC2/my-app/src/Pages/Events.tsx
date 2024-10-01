@@ -107,6 +107,10 @@ const CloseButton = styled.button`
   }
 `;
 
+const ResourceSection = styled.div`
+  margin-bottom: 20px;
+`;
+
 const ResourceList = styled.ul`
   list-style-type: none;
   padding: 0;
@@ -130,6 +134,11 @@ const ResourceQuantity = styled.span`
   background-color: #e0e0e0;
   border-radius: 12px;
   padding: 2px 8px;
+`;
+
+const SectionTitle = styled.h4`
+  margin-bottom: 10px;
+  color: #333;
 `;
 
 interface Participant {
@@ -230,10 +239,16 @@ function Events() {
     setSelectedOpportunity(null);
   };
 
-  const filterAndSortResources = (items: OpportunityItem[]) => {
-    return items
+  const categorizeAndSortResources = (items: OpportunityItem[]) => {
+    const products = items
       .filter(item => item.item_type !== 'Service')
       .sort((a, b) => a.name.localeCompare(b.name));
+    
+    const services = items
+      .filter(item => item.item_type === 'Service')
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return { products, services };
   };
 
   return (
@@ -286,14 +301,35 @@ function Events() {
               {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
                 <div>
                   <h3>Allocated Resources:</h3>
-                  <ResourceList>
-                    {filterAndSortResources(selectedOpportunity.opportunity_items).map((item) => (
-                      <ResourceItem key={item.id}>
-                        <ResourceName>{item.name}</ResourceName>
-                        <ResourceQuantity>Qty: {item.quantity}</ResourceQuantity>
-                      </ResourceItem>
-                    ))}
-                  </ResourceList>
+                  {(() => {
+                    const { products, services } = categorizeAndSortResources(selectedOpportunity.opportunity_items);
+                    return (
+                      <>
+                        <ResourceSection>
+                          <SectionTitle>Products</SectionTitle>
+                          <ResourceList>
+                            {products.map((item) => (
+                              <ResourceItem key={item.id}>
+                                <ResourceName>{item.name}</ResourceName>
+                                <ResourceQuantity>Qty: {item.quantity}</ResourceQuantity>
+                              </ResourceItem>
+                            ))}
+                          </ResourceList>
+                        </ResourceSection>
+                        <ResourceSection>
+                          <SectionTitle>Services</SectionTitle>
+                          <ResourceList>
+                            {services.map((item) => (
+                              <ResourceItem key={item.id}>
+                                <ResourceName>{item.name}</ResourceName>
+                                <ResourceQuantity>Qty: {item.quantity}</ResourceQuantity>
+                              </ResourceItem>
+                            ))}
+                          </ResourceList>
+                        </ResourceSection>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
             </ModalBody>
