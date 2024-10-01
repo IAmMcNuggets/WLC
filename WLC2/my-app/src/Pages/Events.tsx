@@ -113,7 +113,23 @@ const ResourceList = styled.ul`
 `;
 
 const ResourceItem = styled.li`
-  margin-bottom: 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const ResourceName = styled.span`
+  font-weight: bold;
+`;
+
+const ResourceQuantity = styled.span`
+  background-color: #e0e0e0;
+  border-radius: 12px;
+  padding: 2px 8px;
 `;
 
 interface Participant {
@@ -214,6 +230,12 @@ function Events() {
     setSelectedOpportunity(null);
   };
 
+  const filterAndSortResources = (items: OpportunityItem[]) => {
+    return items
+      .filter(item => item.item_type !== 'Service')
+      .sort((a, b) => a.name.localeCompare(b.name));
+  };
+
   return (
     <EventsContainer>
       <EventsTitle>Upcoming Opportunities</EventsTitle>
@@ -263,14 +285,15 @@ function Events() {
               )}
               {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
                 <div>
-                  <strong>Allocated Resources:</strong>
-                  <ul>
-                    {selectedOpportunity.opportunity_items.map((item) => (
-                      <li key={item.id}>
-                        {item.name} - Quantity: {item.quantity} - Type: {item.item_type}
-                      </li>
+                  <h3>Allocated Resources:</h3>
+                  <ResourceList>
+                    {filterAndSortResources(selectedOpportunity.opportunity_items).map((item) => (
+                      <ResourceItem key={item.id}>
+                        <ResourceName>{item.name}</ResourceName>
+                        <ResourceQuantity>Qty: {item.quantity}</ResourceQuantity>
+                      </ResourceItem>
                     ))}
-                  </ul>
+                  </ResourceList>
                 </div>
               )}
             </ModalBody>
