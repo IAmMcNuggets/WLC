@@ -65,9 +65,6 @@ interface Activity {
   location: string;
   starts_at: string;
   ends_at: string;
-  activity_type_name: string;
-  activity_status_name: string;
-  time_status_name: string;
   participants: Participant[];
 }
 
@@ -145,11 +142,8 @@ function Events() {
           {activities.map((activity) => (
             <ActivityItem key={activity.id}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
-              <ActivityDetail><strong>Type:</strong> {activity.activity_type_name}</ActivityDetail>
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
               <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
-              <ActivityDetail><strong>Status:</strong> {activity.activity_status_name}</ActivityDetail>
-              <ActivityDetail><strong>Time Status:</strong> {activity.time_status_name}</ActivityDetail>
               {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
               {activity.description && <ActivityDetail><strong>Description:</strong> {activity.description}</ActivityDetail>}
               {activity.participants && activity.participants.length > 0 && (
@@ -157,7 +151,7 @@ function Events() {
                   <strong>Participants:</strong>
                   <ParticipantList>
                     {activity.participants.map((participant) => (
-                      <li key={participant.id}>{participant.member_name} ({participant.assignment_type})</li>
+                      <li key={participant.id}>{participant.member_name}</li>
                     ))}
                   </ParticipantList>
                 </ActivityDetail>
