@@ -125,14 +125,9 @@ interface Participant {
 
 interface OpportunityItem {
   id: number;
-  item_id: number;
   name: string;
-  quantity: number;
+  quantity: string;
   item_type: string;
-  service_resource_contact?: {
-    id: number;
-    name: string;
-  };
 }
 
 interface Opportunity {
@@ -272,10 +267,7 @@ function Events() {
                   <ul>
                     {selectedOpportunity.opportunity_items.map((item) => (
                       <li key={item.id}>
-                        {item.name} - Quantity: {item.quantity}
-                        {item.item_type === 'Service' && item.service_resource_contact && (
-                          <span> - Assigned Contact: {item.service_resource_contact.name}</span>
-                        )}
+                        {item.name} - Quantity: {item.quantity} - Type: {item.item_type}
                       </li>
                     ))}
                   </ul>
