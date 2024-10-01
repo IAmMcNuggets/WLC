@@ -51,7 +51,7 @@ interface Activity {
   subject: string;
   description: string;
   activity_type_name: string;
-  due_at: string;
+  starts_at: string;
   completed_at: string | null;
   opportunity_number: string;
   opportunity_subject: string;
@@ -75,15 +75,16 @@ function Events() {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const startDate = new Date().toISOString().split('T')[0];
-        const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const startDate = new Date().toISOString();
+        const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
         const response = await currentRMSApi.get('/activities', {
           params: {
-            'filter[due_at_gteq]': startDate,
-            'filter[due_at_lteq]': endDate,
+            'filter[starts_at_gteq]': startDate,
+            'filter[starts_at_lteq]': endDate,
             'include[]': ['opportunity'],
-            'per_page': 100,
+            'per_page': 10,
+            'sort': 'starts_at',
           }
         });
         
@@ -95,7 +96,7 @@ function Events() {
             subject: activity.subject,
             description: activity.description,
             activity_type_name: activity.activity_type_name,
-            due_at: activity.due_at,
+            starts_at: activity.starts_at,
             completed_at: activity.completed_at,
             opportunity_number: activity.opportunity?.number || 'N/A',
             opportunity_subject: activity.opportunity?.subject || 'N/A',
@@ -116,14 +117,21 @@ function Events() {
     fetchActivities();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+  const formatDateTime = (dateString: string) => {
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    };
+    return new Date(dateString).toLocaleString(undefined, options);
   };
 
   return (
     <EventsContainer>
-      <EventsTitle>Upcoming Activities (Next 7 Days)</EventsTitle>
+      <EventsTitle>Upcoming Activities (Next 10)</EventsTitle>
       {loading ? (
         <p>Loading activities...</p>
       ) : error ? (
@@ -134,7 +142,7 @@ function Events() {
             <ActivityItem key={activity.id}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Type:</strong> {activity.activity_type_name}</ActivityDetail>
-              <ActivityDetail><strong>Due:</strong> {formatDate(activity.due_at)}</ActivityDetail>
+              <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
               <ActivityDetail><strong>Status:</strong> {activity.completed_at ? 'Completed' : 'Pending'}</ActivityDetail>
               <ActivityDetail><strong>Opportunity:</strong> {activity.opportunity_number} - {activity.opportunity_subject}</ActivityDetail>
               {activity.description && <ActivityDetail><strong>Description:</strong> {activity.description}</ActivityDetail>}
