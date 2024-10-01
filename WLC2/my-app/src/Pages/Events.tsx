@@ -53,19 +53,21 @@ const ParticipantList = styled.ul`
 
 interface Participant {
   id: number;
-  name: string;
-  email: string;
+  member_id: number;
+  member_name: string;
+  assignment_type: string;
 }
 
 interface Activity {
   id: number;
   subject: string;
   description: string;
-  activity_type_name: string;
+  location: string;
   starts_at: string;
-  completed_at: string | null;
-  opportunity_number: string;
-  opportunity_subject: string;
+  ends_at: string;
+  activity_type_name: string;
+  activity_status_name: string;
+  time_status_name: string;
   participants: Participant[];
 }
 
@@ -94,7 +96,7 @@ function Events() {
           params: {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
-            'include[]': ['opportunity', 'participants'],
+            'include[]': 'participants',
             'per_page': 10,
             'sort': 'starts_at',
           }
@@ -103,18 +105,7 @@ function Events() {
         console.log('API Response:', response.data);
 
         if (response.data.activities && Array.isArray(response.data.activities)) {
-          const formattedActivities = response.data.activities.map((activity: any) => ({
-            id: activity.id,
-            subject: activity.subject,
-            description: activity.description,
-            activity_type_name: activity.activity_type_name,
-            starts_at: activity.starts_at,
-            completed_at: activity.completed_at,
-            opportunity_number: activity.opportunity?.number || 'N/A',
-            opportunity_subject: activity.opportunity?.subject || 'N/A',
-            participants: activity.participants || [],
-          }));
-          setActivities(formattedActivities);
+          setActivities(response.data.activities);
         } else {
           setError('Unexpected API response format');
         }
@@ -156,15 +147,17 @@ function Events() {
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Type:</strong> {activity.activity_type_name}</ActivityDetail>
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
-              <ActivityDetail><strong>Status:</strong> {activity.completed_at ? 'Completed' : 'Pending'}</ActivityDetail>
-              <ActivityDetail><strong>Opportunity:</strong> {activity.opportunity_number} - {activity.opportunity_subject}</ActivityDetail>
+              <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
+              <ActivityDetail><strong>Status:</strong> {activity.activity_status_name}</ActivityDetail>
+              <ActivityDetail><strong>Time Status:</strong> {activity.time_status_name}</ActivityDetail>
+              {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
               {activity.description && <ActivityDetail><strong>Description:</strong> {activity.description}</ActivityDetail>}
-              {activity.participants.length > 0 && (
+              {activity.participants && activity.participants.length > 0 && (
                 <ActivityDetail>
                   <strong>Participants:</strong>
                   <ParticipantList>
                     {activity.participants.map((participant) => (
-                      <li key={participant.id}>{participant.name} ({participant.email})</li>
+                      <li key={participant.id}>{participant.member_name} ({participant.assignment_type})</li>
                     ))}
                   </ParticipantList>
                 </ActivityDetail>
