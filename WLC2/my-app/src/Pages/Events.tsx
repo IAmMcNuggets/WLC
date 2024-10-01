@@ -46,6 +46,17 @@ const ActivityDetail = styled.p`
   font-size: 0.9em;
 `;
 
+const ParticipantList = styled.ul`
+  list-style-type: none;
+  padding-left: 20px;
+`;
+
+interface Participant {
+  id: number;
+  name: string;
+  email: string;
+}
+
 interface Activity {
   id: number;
   subject: string;
@@ -55,6 +66,7 @@ interface Activity {
   completed_at: string | null;
   opportunity_number: string;
   opportunity_subject: string;
+  participants: Participant[];
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -82,7 +94,7 @@ function Events() {
           params: {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
-            'include[]': ['opportunity'],
+            'include[]': ['opportunity', 'participants'],
             'per_page': 10,
             'sort': 'starts_at',
           }
@@ -100,6 +112,7 @@ function Events() {
             completed_at: activity.completed_at,
             opportunity_number: activity.opportunity?.number || 'N/A',
             opportunity_subject: activity.opportunity?.subject || 'N/A',
+            participants: activity.participants || [],
           }));
           setActivities(formattedActivities);
         } else {
@@ -146,6 +159,16 @@ function Events() {
               <ActivityDetail><strong>Status:</strong> {activity.completed_at ? 'Completed' : 'Pending'}</ActivityDetail>
               <ActivityDetail><strong>Opportunity:</strong> {activity.opportunity_number} - {activity.opportunity_subject}</ActivityDetail>
               {activity.description && <ActivityDetail><strong>Description:</strong> {activity.description}</ActivityDetail>}
+              {activity.participants.length > 0 && (
+                <ActivityDetail>
+                  <strong>Participants:</strong>
+                  <ParticipantList>
+                    {activity.participants.map((participant) => (
+                      <li key={participant.id}>{participant.name} ({participant.email})</li>
+                    ))}
+                  </ParticipantList>
+                </ActivityDetail>
+              )}
             </ActivityItem>
           ))}
         </ActivityList>
