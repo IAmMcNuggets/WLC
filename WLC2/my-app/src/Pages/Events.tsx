@@ -4,46 +4,48 @@ import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 
 const EventsContainer = styled.div`
-  padding: 20px;
-  max-width: 100%;
-  margin: 0 auto;
-  min-height: 100vh;
   background-image: url(${backgroundImage});
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  padding-bottom: 100px; // Add extra padding at the bottom
+  box-sizing: border-box;
 `;
 
 const EventsTitle = styled.h1`
+  color: #ffffff;
   text-align: center;
-  width: 100%;
-  margin-top: 20px;
-  margin-bottom: 30px;
-  color: black;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  font-size: 2.5rem;
+  margin-bottom: 20px;
 `;
 
 const ActivityList = styled.ul`
   list-style-type: none;
   padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  flex-grow: 1;
 `;
 
 const ActivityItem = styled.li`
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  margin-bottom: 12px;
-  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const ActivityTitle = styled.h3`
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
   color: #333;
 `;
 
 const ActivityDetail = styled.p`
-  margin: 4px 0;
+  margin: 8px 0;
   font-size: 0.9em;
+  color: #555;
 `;
 
 const ParticipantList = styled.ul`
