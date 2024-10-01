@@ -18,7 +18,12 @@ const EventsContainer = styled.div`
 const EventsTitle = styled.h1`
   color: #ffffff;
   text-align: center;
-  margin-bottom: 20px;
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  color: black;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 2.5rem;
 `;
 
 const ActivityList = styled.ul`
