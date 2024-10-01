@@ -117,7 +117,7 @@ function Events() {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'include[]': 'participants',
-            'per_page': 100, // Increase this if needed to ensure we get all relevant activities
+            'per_page': 20, // Increase this if needed to ensure we get all relevant activities
             'sort': 'starts_at',
           }
         });
