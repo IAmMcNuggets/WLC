@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
+import { GoogleUser } from '../App';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -89,19 +90,34 @@ function Events() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user, setUser] = useState<GoogleUser | null>(null);
+
+  useEffect(() => {
+    // Get the user from localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   useEffect(() => {
     const fetchActivities = async () => {
+      if (!user) {
+        setError('User not logged in');
+        setLoading(false);
+        return;
+      }
+
       try {
         const startDate = new Date().toISOString();
-        const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Fetch activities for the next 30 days
 
         const response = await currentRMSApi.get('/activities', {
           params: {
             'filter[starts_at_gteq]': startDate,
             'filter[starts_at_lteq]': endDate,
             'include[]': 'participants',
-            'per_page': 10,
+            'per_page': 100, // Increase this if needed to ensure we get all relevant activities
             'sort': 'starts_at',
           }
         });
@@ -109,7 +125,12 @@ function Events() {
         console.log('API Response:', response.data);
 
         if (response.data.activities && Array.isArray(response.data.activities)) {
-          setActivities(response.data.activities);
+          const filteredActivities = response.data.activities.filter((activity: Activity) => 
+            activity.participants.some(participant => 
+              participant.member_name.toLowerCase().includes(user.name.toLowerCase())
+            )
+          );
+          setActivities(filteredActivities);
         } else {
           setError('Unexpected API response format');
         }
@@ -122,8 +143,10 @@ function Events() {
       }
     };
 
-    fetchActivities();
-  }, []);
+    if (user) {
+      fetchActivities();
+    }
+  }, [user]);
 
   const formatDateTime = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
@@ -137,13 +160,19 @@ function Events() {
     return new Date(dateString).toLocaleString(undefined, options);
   };
 
+  if (!user) {
+    return <EventsContainer>Please log in to view your activities.</EventsContainer>;
+  }
+
   return (
     <EventsContainer>
-      <EventsTitle>Upcoming Activities (Next 10)</EventsTitle>
+      <EventsTitle>Your Upcoming Activities</EventsTitle>
       {loading ? (
         <p>Loading activities...</p>
       ) : error ? (
         <p>{error}</p>
+      ) : activities.length === 0 ? (
+        <p>No upcoming activities found for {user.name}.</p>
       ) : (
         <ActivityList>
           {activities.map((activity) => (
