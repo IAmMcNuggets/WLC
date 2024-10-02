@@ -191,8 +191,11 @@ function Events() {
   }, [user]);
 
   const fetchOpportunityDetails = async (opportunityNumber: string) => {
+    const url = `${currentRMSApi.defaults.baseURL}/opportunities/${opportunityNumber}`;
+    console.log("Fetching opportunity details from:", url);
     try {
       const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`);
+      console.log("Opportunity response:", response.data);
       setSelectedOpportunity(response.data.opportunity);
     } catch (err) {
       console.error('Failed to fetch opportunity details:', err);
@@ -202,6 +205,7 @@ function Events() {
 
   const handleActivityClick = (activity: Activity) => {
     const opportunityNumber = activity.subject.match(/\((\d+)\)/)?.[1];
+    console.log("Extracted opportunity number:", opportunityNumber);
     if (opportunityNumber) {
       fetchOpportunityDetails(opportunityNumber);
     } else {
