@@ -59,6 +59,38 @@ const ParticipantList = styled.ul`
   padding-left: 20px;
 `;
 
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow-y: auto;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+`;
+
 interface Participant {
   id: number;
   member_id: number;
@@ -76,6 +108,15 @@ interface Activity {
   participants: Participant[];
 }
 
+interface Opportunity {
+  id: number;
+  subject: string;
+  description: string;
+  starts_at: string;
+  ends_at: string;
+  // Add more fields as needed
+}
+
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 const currentRMSApi = axios.create({
   baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
@@ -91,6 +132,7 @@ function Events() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<GoogleUser | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   useEffect(() => {
     // Get the user from localStorage
@@ -148,6 +190,29 @@ function Events() {
     }
   }, [user]);
 
+  const fetchOpportunityDetails = async (opportunityNumber: string) => {
+    try {
+      const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`);
+      setSelectedOpportunity(response.data.opportunity);
+    } catch (err) {
+      console.error('Failed to fetch opportunity details:', err);
+      setError('Failed to load opportunity details. Please try again later.');
+    }
+  };
+
+  const handleActivityClick = (activity: Activity) => {
+    const opportunityNumber = activity.subject.match(/\((\d+)\)/)?.[1];
+    if (opportunityNumber) {
+      fetchOpportunityDetails(opportunityNumber);
+    } else {
+      setError('No opportunity number found for this activity.');
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedOpportunity(null);
+  };
+
   const formatDateTime = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
@@ -176,7 +241,7 @@ function Events() {
       ) : (
         <ActivityList>
           {activities.map((activity) => (
-            <ActivityItem key={activity.id}>
+            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
               <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
@@ -195,6 +260,18 @@ function Events() {
             </ActivityItem>
           ))}
         </ActivityList>
+      )}
+      {selectedOpportunity && (
+        <Modal onClick={closeModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <CloseButton onClick={closeModal}>&times;</CloseButton>
+            <h2>{selectedOpportunity.subject}</h2>
+            <p><strong>Description:</strong> {selectedOpportunity.description}</p>
+            <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
+            <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
+            {/* Add more opportunity details here */}
+          </ModalContent>
+        </Modal>
       )}
     </EventsContainer>
   );
