@@ -106,6 +106,7 @@ interface Activity {
   starts_at: string;
   ends_at: string;
   participants: Participant[];
+  opportunity_id?: number; // Add this line
 }
 
 interface Opportunity {
@@ -161,6 +162,7 @@ function Events() {
             'include[]': 'participants',
             'per_page': 100, // Increase this if needed to ensure we get all relevant activities
             'sort': 'starts_at',
+            include: ['opportunity'] // This should include the opportunity_id in the response
           }
         });
         
@@ -190,11 +192,11 @@ function Events() {
     }
   }, [user]);
 
-  const fetchOpportunityDetails = async (opportunityNumber: string) => {
-    const url = `${process.env.REACT_APP_CURRENT_RMS_API_URL}/opportunities/${opportunityNumber}`;
+  const fetchOpportunityDetails = async (opportunityId: number) => {
+    const url = `${process.env.REACT_APP_CURRENT_RMS_API_URL}/opportunities/${opportunityId}`;
     console.log("Fetching opportunity details from:", url);
     try {
-      const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`, {
+      const response = await currentRMSApi.get(`/opportunities/${opportunityId}`, {
         params: {
           include: ['opportunity_items', 'member', 'venue']
         }
@@ -208,12 +210,11 @@ function Events() {
   };
 
   const handleActivityClick = (activity: Activity) => {
-    const opportunityNumber = activity.subject.match(/\((\d+)\)/)?.[1];
-    console.log("Extracted opportunity number:", opportunityNumber);
-    if (opportunityNumber) {
-      fetchOpportunityDetails(opportunityNumber);
+    console.log("Clicked activity:", activity);
+    if (activity.opportunity_id) {
+      fetchOpportunityDetails(activity.opportunity_id);
     } else {
-      setError('No opportunity number found for this activity.');
+      setError('No opportunity associated with this activity.');
     }
   };
 
