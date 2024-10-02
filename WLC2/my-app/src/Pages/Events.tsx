@@ -191,10 +191,14 @@ function Events() {
   }, [user]);
 
   const fetchOpportunityDetails = async (opportunityNumber: string) => {
-    const url = `${currentRMSApi.defaults.baseURL}/opportunities/${opportunityNumber}`;
+    const url = `${process.env.REACT_APP_CURRENT_RMS_API_URL}/opportunities/${opportunityNumber}`;
     console.log("Fetching opportunity details from:", url);
     try {
-      const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`);
+      const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`, {
+        params: {
+          include: ['opportunity_items', 'member', 'venue']
+        }
+      });
       console.log("Opportunity response:", response.data);
       setSelectedOpportunity(response.data.opportunity);
     } catch (err) {
