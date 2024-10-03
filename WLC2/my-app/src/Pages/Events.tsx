@@ -103,10 +103,15 @@ interface Activity {
   subject: string;
   description: string;
   location: string;
+  regarding_id: number;
+  regarding_type: string;
   starts_at: string;
   ends_at: string;
+  activity_status_name: string;
+  activity_type_name: string;
+  completed: boolean;
   participants: Participant[];
-  opportunity_id?: number; // Add this line
+  // Add other fields as needed
 }
 
 interface Opportunity {
@@ -192,30 +197,52 @@ function Events() {
     }
   }, [user]);
 
-  const fetchOpportunityDetails = async (opportunityId: number) => {
-    const url = `${process.env.REACT_APP_CURRENT_RMS_API_URL}/opportunities/${opportunityId}`;
+  const fetchOpportunityDetails = async (opportunityNumber: string) => {
+    const url = `${process.env.REACT_APP_CURRENT_RMS_API_URL}/opportunities/${opportunityNumber}`;
     console.log("Fetching opportunity details from:", url);
     try {
-      const response = await currentRMSApi.get(`/opportunities/${opportunityId}`, {
+      const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`, {
         params: {
           include: ['opportunity_items', 'member', 'venue']
         }
       });
       console.log("Opportunity response:", response.data);
-      setSelectedOpportunity(response.data.opportunity);
+      if (response.data && response.data.opportunity) {
+        setSelectedOpportunity(response.data.opportunity);
+      } else {
+        throw new Error('Opportunity data not found in response');
+      }
     } catch (err) {
-      console.error('Failed to fetch opportunity details:', err);
+      if (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null) {
+        const response = err.response as { data: any; status: number };
+        console.error('Error response:', response.data);
+        console.error('Error status:', response.status);
+      } else {
+        console.error('An unknown error occurred:', err);
+      }
       setError('Failed to load opportunity details. Please try again later.');
     }
   };
 
   const handleActivityClick = (activity: Activity) => {
     console.log("Clicked activity:", activity);
-    if (activity.opportunity_id) {
-      fetchOpportunityDetails(activity.opportunity_id);
+    
+    // Extract the opportunity number from the subject
+    const match = activity.subject.match(/\((\d+)\)/);
+    const opportunityNumber = match ? match[1] : null;
+
+    if (opportunityNumber) {
+      console.log("Extracted opportunity number:", opportunityNumber);
+      fetchOpportunityDetails(opportunityNumber);
     } else {
-      setError('No opportunity associated with this activity.');
+      console.log("No opportunity number found in subject:", activity.subject);
+      setError('No opportunity number found for this activity.');
     }
+
+    // If we want to use the regarding_id instead, we can do this:
+    // if (activity.regarding_type === "Opportunity" && activity.regarding_id) {
+    //   fetchOpportunityDetails(activity.regarding_id.toString());
+    // }
   };
 
   const closeModal = () => {
