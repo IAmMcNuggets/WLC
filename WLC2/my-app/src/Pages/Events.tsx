@@ -59,38 +59,6 @@ const ParticipantList = styled.ul`
   padding-left: 20px;
 `;
 
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-  background-color: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 90%;
-  max-height: 90%;
-  overflow-y: auto;
-`;
-
-const CloseButton = styled.button`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-`;
-
 interface Participant {
   id: number;
   member_id: number;
@@ -114,15 +82,6 @@ interface Activity {
   // Add other fields as needed
 }
 
-interface Opportunity {
-  id: number;
-  subject: string;
-  description: string;
-  starts_at: string;
-  ends_at: string;
-  // Add more fields as needed
-}
-
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 const currentRMSApi = axios.create({
   baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
@@ -138,7 +97,6 @@ function Events() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<GoogleUser | null>(null);
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   useEffect(() => {
     // Get the user from localStorage
@@ -166,8 +124,7 @@ function Events() {
             'filter[starts_at_lteq]': endDate,
             'include[]': 'participants',
             'per_page': 100, // Increase this if needed to ensure we get all relevant activities
-            'sort': 'starts_at',
-            include: ['opportunity'] // This should include the opportunity_id in the response
+            'sort': 'starts_at'
           }
         });
         
@@ -197,58 +154,6 @@ function Events() {
     }
   }, [user]);
 
-  const fetchOpportunityDetails = async (opportunityNumber: string) => {
-    const url = `${process.env.REACT_APP_CURRENT_RMS_API_URL}/opportunities/${opportunityNumber}`;
-    console.log("Fetching opportunity details from:", url);
-    try {
-      const response = await currentRMSApi.get(`/opportunities/${opportunityNumber}`, {
-        params: {
-          include: ['opportunity_items', 'member', 'venue']
-        }
-      });
-      console.log("Opportunity response:", response.data);
-      if (response.data && response.data.opportunity) {
-        setSelectedOpportunity(response.data.opportunity);
-      } else {
-        throw new Error('Opportunity data not found in response');
-      }
-    } catch (err) {
-      if (err instanceof Error && 'response' in err && typeof err.response === 'object' && err.response !== null) {
-        const response = err.response as { data: any; status: number };
-        console.error('Error response:', response.data);
-        console.error('Error status:', response.status);
-      } else {
-        console.error('An unknown error occurred:', err);
-      }
-      setError('Failed to load opportunity details. Please try again later.');
-    }
-  };
-
-  const handleActivityClick = (activity: Activity) => {
-    console.log("Clicked activity:", activity);
-    
-    // Extract the opportunity number from the subject
-    const match = activity.subject.match(/\((\d+)\)/);
-    const opportunityNumber = match ? match[1] : null;
-
-    if (opportunityNumber) {
-      console.log("Extracted opportunity number:", opportunityNumber);
-      fetchOpportunityDetails(opportunityNumber);
-    } else {
-      console.log("No opportunity number found in subject:", activity.subject);
-      setError('No opportunity number found for this activity.');
-    }
-
-    // If we want to use the regarding_id instead, we can do this:
-    // if (activity.regarding_type === "Opportunity" && activity.regarding_id) {
-    //   fetchOpportunityDetails(activity.regarding_id.toString());
-    // }
-  };
-
-  const closeModal = () => {
-    setSelectedOpportunity(null);
-  };
-
   const formatDateTime = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
@@ -277,7 +182,7 @@ function Events() {
       ) : (
         <ActivityList>
           {activities.map((activity) => (
-            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
+            <ActivityItem key={activity.id}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
               <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
@@ -296,18 +201,6 @@ function Events() {
             </ActivityItem>
           ))}
         </ActivityList>
-      )}
-      {selectedOpportunity && (
-        <Modal onClick={closeModal}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <CloseButton onClick={closeModal}>&times;</CloseButton>
-            <h2>{selectedOpportunity.subject}</h2>
-            <p><strong>Description:</strong> {selectedOpportunity.description}</p>
-            <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
-            <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
-            {/* Add more opportunity details here */}
-          </ModalContent>
-        </Modal>
       )}
     </EventsContainer>
   );
