@@ -402,10 +402,8 @@ function Events() {
                 {selectedOpportunity.destination && selectedOpportunity.destination.address && (
                   <>
                     <h3>Destination Address:</h3>
-                    <p>{selectedOpportunity.destination.address.name}</p>
                     <p>{selectedOpportunity.destination.address.street}</p>
                     <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
-                    <p>{selectedOpportunity.destination.address.country_name}</p>
                   </>
                 )}
                 <h3>Attachments:</h3>
