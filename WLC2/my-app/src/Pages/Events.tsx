@@ -173,7 +173,7 @@ const CloseButton = styled.button`
 `;
 
 const CloseModalButton = styled.button`
-  background-color: #4CAF50; // Green background
+  background-color: #ff0000; // Red background
   border: none;
   color: white;
   padding: 15px 32px;
@@ -187,7 +187,7 @@ const CloseModalButton = styled.button`
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: #45a049; // Darker green on hover
+    background-color: #cc0000; // Darker red on hover
   }
 `;
 
@@ -386,16 +386,9 @@ function Events() {
               <>
                 <h2>{selectedOpportunity.subject}</h2>
                 <p><strong>Opportunity Number:</strong> {selectedOpportunity.number}</p>
-                <p><strong>Description:</strong> {selectedOpportunity.description || 'N/A'}</p>
                 <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
                 <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
-                <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
                 <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
-                <h3>Billing Address:</h3>
-                <p>{selectedOpportunity.billing_address?.name}</p>
-                <p>{selectedOpportunity.billing_address?.street}</p>
-                <p>{`${selectedOpportunity.billing_address?.city}, ${selectedOpportunity.billing_address?.county} ${selectedOpportunity.billing_address?.postcode}`}</p>
-                <p>{selectedOpportunity.billing_address?.country_name}</p>
                 <h3>Attachments:</h3>
                 {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
                   <DocumentList>
@@ -408,10 +401,8 @@ function Events() {
                             target="_blank" 
                             rel="noopener noreferrer"
                           >
-                            {attachment.name || attachment.attachment_file_name} 
-                            ({(attachment.attachment_file_size / 1024 / 1024).toFixed(2)} MB)
+                            {attachment.name || attachment.attachment_file_name}
                           </DocumentLink>
-                          {attachment.description && <p>{attachment.description}</p>}
                         </DocumentItem>
                       );
                     })}
