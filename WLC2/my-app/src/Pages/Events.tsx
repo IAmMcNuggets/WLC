@@ -129,14 +129,16 @@ interface Opportunity {
   };
   opportunity_documents: OpportunityDocument[];
   attachments: Attachment[];
+  custom_fields: {
+    'on-site_contact_phone': string;
+    // Add other custom fields as needed
+  };
   destination: {
     address: {
-      name: string;
       street: string;
       city: string;
       county: string;
       postcode: string;
-      country_name: string;
     };
   };
 }
@@ -417,10 +419,8 @@ function Events() {
                 {selectedOpportunity.destination && selectedOpportunity.destination.address && (
                   <>
                     <h3>Destination Address:</h3>
-                    <p>{selectedOpportunity.destination.address.name}</p>
                     <p>{selectedOpportunity.destination.address.street}</p>
                     <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
-                    <p>{selectedOpportunity.destination.address.country_name}</p>
                   </>
                 )}
 
