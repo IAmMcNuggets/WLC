@@ -112,8 +112,6 @@ interface OpportunityItem {
   id: number;
   name: string;
   quantity: number;
-  transaction_type_name: string;
-  charge_total: string;
 }
 
 interface Opportunity {
@@ -247,6 +245,27 @@ const ModalGrid = styled.div`
 
 const ModalSection = styled.div`
   margin-bottom: 20px;
+`;
+
+const ItemTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
 `;
 
 function Events() {
@@ -432,13 +451,11 @@ function Events() {
 
                 <h3>Items:</h3>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
-                  <table>
+                  <ItemTable>
                     <thead>
                       <tr>
                         <th>Name</th>
                         <th>Quantity</th>
-                        <th>Type</th>
-                        <th>Charge Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -446,12 +463,10 @@ function Events() {
                         <tr key={item.id}>
                           <td>{item.name}</td>
                           <td>{item.quantity}</td>
-                          <td>{item.transaction_type_name}</td>
-                          <td>{item.charge_total}</td>
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                  </ItemTable>
                 ) : (
                   <p>No items associated with this opportunity.</p>
                 )}
