@@ -94,6 +94,20 @@ interface OpportunityDocument {
   name: string; // Add this line
 }
 
+interface Attachment {
+  id: number;
+  attachable_id: number;
+  name: string;
+  description: string;
+  attachment_file_name: string;
+  attachment_content_type: string;
+  attachment_file_size: number;
+  attachment_url: string;
+  attachment_thumb_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Opportunity {
   id: number;
   subject: string;
@@ -114,6 +128,7 @@ interface Opportunity {
     country_name: string;
   };
   opportunity_documents: OpportunityDocument[];
+  attachments: Attachment[];
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -268,26 +283,26 @@ function Events() {
     try {
       console.log(`Fetching opportunity details for ID: ${regardingId}`);
 
-      const [opportunityResponse, documentsResponse] = await Promise.all([
+      const [opportunityResponse, attachmentsResponse] = await Promise.all([
         currentRMSApi.get(`/opportunities/${regardingId}`),
-        currentRMSApi.get('/opportunity_documents', {
-          params: { opportunity_id: regardingId }
+        currentRMSApi.get('/attachments', {
+          params: { 
+            'q[attachable_id_eq]': regardingId,
+            'q[attachable_type_eq]': 'Opportunity'
+          }
         })
       ]);
 
       console.log('Opportunity API Response:', opportunityResponse.data);
-      console.log('Documents API Response:', documentsResponse.data);
+      console.log('Attachments API Response:', attachmentsResponse.data);
 
       if (opportunityResponse.data && opportunityResponse.data.opportunity) {
-        const opportunityWithDocuments = {
+        const opportunityWithAttachments = {
           ...opportunityResponse.data.opportunity,
-          opportunity_documents: documentsResponse.data.opportunity_documents.map((doc: OpportunityDocument) => ({
-            ...doc,
-            name: doc.name || `Document ${doc.id}` // Ensure there's always a name
-          })) || []
+          attachments: attachmentsResponse.data.attachments || []
         };
-        console.log('Combined Opportunity with Documents:', opportunityWithDocuments);
-        setSelectedOpportunity(opportunityWithDocuments);
+        console.log('Combined Opportunity with Attachments:', opportunityWithAttachments);
+        setSelectedOpportunity(opportunityWithAttachments);
       } else {
         console.error('Unexpected API response format for opportunity details');
         setError('Unexpected API response format for opportunity details');
@@ -381,26 +396,28 @@ function Events() {
                 <p>{selectedOpportunity.billing_address?.street}</p>
                 <p>{`${selectedOpportunity.billing_address?.city}, ${selectedOpportunity.billing_address?.county} ${selectedOpportunity.billing_address?.postcode}`}</p>
                 <p>{selectedOpportunity.billing_address?.country_name}</p>
-                <h3>Associated Documents:</h3>
-                {selectedOpportunity.opportunity_documents && selectedOpportunity.opportunity_documents.length > 0 ? (
+                <h3>Attachments:</h3>
+                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
                   <DocumentList>
-                    {selectedOpportunity.opportunity_documents.map((doc) => {
-                      console.log('Rendering document:', doc);
+                    {selectedOpportunity.attachments.map((attachment) => {
+                      console.log('Rendering attachment:', attachment);
                       return (
-                        <DocumentItem key={doc.id}>
+                        <DocumentItem key={attachment.id}>
                           <DocumentLink 
-                            href={`https://${process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN}.current-rms.com/view_document/${doc.uuid}`} 
+                            href={attachment.attachment_url}
                             target="_blank" 
                             rel="noopener noreferrer"
                           >
-                            {doc.name || `Document ${doc.id}`} (Created: {new Date(doc.created_at).toLocaleDateString()})
+                            {attachment.name || attachment.attachment_file_name} 
+                            ({(attachment.attachment_file_size / 1024 / 1024).toFixed(2)} MB)
                           </DocumentLink>
+                          {attachment.description && <p>{attachment.description}</p>}
                         </DocumentItem>
                       );
                     })}
                   </DocumentList>
                 ) : (
-                  <p>No documents associated with this opportunity.</p>
+                  <p>No attachments associated with this opportunity.</p>
                 )}
                 <ButtonContainer>
                   <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
