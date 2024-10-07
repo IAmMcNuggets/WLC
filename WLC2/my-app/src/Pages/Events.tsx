@@ -281,7 +281,10 @@ function Events() {
       if (opportunityResponse.data && opportunityResponse.data.opportunity) {
         const opportunityWithDocuments = {
           ...opportunityResponse.data.opportunity,
-          opportunity_documents: documentsResponse.data.opportunity_documents || []
+          opportunity_documents: documentsResponse.data.opportunity_documents.map((doc: OpportunityDocument) => ({
+            ...doc,
+            name: doc.name || `Document ${doc.id}` // Ensure there's always a name
+          })) || []
         };
         console.log('Combined Opportunity with Documents:', opportunityWithDocuments);
         setSelectedOpportunity(opportunityWithDocuments);
