@@ -160,20 +160,20 @@ const Modal = styled.div`
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; // Changed from center to flex-start
   z-index: 1000;
+  padding-top: 60px; // Add padding at the top to avoid covering the nav bar
 `;
 
 const ModalContent = styled.div`
   background-color: white;
   padding: 20px;
   border-radius: 8px;
-  width: 90%; // Increased from previous value
-  max-width: 800px; // Increased from previous value
-  max-height: 90vh; // 90% of the viewport height
-  overflow-y: auto; // Allow scrolling if content exceeds max-height
+  width: 90%;
+  max-width: 800px;
+  max-height: calc(100vh - 80px); // Subtract padding-top and some extra space
+  overflow-y: auto;
   position: relative;
-  margin-top: 60px; // Adjust this value based on your nav bar height
 `;
 
 const CloseButton = styled.button`
@@ -409,45 +409,39 @@ function Events() {
             ) : (
               <>
                 <h2>{selectedOpportunity.subject}</h2>
-                <ModalGrid>
-                  <ModalSection>
-                    <p><strong>Opportunity Number:</strong> {selectedOpportunity.number}</p>
-                    <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
-                    <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
-                    <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
-                  </ModalSection>
-                  <ModalSection>
-                    {selectedOpportunity.destination && selectedOpportunity.destination.address && (
-                      <>
-                        <h3>Destination Address:</h3>
-                        <p>{selectedOpportunity.destination.address.name}</p>
-                        <p>{selectedOpportunity.destination.address.street}</p>
-                        <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
-                        <p>{selectedOpportunity.destination.address.country_name}</p>
-                      </>
-                    )}
-                  </ModalSection>
-                </ModalGrid>
-                <ModalSection>
-                  <h3>Attachments:</h3>
-                  {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
-                    <DocumentList>
-                      {selectedOpportunity.attachments.map((attachment) => (
-                        <DocumentItem key={attachment.id}>
-                          <DocumentLink 
-                            href={attachment.attachment_url}
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                          >
-                            {attachment.name || attachment.attachment_file_name}
-                          </DocumentLink>
-                        </DocumentItem>
-                      ))}
-                    </DocumentList>
-                  ) : (
-                    <p>No attachments associated with this opportunity.</p>
-                  )}
-                </ModalSection>
+                <p><strong>Opportunity Number:</strong> {selectedOpportunity.number}</p>
+                <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
+                <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
+                <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
+                
+                {selectedOpportunity.destination && selectedOpportunity.destination.address && (
+                  <>
+                    <h3>Destination Address:</h3>
+                    <p>{selectedOpportunity.destination.address.name}</p>
+                    <p>{selectedOpportunity.destination.address.street}</p>
+                    <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
+                    <p>{selectedOpportunity.destination.address.country_name}</p>
+                  </>
+                )}
+
+                <h3>Attachments:</h3>
+                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
+                  <DocumentList>
+                    {selectedOpportunity.attachments.map((attachment) => (
+                      <DocumentItem key={attachment.id}>
+                        <DocumentLink 
+                          href={attachment.attachment_url}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        >
+                          {attachment.name || attachment.attachment_file_name}
+                        </DocumentLink>
+                      </DocumentItem>
+                    ))}
+                  </DocumentList>
+                ) : (
+                  <p>No attachments associated with this opportunity.</p>
+                )}
                 <ButtonContainer>
                   <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
                 </ButtonContainer>
