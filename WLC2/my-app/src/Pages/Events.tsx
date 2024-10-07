@@ -129,6 +129,16 @@ interface Opportunity {
   };
   opportunity_documents: OpportunityDocument[];
   attachments: Attachment[];
+  destination: {
+    address: {
+      name: string;
+      street: string;
+      city: string;
+      county: string;
+      postcode: string;
+      country_name: string;
+    };
+  };
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -389,23 +399,29 @@ function Events() {
                 <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
                 <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
                 <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
+                {selectedOpportunity.destination && selectedOpportunity.destination.address && (
+                  <>
+                    <h3>Destination Address:</h3>
+                    <p>{selectedOpportunity.destination.address.name}</p>
+                    <p>{selectedOpportunity.destination.address.street}</p>
+                    <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
+                    <p>{selectedOpportunity.destination.address.country_name}</p>
+                  </>
+                )}
                 <h3>Attachments:</h3>
                 {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
                   <DocumentList>
-                    {selectedOpportunity.attachments.map((attachment) => {
-                      console.log('Rendering attachment:', attachment);
-                      return (
-                        <DocumentItem key={attachment.id}>
-                          <DocumentLink 
-                            href={attachment.attachment_url}
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                          >
-                            {attachment.name || attachment.attachment_file_name}
-                          </DocumentLink>
-                        </DocumentItem>
-                      );
-                    })}
+                    {selectedOpportunity.attachments.map((attachment) => (
+                      <DocumentItem key={attachment.id}>
+                        <DocumentLink 
+                          href={attachment.attachment_url}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        >
+                          {attachment.name || attachment.attachment_file_name}
+                        </DocumentLink>
+                      </DocumentItem>
+                    ))}
                   </DocumentList>
                 ) : (
                   <p>No attachments associated with this opportunity.</p>
