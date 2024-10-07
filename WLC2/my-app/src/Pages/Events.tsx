@@ -108,6 +108,14 @@ interface Attachment {
   updated_at: string;
 }
 
+interface OpportunityItem {
+  id: number;
+  name: string;
+  quantity: number;
+  transaction_type_name: string;
+  charge_total: string;
+}
+
 interface Opportunity {
   id: number;
   subject: string;
@@ -133,6 +141,7 @@ interface Opportunity {
     'on-site_contact_phone': string;
     // Add other custom fields as needed
   };
+  opportunity_items: OpportunityItem[];
   destination: {
     address: {
       street: string;
@@ -307,28 +316,21 @@ function Events() {
   const fetchOpportunityDetails = async (regardingId: number) => {
     setOpportunityLoading(true);
     try {
-      console.log(`Fetching opportunity details for ID: ${regardingId}`);
-
-      const [opportunityResponse, attachmentsResponse] = await Promise.all([
+      const [opportunityResponse, itemsResponse] = await Promise.all([
         currentRMSApi.get(`/opportunities/${regardingId}`),
-        currentRMSApi.get('/attachments', {
-          params: { 
-            'q[attachable_id_eq]': regardingId,
-            'q[attachable_type_eq]': 'Opportunity'
-          }
-        })
+        currentRMSApi.get(`/opportunities/${regardingId}/opportunity_items`)
       ]);
 
       console.log('Opportunity API Response:', opportunityResponse.data);
-      console.log('Attachments API Response:', attachmentsResponse.data);
+      console.log('Opportunity Items API Response:', itemsResponse.data);
 
       if (opportunityResponse.data && opportunityResponse.data.opportunity) {
-        const opportunityWithAttachments = {
+        const opportunityWithItems = {
           ...opportunityResponse.data.opportunity,
-          attachments: attachmentsResponse.data.attachments || []
+          opportunity_items: itemsResponse.data.opportunity_items || []
         };
-        console.log('Combined Opportunity with Attachments:', opportunityWithAttachments);
-        setSelectedOpportunity(opportunityWithAttachments);
+        console.log('Combined Opportunity with Items:', opportunityWithItems);
+        setSelectedOpportunity(opportunityWithItems);
       } else {
         console.error('Unexpected API response format for opportunity details');
         setError('Unexpected API response format for opportunity details');
@@ -422,6 +424,36 @@ function Events() {
                     <p>{selectedOpportunity.destination.address.street}</p>
                     <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
                   </>
+                )}
+
+                {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
+                  <p><strong>Onsite Contact Phone:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
+                )}
+
+                <h3>Items:</h3>
+                {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Type</th>
+                        <th>Charge Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedOpportunity.opportunity_items.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.name}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.transaction_type_name}</td>
+                          <td>{item.charge_total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>No items associated with this opportunity.</p>
                 )}
 
                 <h3>Attachments:</h3>
