@@ -84,15 +84,22 @@ interface Activity {
 
 interface Opportunity {
   id: number;
-  name: string;
+  subject: string;
   description: string;
   starts_at: string;
   ends_at: string;
-  opportunity_status: {
+  status_name: string;
+  number: string;
+  venue: {
     name: string;
   };
-  opportunity_type: {
+  billing_address: {
     name: string;
+    street: string;
+    city: string;
+    county: string;
+    postcode: string;
+    country_name: string;
   };
   // Add other fields as needed
 }
@@ -275,13 +282,18 @@ function Events() {
               <p>Loading opportunity details...</p>
             ) : (
               <>
-                <h2>{selectedOpportunity.name}</h2>
-                <p><strong>Description:</strong> {selectedOpportunity.description}</p>
+                <h2>{selectedOpportunity.subject}</h2>
+                <p><strong>Opportunity Number:</strong> {selectedOpportunity.number}</p>
+                <p><strong>Description:</strong> {selectedOpportunity.description || 'N/A'}</p>
                 <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
                 <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
-                <p><strong>Status:</strong> {selectedOpportunity.opportunity_status.name}</p>
-                <p><strong>Type:</strong> {selectedOpportunity.opportunity_type.name}</p>
-                {/* Add more opportunity details here as needed */}
+                <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
+                <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
+                <h3>Billing Address:</h3>
+                <p>{selectedOpportunity.billing_address?.name}</p>
+                <p>{selectedOpportunity.billing_address?.street}</p>
+                <p>{`${selectedOpportunity.billing_address?.city}, ${selectedOpportunity.billing_address?.county} ${selectedOpportunity.billing_address?.postcode}`}</p>
+                <p>{selectedOpportunity.billing_address?.country_name}</p>
               </>
             )}
           </ModalContent>
