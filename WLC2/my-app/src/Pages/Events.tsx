@@ -265,6 +265,8 @@ function Events() {
   const fetchOpportunityDetails = async (regardingId: number) => {
     setOpportunityLoading(true);
     try {
+      console.log(`Fetching opportunity details for ID: ${regardingId}`);
+
       const [opportunityResponse, documentsResponse] = await Promise.all([
         currentRMSApi.get(`/opportunities/${regardingId}`),
         currentRMSApi.get('/opportunity_documents', {
@@ -272,17 +274,36 @@ function Events() {
         })
       ]);
 
+      console.log('Opportunity API Response:', opportunityResponse.data);
+      console.log('Documents API Response:', documentsResponse.data);
+
       if (opportunityResponse.data && opportunityResponse.data.opportunity) {
         const opportunityWithDocuments = {
           ...opportunityResponse.data.opportunity,
           opportunity_documents: documentsResponse.data.opportunity_documents || []
         };
+        console.log('Combined Opportunity with Documents:', opportunityWithDocuments);
         setSelectedOpportunity(opportunityWithDocuments);
       } else {
+        console.error('Unexpected API response format for opportunity details');
         setError('Unexpected API response format for opportunity details');
       }
     } catch (err) {
       console.error('Failed to fetch opportunity details:', err);
+      if (axios.isAxiosError(err)) {
+        if (err.response) {
+          console.error('Error response:', err.response.data);
+          console.error('Error status:', err.response.status);
+        } else if (err.request) {
+          console.error('Error request:', err.request);
+        } else {
+          console.error('Error message:', err.message);
+        }
+      } else if (err instanceof Error) {
+        console.error('Error message:', err.message);
+      } else {
+        console.error('Unknown error:', err);
+      }
       setError('Failed to load opportunity details. Please try again later.');
     } finally {
       setOpportunityLoading(false);
@@ -359,17 +380,20 @@ function Events() {
                 <h3>Associated Documents:</h3>
                 {selectedOpportunity.opportunity_documents && selectedOpportunity.opportunity_documents.length > 0 ? (
                   <DocumentList>
-                    {selectedOpportunity.opportunity_documents.map((doc) => (
-                      <DocumentItem key={doc.id}>
-                        <DocumentLink 
-                          href={`https://${process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN}.current-rms.com/view_document/${doc.uuid}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                        >
-                          Document {doc.id} (Created: {new Date(doc.created_at).toLocaleDateString()})
-                        </DocumentLink>
-                      </DocumentItem>
-                    ))}
+                    {selectedOpportunity.opportunity_documents.map((doc) => {
+                      console.log('Rendering document:', doc);
+                      return (
+                        <DocumentItem key={doc.id}>
+                          <DocumentLink 
+                            href={`https://${process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN}.current-rms.com/view_document/${doc.uuid}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            Document {doc.id} (Created: {new Date(doc.created_at).toLocaleDateString()})
+                          </DocumentLink>
+                        </DocumentItem>
+                      );
+                    })}
                   </DocumentList>
                 ) : (
                   <p>No documents associated with this opportunity.</p>
