@@ -63,6 +63,7 @@ interface Participant {
   id: number;
   member_id: number;
   member_name: string;
+  member_email: string;
   assignment_type: string;
 }
 
@@ -79,6 +80,20 @@ interface Activity {
   activity_type_name: string;
   completed: boolean;
   participants: Participant[];
+}
+
+interface Opportunity {
+  id: number;
+  name: string;
+  description: string;
+  starts_at: string;
+  ends_at: string;
+  opportunity_status: {
+    name: string;
+  };
+  opportunity_type: {
+    name: string;
+  };
   // Add other fields as needed
 }
 
@@ -123,19 +138,13 @@ const CloseButton = styled.button`
   cursor: pointer;
 `;
 
-interface Opportunity {
-  id: number;
-  name: string;
-  description: string;
-  // Add other fields as needed
-}
-
 function Events() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [opportunityLoading, setOpportunityLoading] = useState(false);
 
   useEffect(() => {
     // Get the user from localStorage
@@ -194,12 +203,20 @@ function Events() {
   }, [user]);
 
   const fetchOpportunityDetails = async (regardingId: number) => {
+    setOpportunityLoading(true);
     try {
       const response = await currentRMSApi.get(`/opportunities/${regardingId}`);
-      setSelectedOpportunity(response.data.opportunity);
+      console.log('Opportunity details:', response.data);
+      if (response.data && response.data.opportunity) {
+        setSelectedOpportunity(response.data.opportunity);
+      } else {
+        setError('Unexpected API response format for opportunity details');
+      }
     } catch (err) {
       console.error('Failed to fetch opportunity details:', err);
       setError('Failed to load opportunity details. Please try again later.');
+    } finally {
+      setOpportunityLoading(false);
     }
   };
 
@@ -246,17 +263,6 @@ function Events() {
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
               <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
               {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
-              {activity.description && <ActivityDetail><strong>Description:</strong> {activity.description}</ActivityDetail>}
-              {activity.participants && activity.participants.length > 0 && (
-                <ActivityDetail>
-                  <strong>Participants:</strong>
-                  <ParticipantList>
-                    {activity.participants.map((participant) => (
-                      <li key={participant.id}>{participant.member_name}</li>
-                    ))}
-                  </ParticipantList>
-                </ActivityDetail>
-              )}
             </ActivityItem>
           ))}
         </ActivityList>
@@ -265,9 +271,19 @@ function Events() {
         <Modal onClick={closeModal}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <CloseButton onClick={closeModal}>&times;</CloseButton>
-            <h2>{selectedOpportunity.name}</h2>
-            <p><strong>Description:</strong> {selectedOpportunity.description}</p>
-            {/* Add more opportunity details here */}
+            {opportunityLoading ? (
+              <p>Loading opportunity details...</p>
+            ) : (
+              <>
+                <h2>{selectedOpportunity.name}</h2>
+                <p><strong>Description:</strong> {selectedOpportunity.description}</p>
+                <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
+                <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
+                <p><strong>Status:</strong> {selectedOpportunity.opportunity_status.name}</p>
+                <p><strong>Type:</strong> {selectedOpportunity.opportunity_type.name}</p>
+                {/* Add more opportunity details here as needed */}
+              </>
+            )}
           </ModalContent>
         </Modal>
       )}
