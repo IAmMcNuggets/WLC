@@ -92,11 +92,50 @@ const currentRMSApi = axios.create({
   }
 });
 
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+`;
+
+interface Opportunity {
+  id: number;
+  name: string;
+  description: string;
+  // Add other fields as needed
+}
+
 function Events() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [user, setUser] = useState<GoogleUser | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   useEffect(() => {
     // Get the user from localStorage
@@ -154,6 +193,26 @@ function Events() {
     }
   }, [user]);
 
+  const fetchOpportunityDetails = async (regardingId: number) => {
+    try {
+      const response = await currentRMSApi.get(`/opportunities/${regardingId}`);
+      setSelectedOpportunity(response.data.opportunity);
+    } catch (err) {
+      console.error('Failed to fetch opportunity details:', err);
+      setError('Failed to load opportunity details. Please try again later.');
+    }
+  };
+
+  const handleActivityClick = (activity: Activity) => {
+    if (activity.regarding_type === 'Opportunity') {
+      fetchOpportunityDetails(activity.regarding_id);
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedOpportunity(null);
+  };
+
   const formatDateTime = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
@@ -182,7 +241,7 @@ function Events() {
       ) : (
         <ActivityList>
           {activities.map((activity) => (
-            <ActivityItem key={activity.id}>
+            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
               <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
@@ -201,6 +260,16 @@ function Events() {
             </ActivityItem>
           ))}
         </ActivityList>
+      )}
+      {selectedOpportunity && (
+        <Modal onClick={closeModal}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <CloseButton onClick={closeModal}>&times;</CloseButton>
+            <h2>{selectedOpportunity.name}</h2>
+            <p><strong>Description:</strong> {selectedOpportunity.description}</p>
+            {/* Add more opportunity details here */}
+          </ModalContent>
+        </Modal>
       )}
     </EventsContainer>
   );
