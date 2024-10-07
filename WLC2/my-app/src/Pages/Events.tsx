@@ -91,6 +91,7 @@ interface OpportunityDocument {
   uuid: string;
   created_at: string;
   updated_at: string;
+  name: string; // Add this line
 }
 
 interface Opportunity {
@@ -389,7 +390,7 @@ function Events() {
                             target="_blank" 
                             rel="noopener noreferrer"
                           >
-                            Document {doc.id} (Created: {new Date(doc.created_at).toLocaleDateString()})
+                            {doc.name || `Document ${doc.id}`} (Created: {new Date(doc.created_at).toLocaleDateString()})
                           </DocumentLink>
                         </DocumentItem>
                       );
