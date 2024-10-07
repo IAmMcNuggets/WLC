@@ -82,6 +82,17 @@ interface Activity {
   participants: Participant[];
 }
 
+interface OpportunityDocument {
+  id: number;
+  opportunity_id: number;
+  document_id: number;
+  status: number;
+  view_count: number;
+  uuid: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface Opportunity {
   id: number;
   subject: string;
@@ -101,7 +112,7 @@ interface Opportunity {
     postcode: string;
     country_name: string;
   };
-  // Add other fields as needed
+  opportunity_documents: OpportunityDocument[];
 }
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
@@ -143,6 +154,48 @@ const CloseButton = styled.button`
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
+`;
+
+const CloseModalButton = styled.button`
+  background-color: #4CAF50; // Green background
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #45a049; // Darker green on hover
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+`;
+
+const DocumentList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+`;
+
+const DocumentItem = styled.li`
+  margin-bottom: 8px;
+`;
+
+const DocumentLink = styled.a`
+  color: #4CAF50;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 function Events() {
@@ -212,10 +265,19 @@ function Events() {
   const fetchOpportunityDetails = async (regardingId: number) => {
     setOpportunityLoading(true);
     try {
-      const response = await currentRMSApi.get(`/opportunities/${regardingId}`);
-      console.log('Opportunity details:', response.data);
-      if (response.data && response.data.opportunity) {
-        setSelectedOpportunity(response.data.opportunity);
+      const [opportunityResponse, documentsResponse] = await Promise.all([
+        currentRMSApi.get(`/opportunities/${regardingId}`),
+        currentRMSApi.get('/opportunity_documents', {
+          params: { opportunity_id: regardingId }
+        })
+      ]);
+
+      if (opportunityResponse.data && opportunityResponse.data.opportunity) {
+        const opportunityWithDocuments = {
+          ...opportunityResponse.data.opportunity,
+          opportunity_documents: documentsResponse.data.opportunity_documents || []
+        };
+        setSelectedOpportunity(opportunityWithDocuments);
       } else {
         setError('Unexpected API response format for opportunity details');
       }
@@ -294,6 +356,27 @@ function Events() {
                 <p>{selectedOpportunity.billing_address?.street}</p>
                 <p>{`${selectedOpportunity.billing_address?.city}, ${selectedOpportunity.billing_address?.county} ${selectedOpportunity.billing_address?.postcode}`}</p>
                 <p>{selectedOpportunity.billing_address?.country_name}</p>
+                <h3>Associated Documents:</h3>
+                {selectedOpportunity.opportunity_documents && selectedOpportunity.opportunity_documents.length > 0 ? (
+                  <DocumentList>
+                    {selectedOpportunity.opportunity_documents.map((doc) => (
+                      <DocumentItem key={doc.id}>
+                        <DocumentLink 
+                          href={`https://${process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN}.current-rms.com/view_document/${doc.uuid}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                        >
+                          Document {doc.id} (Created: {new Date(doc.created_at).toLocaleDateString()})
+                        </DocumentLink>
+                      </DocumentItem>
+                    ))}
+                  </DocumentList>
+                ) : (
+                  <p>No documents associated with this opportunity.</p>
+                )}
+                <ButtonContainer>
+                  <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
+                </ButtonContainer>
               </>
             )}
           </ModalContent>
