@@ -144,7 +144,7 @@ interface Opportunity {
 }
 
 const currentRMSApi = axios.create({
-  baseURL: '/api',  // This will be redirected to your serverless function
+  baseURL: '/.netlify/functions/current-rms-proxy',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -285,43 +285,35 @@ const Events: React.FC = () => {
   }, []);
 
   const fetchActivities = async () => {
-    if (!user) {
-      setError('User not logged in');
-      setLoading(false);
-      return;
-    }
-
+    setLoading(true);
+    setError(null);
     try {
-      const startDate = new Date().toISOString();
-      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Fetch activities for the next 30 days
-
-      const response = await currentRMSApi.get('/activities', {
-        params: {
-          'filter[starts_at_gteq]': startDate,
-          'filter[starts_at_lteq]': endDate,
-          'include[]': 'participants',
-          'per_page': 100, // Increase this if needed to ensure we get all relevant activities
-          'sort': 'starts_at'
-        }
-      });
+      const now = new Date();
+      const threeMonthsLater = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate());
       
+      const url = '/activities';
+      const params = {
+        'filter[starts_at_gteq]': now.toISOString(),
+        'filter[starts_at_lteq]': threeMonthsLater.toISOString(),
+        'include[]': 'participants',
+        'per_page': 100,
+        'sort': 'starts_at'
+      };
+      
+      console.log('Fetching from:', currentRMSApi.getUri({ url, params }));
+      
+      const response = await currentRMSApi.get(url, { params });
+
       console.log('API Response:', response.data);
-
-      if (response.data.activities && Array.isArray(response.data.activities)) {
-        const filteredActivities = response.data.activities.filter((activity: Activity) => 
-          activity.participants.some(participant => 
-            participant.member_name.toLowerCase().includes(user.name.toLowerCase())
-          )
-        );
-        setActivities(filteredActivities);
-      } else {
-        setError('Unexpected API response format');
-      }
-
-      setLoading(false);
+      setActivities(response.data.activities);
     } catch (err) {
       console.error('Failed to fetch activities:', err);
+      if (axios.isAxiosError(err)) {
+        console.error('Error response:', err.response?.data);
+        console.error('Error status:', err.response?.status);
+      }
       setError('Failed to load activities. Please try again later.');
+    } finally {
       setLoading(false);
     }
   };
