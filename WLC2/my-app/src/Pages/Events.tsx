@@ -143,9 +143,13 @@ interface Opportunity {
   };
 }
 
+const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+
 const currentRMSApi = axios.create({
-  baseURL: 'https://gigfriend.netlify.app/.netlify/functions/current-rms-proxy',
+  baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
   headers: {
+    'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
+    'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json'
   }
 });
@@ -289,34 +293,22 @@ const Events: React.FC = () => {
     setError(null);
     try {
       const now = new Date();
-      const threeMonthsLater = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate());
+      const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
       
-      const url = '/activities';
-      const params = {
-        'filter[starts_at_gteq]': now.toISOString(),
-        'filter[starts_at_lteq]': threeMonthsLater.toISOString(),
-        'include[]': 'participants',
-        'per_page': 100,
-        'sort': 'starts_at'
-      };
-      
-      console.log('Fetching from:', currentRMSApi.getUri({ url, params }));
-      
-      const response = await currentRMSApi.get(url, { params });
+      const response = await currentRMSApi.get('/activities', {
+        params: {
+          'filter[starts_at_gteq]': now.toISOString(),
+          'filter[starts_at_lteq]': oneMonthLater.toISOString(),
+          'include[]': 'participants',
+          'per_page': 100,
+          'sort': 'starts_at'
+        }
+      });
 
       console.log('API Response:', response.data);
-      if (response.data && Array.isArray(response.data.activities)) {
-        setActivities(response.data.activities);
-      } else {
-        console.error('Unexpected response format:', response.data);
-        setError('Received unexpected data format from the server.');
-      }
+      setActivities(response.data.activities);
     } catch (err) {
       console.error('Failed to fetch activities:', err);
-      if (axios.isAxiosError(err)) {
-        console.error('Error response:', err.response?.data);
-        console.error('Error status:', err.response?.status);
-      }
       setError('Failed to load activities. Please try again later.');
     } finally {
       setLoading(false);

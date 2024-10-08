@@ -1,2 +1,5 @@
 
 WLC2/my-app/secrets.env
+
+# Local Netlify folder
+.netlify
