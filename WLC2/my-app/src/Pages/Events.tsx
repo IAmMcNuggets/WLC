@@ -104,7 +104,7 @@ interface Attachment {
 interface OpportunityItem {
   id: number;
   name: string;
-  quantity: number;
+  quantity: number | string;
 }
 
 interface Opportunity {
@@ -470,14 +470,19 @@ const Events: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedOpportunity.opportunity_items.map((item) => (
-                        <tr key={item.id}>
-                          <ItemName isZeroQuantity={item.quantity === 0 || item.quantity === 0.0}>
-                            {item.name}
-                          </ItemName>
-                          <td>{item.quantity}</td>
-                        </tr>
-                      ))}
+                      {selectedOpportunity.opportunity_items.map((item) => {
+                        const quantity = parseFloat(item.quantity.toString().trim());
+                        const isZeroQuantity = quantity === 0 || isNaN(quantity);
+                        console.log(`Item: ${item.name}, Quantity: ${item.quantity}, Parsed: ${quantity}, IsZero: ${isZeroQuantity}`);
+                        return (
+                          <tr key={item.id}>
+                            <ItemName isZeroQuantity={isZeroQuantity}>
+                              {item.name}
+                            </ItemName>
+                            <td>{item.quantity}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </ItemTable>
                 ) : (
