@@ -169,9 +169,10 @@ const Modal = styled.div`
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
-  align-items: flex-start; // Changed from center to flex-start
-  z-index: 1000;
-  padding-top: 60px; // Add padding at the top to avoid covering the nav bar
+  align-items: center;
+  z-index: 1001; // Increased to be above the bottom nav bar
+  padding: 60px 0 80px; // Add padding for top and bottom nav bars
+  overflow-y: auto;
 `;
 
 const ModalContent = styled.div`
@@ -180,19 +181,22 @@ const ModalContent = styled.div`
   border-radius: 8px;
   width: 90%;
   max-width: 800px;
-  max-height: calc(100vh - 80px); // Subtract padding-top and some extra space
+  max-height: calc(100vh - 140px); // Adjusted to account for top and bottom padding
   overflow-y: auto;
   position: relative;
+  margin: auto;
 `;
 
 const CloseButton = styled.button`
-  position: absolute;
+  position: sticky;
   top: 10px;
   right: 10px;
+  float: right;
   font-size: 24px;
   background: none;
   border: none;
   cursor: pointer;
+  z-index: 1;
 `;
 
 const CloseModalButton = styled.button`
@@ -251,6 +255,7 @@ const ItemTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
+  font-size: 0.9rem; // Slightly smaller font size
 
   th, td {
     border: 1px solid #ddd;
