@@ -289,6 +289,11 @@ const Events: React.FC = () => {
   }, []);
 
   const fetchActivities = async () => {
+    if (!user || !user.name) {
+      setError('User not logged in or name not available');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -306,7 +311,16 @@ const Events: React.FC = () => {
       });
 
       console.log('API Response:', response.data);
-      setActivities(response.data.activities);
+
+      // Filter activities based on the logged-in user's name
+      const filteredActivities = response.data.activities.filter((activity: Activity) => {
+        return activity.participants.some(participant => 
+          participant.member_name.toLowerCase() === user.name.toLowerCase()
+        );
+      });
+
+      console.log('Filtered Activities:', filteredActivities);
+      setActivities(filteredActivities);
     } catch (err) {
       console.error('Failed to fetch activities:', err);
       setError('Failed to load activities. Please try again later.');
@@ -316,7 +330,7 @@ const Events: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && user.name) {
       fetchActivities();
     }
   }, [user]);
