@@ -267,6 +267,10 @@ const ItemTable = styled.table`
   }
 `;
 
+const ItemName = styled.td<{ isZeroQuantity: boolean }>`
+  font-weight: ${props => props.isZeroQuantity ? 'bold' : 'normal'};
+`;
+
 function Events() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -468,7 +472,9 @@ function Events() {
                     <tbody>
                       {selectedOpportunity.opportunity_items.map((item) => (
                         <tr key={item.id}>
-                          <td>{item.name}</td>
+                          <ItemName isZeroQuantity={item.quantity === 0 || item.quantity === 0.0}>
+                            {item.name}
+                          </ItemName>
                           <td>{item.quantity}</td>
                         </tr>
                       ))}
