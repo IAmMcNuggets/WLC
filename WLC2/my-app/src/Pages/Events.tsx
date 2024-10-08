@@ -144,7 +144,7 @@ interface Opportunity {
 }
 
 const currentRMSApi = axios.create({
-  baseURL: '/.netlify/functions/current-rms-proxy',
+  baseURL: 'https://gigfriend.netlify.app/.netlify/functions/current-rms-proxy',
   headers: {
     'Content-Type': 'application/json'
   }
