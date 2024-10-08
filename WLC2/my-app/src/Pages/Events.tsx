@@ -305,7 +305,12 @@ const Events: React.FC = () => {
       const response = await currentRMSApi.get(url, { params });
 
       console.log('API Response:', response.data);
-      setActivities(response.data.activities);
+      if (response.data && Array.isArray(response.data.activities)) {
+        setActivities(response.data.activities);
+      } else {
+        console.error('Unexpected response format:', response.data);
+        setError('Received unexpected data format from the server.');
+      }
     } catch (err) {
       console.error('Failed to fetch activities:', err);
       if (axios.isAxiosError(err)) {

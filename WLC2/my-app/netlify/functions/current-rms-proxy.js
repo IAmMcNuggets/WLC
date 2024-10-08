@@ -1,12 +1,14 @@
 const axios = require('axios');
 
 exports.handler = async function(event, context) {
+  console.log('Function invoked with event:', JSON.stringify(event));
+  
   // Extract the path and query parameters from the incoming request
   const { path } = event;
   const { queryStringParameters } = event;
 
   try {
-    // Make the request to Current RMS API
+    console.log('Making request to Current RMS API');
     const response = await axios({
       method: 'GET',
       url: `https://api.current-rms.com/api/v1${path}`,
@@ -18,13 +20,13 @@ exports.handler = async function(event, context) {
       }
     });
 
-    // Return the response from Current RMS
+    console.log('Received response from Current RMS API');
     return {
       statusCode: 200,
       body: JSON.stringify(response.data)
     };
   } catch (error) {
-    // Handle any errors
+    console.error('Error in Netlify function:', error);
     return {
       statusCode: error.response?.status || 500,
       body: JSON.stringify(error.response?.data || { error: 'An error occurred' })

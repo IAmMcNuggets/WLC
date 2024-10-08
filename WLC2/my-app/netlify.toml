@@ -2,6 +2,6 @@
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/*"
+  from = "/.netlify/functions/current-rms-proxy/*"
   to = "/.netlify/functions/current-rms-proxy/:splat"
   status = 200
