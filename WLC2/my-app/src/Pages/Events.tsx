@@ -96,16 +96,9 @@ interface OpportunityDocument {
 
 interface Attachment {
   id: number;
-  attachable_id: number;
   name: string;
-  description: string;
   attachment_file_name: string;
-  attachment_content_type: string;
-  attachment_file_size: number;
   attachment_url: string;
-  attachment_thumb_url: string;
-  created_at: string;
-  updated_at: string;
 }
 
 interface OpportunityItem {
@@ -340,21 +333,29 @@ function Events() {
   const fetchOpportunityDetails = async (regardingId: number) => {
     setOpportunityLoading(true);
     try {
-      const [opportunityResponse, itemsResponse] = await Promise.all([
+      const [opportunityResponse, itemsResponse, attachmentsResponse] = await Promise.all([
         currentRMSApi.get(`/opportunities/${regardingId}`),
-        currentRMSApi.get(`/opportunities/${regardingId}/opportunity_items`)
+        currentRMSApi.get(`/opportunities/${regardingId}/opportunity_items`),
+        currentRMSApi.get('/attachments', {
+          params: { 
+            'q[attachable_id_eq]': regardingId,
+            'q[attachable_type_eq]': 'Opportunity'
+          }
+        })
       ]);
 
       console.log('Opportunity API Response:', opportunityResponse.data);
       console.log('Opportunity Items API Response:', itemsResponse.data);
+      console.log('Attachments API Response:', attachmentsResponse.data);
 
       if (opportunityResponse.data && opportunityResponse.data.opportunity) {
-        const opportunityWithItems = {
+        const opportunityWithItemsAndAttachments = {
           ...opportunityResponse.data.opportunity,
-          opportunity_items: itemsResponse.data.opportunity_items || []
+          opportunity_items: itemsResponse.data.opportunity_items || [],
+          attachments: attachmentsResponse.data.attachments || []
         };
-        console.log('Combined Opportunity with Items:', opportunityWithItems);
-        setSelectedOpportunity(opportunityWithItems);
+        console.log('Combined Opportunity with Items and Attachments:', opportunityWithItemsAndAttachments);
+        setSelectedOpportunity(opportunityWithItemsAndAttachments);
       } else {
         console.error('Unexpected API response format for opportunity details');
         setError('Unexpected API response format for opportunity details');
