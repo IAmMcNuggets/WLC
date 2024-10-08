@@ -13,7 +13,7 @@ const FloatingNavBar = styled.nav`
   border-radius: 20px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   padding: 10px;
-  z-index: 1000;
+  z-index: 1002; // Higher than the modal's z-index
   display: flex;
   justify-content: space-around;
 `;

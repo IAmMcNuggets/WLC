@@ -158,13 +158,13 @@ const Modal = styled.div`
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 80px); // Subtract the height of the bottom nav bar
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1001; // Increased to be above the bottom nav bar
-  padding: 60px 0 80px; // Add padding for top and bottom nav bars
+  z-index: 1001;
+  padding: 60px 0 0; // Remove bottom padding
   overflow-y: auto;
 `;
 
@@ -174,10 +174,11 @@ const ModalContent = styled.div`
   border-radius: 8px;
   width: 90%;
   max-width: 800px;
-  max-height: calc(100vh - 140px); // Adjusted to account for top and bottom padding
+  max-height: calc(100vh - 200px); // Adjust to account for top and bottom spaces
   overflow-y: auto;
   position: relative;
   margin: auto;
+  margin-bottom: 100px; // Add margin at the bottom to avoid overlapping with the nav bar
 `;
 
 const CloseButton = styled.button`
