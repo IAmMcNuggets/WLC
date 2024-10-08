@@ -143,12 +143,9 @@ interface Opportunity {
   };
 }
 
-const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 const currentRMSApi = axios.create({
-  baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
+  baseURL: '/api',  // This will be redirected to your serverless function
   headers: {
-    'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
-    'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json'
   }
 });
@@ -271,10 +268,10 @@ const ItemName = styled.td<{ isZeroQuantity: boolean }>`
   font-weight: ${props => props.isZeroQuantity ? 'bold' : 'normal'};
 `;
 
-function Events() {
+const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [opportunityLoading, setOpportunityLoading] = useState(false);
@@ -287,49 +284,49 @@ function Events() {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchActivities = async () => {
-      if (!user) {
-        setError('User not logged in');
-        setLoading(false);
-        return;
-      }
+  const fetchActivities = async () => {
+    if (!user) {
+      setError('User not logged in');
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const startDate = new Date().toISOString();
-        const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Fetch activities for the next 30 days
+    try {
+      const startDate = new Date().toISOString();
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Fetch activities for the next 30 days
 
-        const response = await currentRMSApi.get('/activities', {
-          params: {
-            'filter[starts_at_gteq]': startDate,
-            'filter[starts_at_lteq]': endDate,
-            'include[]': 'participants',
-            'per_page': 100, // Increase this if needed to ensure we get all relevant activities
-            'sort': 'starts_at'
-          }
-        });
-        
-        console.log('API Response:', response.data);
-
-        if (response.data.activities && Array.isArray(response.data.activities)) {
-          const filteredActivities = response.data.activities.filter((activity: Activity) => 
-            activity.participants.some(participant => 
-              participant.member_name.toLowerCase().includes(user.name.toLowerCase())
-            )
-          );
-          setActivities(filteredActivities);
-        } else {
-          setError('Unexpected API response format');
+      const response = await currentRMSApi.get('/activities', {
+        params: {
+          'filter[starts_at_gteq]': startDate,
+          'filter[starts_at_lteq]': endDate,
+          'include[]': 'participants',
+          'per_page': 100, // Increase this if needed to ensure we get all relevant activities
+          'sort': 'starts_at'
         }
+      });
+      
+      console.log('API Response:', response.data);
 
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to fetch activities:', err);
-        setError('Failed to load activities. Please try again later.');
-        setLoading(false);
+      if (response.data.activities && Array.isArray(response.data.activities)) {
+        const filteredActivities = response.data.activities.filter((activity: Activity) => 
+          activity.participants.some(participant => 
+            participant.member_name.toLowerCase().includes(user.name.toLowerCase())
+          )
+        );
+        setActivities(filteredActivities);
+      } else {
+        setError('Unexpected API response format');
       }
-    };
 
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to fetch activities:', err);
+      setError('Failed to load activities. Please try again later.');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (user) {
       fetchActivities();
     }
@@ -512,6 +509,6 @@ function Events() {
       )}
     </EventsContainer>
   );
-}
+};
 
 export default Events;
