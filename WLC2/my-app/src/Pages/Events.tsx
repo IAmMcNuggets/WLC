@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt } from 'react-icons/fa';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -277,7 +278,9 @@ const ItemName = styled.td<{ isZeroQuantity: boolean }>`
 const CategoryHeader = styled.h4`
   margin-top: 20px;
   margin-bottom: 10px;
-  color: #333;
+  color: #4CAF50;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 5px;
 `;
 
 const SubCategoryHeader = styled.h5`
@@ -311,6 +314,24 @@ const PrincipalDescription = styled.p`
   margin-left: 20px;
   font-size: 0.9em;
   color: #666;
+`;
+
+const ModalHeader = styled.h2`
+  color: #333;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+`;
+
+const InfoSection = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+`;
+
+const Icon = styled.span`
+  margin-right: 10px;
+  color: #4CAF50;
 `;
 
 const Events: React.FC = () => {
@@ -491,24 +512,37 @@ const Events: React.FC = () => {
               <p>Loading opportunity details...</p>
             ) : (
               <>
-                <h2>{selectedOpportunity.subject}</h2>
-                <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
-                <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
-                <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
+                <ModalHeader>{selectedOpportunity.subject}</ModalHeader>
                 
-                {selectedOpportunity.destination && selectedOpportunity.destination.address && (
-                  <>
-                    <h3>Destination Address:</h3>
-                    <p>{selectedOpportunity.destination.address.street}</p>
-                    <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
-                  </>
-                )}
+                <InfoSection>
+                  <Icon><FaClock /></Icon>
+                  <div>
+                    <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
+                    <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
+                  </div>
+                </InfoSection>
+                
+                <InfoSection>
+                  <Icon><FaMapMarkerAlt /></Icon>
+                  <div>
+                    <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
+                    {selectedOpportunity.destination && selectedOpportunity.destination.address && (
+                      <>
+                        <p>{selectedOpportunity.destination.address.street}</p>
+                        <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
+                      </>
+                    )}
+                  </div>
+                </InfoSection>
 
                 {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
-                  <p><strong>Onsite Contact Phone:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
+                  <InfoSection>
+                    <Icon><FaPhone /></Icon>
+                    <p><strong>Onsite Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
+                  </InfoSection>
                 )}
 
-                <h3>Items:</h3>
+                <CategoryHeader>Items</CategoryHeader>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
                   <div>
                     {(() => {
@@ -576,11 +610,12 @@ const Events: React.FC = () => {
                   <p>No items associated with this opportunity.</p>
                 )}
 
-                <h3>Attachments:</h3>
+                <CategoryHeader>Attachments</CategoryHeader>
                 {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
                   <DocumentList>
                     {selectedOpportunity.attachments.map((attachment) => (
                       <DocumentItem key={attachment.id}>
+                        <Icon><FaFileAlt /></Icon>
                         <DocumentLink 
                           href={attachment.attachment_url}
                           target="_blank" 
