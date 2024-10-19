@@ -443,7 +443,6 @@ const Events: React.FC = () => {
             ) : (
               <>
                 <h2>{selectedOpportunity.subject}</h2>
-                <p><strong>Opportunity Number:</strong> {selectedOpportunity.number}</p>
                 <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
                 <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
                 <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
