@@ -280,33 +280,24 @@ const CategoryHeader = styled.h4`
 `;
 
 const SubCategoryHeader = styled.h5`
-  margin-top: 15px;
-  margin-bottom: 5px;
-  color: #555;
-  padding-left: 20px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-
   &:before {
     content: '▶';
+    display: inline-block;
     margin-right: 5px;
     transition: transform 0.3s ease;
   }
-
   &.open:before {
     transform: rotate(90deg);
   }
 `;
 
 const AccessoryList = styled.div`
-  overflow: hidden;
   max-height: 0;
+  overflow: hidden;
   transition: max-height 0.3s ease-out;
-
   &.open {
-    max-height: 1000px; // Adjust this value based on your needs
-    transition: max-height 0.5s ease-in;
+    max-height: 1000px;
   }
 `;
 
@@ -539,7 +530,10 @@ const Events: React.FC = () => {
                             </SubCategoryHeader>
                           );
                           output.push(
-                            <AccessoryList key={`acclist-${item.id}`} className={openSubCategories[item.name] ? 'open' : ''}>
+                            <AccessoryList 
+                              key={`acclist-${item.id}`} 
+                              className={openSubCategories[item.name] ? 'open' : ''}
+                            >
                               {selectedOpportunity.opportunity_items
                                 .filter(subItem => subItem.opportunity_item_type_name === 'Accessory' && 
                                        selectedOpportunity.opportunity_items.findIndex(principal => 
