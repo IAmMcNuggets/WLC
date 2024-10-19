@@ -542,8 +542,8 @@ const Events: React.FC = () => {
                   </InfoSection>
                 )}
 
-                <CategoryHeader>Items</CategoryHeader>
-                {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
+                {/* Removed the "Items" header */}
+                {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
                   <div>
                     {(() => {
                       let currentCategory: string | null = null;
@@ -606,8 +606,6 @@ const Events: React.FC = () => {
                       });
                     })()}
                   </div>
-                ) : (
-                  <p>No items associated with this opportunity.</p>
                 )}
 
                 <CategoryHeader>Attachments</CategoryHeader>
