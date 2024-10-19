@@ -149,11 +149,12 @@ interface Opportunity {
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 
 const currentRMSApi = axios.create({
-  baseURL: '/.netlify/functions/current-rms-proxy',
+  baseURL: 'https://cors-anywhere.herokuapp.com/https://api.current-rms.com/api/v1',
   headers: {
+    'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
+    'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json'
-  },
-  paramsSerializer: params => Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')
+  }
 });
 
 const Modal = styled.div`
