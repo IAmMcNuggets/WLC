@@ -17,6 +17,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.3.0",
+    "react-query": "^3.39.3",
     "react-router-dom": "^6.26.2",
     "react-scripts": "5.0.1",
     "styled-components": "^6.1.13",
@@ -49,6 +50,7 @@
   },
   "proxy": "https://api.current-rms.com",
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@types/lodash": "^4.17.12"
   }
 }

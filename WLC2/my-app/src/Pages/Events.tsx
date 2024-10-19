@@ -4,6 +4,8 @@ import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt } from 'react-icons/fa';
+import { debounce } from 'lodash';
+import { useQuery, UseQueryResult } from 'react-query';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -334,23 +336,26 @@ const Icon = styled.span`
   color: #4CAF50;
 `;
 
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [opportunities, setOpportunities] = useState<{ [id: number]: Opportunity }>({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [openSubCategories, setOpenSubCategories] = useState<{ [key: string]: boolean }>({});
   const [opportunityLoading, setOpportunityLoading] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async (): Promise<Activity[]> => {
     if (!user || !user.name) {
       setError('User not logged in or name not available');
-      return;
+      return []; // Return an empty array
     }
 
-    setLoading(true);
     setError(null);
     try {
       const now = new Date();
@@ -361,8 +366,9 @@ const Events: React.FC = () => {
           'filter[starts_at_gteq]': now.toISOString(),
           'filter[starts_at_lteq]': oneMonthLater.toISOString(),
           'include[]': 'participants',
-          'per_page': 100,
-          'sort': 'starts_at'
+          'sort': 'starts_at',
+          'page': page,
+          'per_page': 20
         }
       });
 
@@ -372,7 +378,9 @@ const Events: React.FC = () => {
         );
       });
 
-      setActivities(filteredActivities);
+      setActivities(prev => [...prev, ...filteredActivities]);
+      setPage(prev => prev + 1);
+      setHasMore(filteredActivities.length === 20);
 
       const opportunityIds = filteredActivities
         .filter((activity: Activity) => activity.regarding_type === 'Opportunity')
@@ -403,17 +411,19 @@ const Events: React.FC = () => {
       }, {});
 
       setOpportunities(opportunitiesMap);
+      return filteredActivities;
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      if (axios.isAxiosError(err) && err.response) {
-        setError(`Failed to load data: ${err.response.status} ${err.response.statusText}`);
-      } else {
-        setError('Failed to load data. Please try again later.');
-      }
-    } finally {
-      setLoading(false);
+      setError('Failed to load data. Please try again later.');
+      return []; // Return an empty array in case of error
     }
-  }, [user]);
+
+    const now = Date.now();
+    setLastFetchTime(now);
+    // Store fetched data in localStorage
+    localStorage.setItem('activitiesData', JSON.stringify(activities));
+    localStorage.setItem('opportunitiesData', JSON.stringify(opportunities));
+  }, [user, lastFetchTime, page, hasMore]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -427,6 +437,16 @@ const Events: React.FC = () => {
       fetchAllData();
     }
   }, [user, fetchAllData]);
+
+  useEffect(() => {
+    // Load data from localStorage on component mount
+    const cachedActivities = localStorage.getItem('activitiesData');
+    const cachedOpportunities = localStorage.getItem('opportunitiesData');
+    if (cachedActivities && cachedOpportunities) {
+      setActivities(JSON.parse(cachedActivities));
+      setOpportunities(JSON.parse(cachedOpportunities));
+    }
+  }, []);
 
   const handleActivityClick = (activity: Activity) => {
     if (activity.regarding_type === 'Opportunity') {
@@ -459,6 +479,17 @@ const Events: React.FC = () => {
     }));
   };
 
+  const debouncedFetch = useCallback(
+    debounce(() => {
+      fetchAllData();
+    }, 300),
+    [fetchAllData]
+  );
+
+  const { data: queryActivities, isLoading, error: queryError } = useQuery<Activity[], Error>('activities', fetchAllData, {
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   if (!user) {
     return <EventsContainer>Please log in to view your activities.</EventsContainer>;
   }
@@ -466,15 +497,15 @@ const Events: React.FC = () => {
   return (
     <EventsContainer>
       <EventsTitle>Your Upcoming Activities</EventsTitle>
-      {loading ? (
+      {isLoading ? (
         <p>Loading your activities and opportunities...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : activities.length === 0 ? (
+      ) : queryError ? (
+        <p>{queryError.message}</p>
+      ) : queryActivities && queryActivities.length === 0 ? (
         <p>No upcoming activities found for {user?.name}.</p>
       ) : (
         <ActivityList>
-          {activities.map((activity) => (
+          {queryActivities?.map((activity) => (
             <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
