@@ -106,6 +106,7 @@ interface OpportunityItem {
   name: string;
   quantity: number | string;
   opportunity_item_type_name: string;
+  description?: string; // Add this line
 }
 
 interface Opportunity {
@@ -304,6 +305,12 @@ const AccessoryList = styled.div`
 const AccessoryItem = styled.div`
   padding-left: 40px;
   margin-bottom: 5px;
+`;
+
+const PrincipalDescription = styled.p`
+  margin-left: 20px;
+  font-size: 0.9em;
+  color: #666;
 `;
 
 const Events: React.FC = () => {
@@ -521,13 +528,17 @@ const Events: React.FC = () => {
                         } else if (item.opportunity_item_type_name === 'Principal' && item.name !== currentSubCategory) {
                           currentSubCategory = item.name;
                           output.push(
-                            <SubCategoryHeader 
-                              key={`subcat-${item.id}`}
-                              onClick={() => toggleSubCategory(item.name)}
-                              className={openSubCategories[item.name] ? 'open' : ''}
-                            >
-                              {item.name}
-                            </SubCategoryHeader>
+                            <React.Fragment key={`principal-${item.id}`}>
+                              <SubCategoryHeader 
+                                onClick={() => toggleSubCategory(item.name)}
+                                className={openSubCategories[item.name] ? 'open' : ''}
+                              >
+                                {item.name}
+                              </SubCategoryHeader>
+                              {item.description && (
+                                <PrincipalDescription>{item.description}</PrincipalDescription>
+                              )}
+                            </React.Fragment>
                           );
                           
                           const accessories = [];
