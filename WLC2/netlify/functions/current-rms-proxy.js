@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-exports.handler = async function(event, context) {
+async function handler(event, context) {
   const { path, httpMethod, headers, queryStringParameters, body } = event;
 
   console.log('Received request:', { path, method: httpMethod, headers, queryStringParameters });
@@ -38,4 +38,6 @@ exports.handler = async function(event, context) {
       }),
     };
   }
-};
+}
+
+exports.handler = handler;
