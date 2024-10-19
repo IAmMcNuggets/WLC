@@ -284,6 +284,30 @@ const SubCategoryHeader = styled.h5`
   margin-bottom: 5px;
   color: #555;
   padding-left: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  &:before {
+    content: '▶';
+    margin-right: 5px;
+    transition: transform 0.3s ease;
+  }
+
+  &.open:before {
+    transform: rotate(90deg);
+  }
+`;
+
+const AccessoryList = styled.div`
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease-out;
+
+  &.open {
+    max-height: 1000px; // Adjust this value based on your needs
+    transition: max-height 0.5s ease-in;
+  }
 `;
 
 const AccessoryItem = styled.div`
@@ -298,6 +322,7 @@ const Events: React.FC = () => {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [opportunityLoading, setOpportunityLoading] = useState(false);
+  const [openSubCategories, setOpenSubCategories] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     // Get the user from localStorage
@@ -428,6 +453,13 @@ const Events: React.FC = () => {
     return new Date(dateString).toLocaleString(undefined, options);
   };
 
+  const toggleSubCategory = (subCategory: string) => {
+    setOpenSubCategories(prev => ({
+      ...prev,
+      [subCategory]: !prev[subCategory]
+    }));
+  };
+
   if (!user) {
     return <EventsContainer>Please log in to view your activities.</EventsContainer>;
   }
@@ -497,15 +529,37 @@ const Events: React.FC = () => {
                           output.push(<CategoryHeader key={`cat-${item.id}`}>{item.name}</CategoryHeader>);
                         } else if (item.opportunity_item_type_name === 'Principal' && item.name !== currentSubCategory) {
                           currentSubCategory = item.name;
-                          output.push(<SubCategoryHeader key={`subcat-${item.id}`}>{item.name}</SubCategoryHeader>);
-                        } else if (item.opportunity_item_type_name === 'Accessory') {
                           output.push(
-                            <AccessoryItem key={`acc-${item.id}`}>
-                              <ItemName as="span" isZeroQuantity={isZeroQuantity}>
-                                {item.name}
-                              </ItemName>
-                              : {item.quantity}
-                            </AccessoryItem>
+                            <SubCategoryHeader 
+                              key={`subcat-${item.id}`}
+                              onClick={() => toggleSubCategory(item.name)}
+                              className={openSubCategories[item.name] ? 'open' : ''}
+                            >
+                              {item.name}
+                            </SubCategoryHeader>
+                          );
+                          output.push(
+                            <AccessoryList key={`acclist-${item.id}`} className={openSubCategories[item.name] ? 'open' : ''}>
+                              {selectedOpportunity.opportunity_items
+                                .filter(subItem => subItem.opportunity_item_type_name === 'Accessory' && 
+                                       selectedOpportunity.opportunity_items.findIndex(principal => 
+                                         principal.opportunity_item_type_name === 'Principal' && 
+                                         principal.name === currentSubCategory
+                                       ) < selectedOpportunity.opportunity_items.indexOf(subItem) &&
+                                       selectedOpportunity.opportunity_items.findIndex(nextPrincipal => 
+                                         nextPrincipal.opportunity_item_type_name === 'Principal' && 
+                                         selectedOpportunity.opportunity_items.indexOf(nextPrincipal) > selectedOpportunity.opportunity_items.indexOf(subItem)
+                                       ) === -1)
+                                .map(accessory => (
+                                  <AccessoryItem key={`acc-${accessory.id}`}>
+                                    <ItemName as="span" isZeroQuantity={parseFloat(accessory.quantity.toString().trim()) === 0 || isNaN(parseFloat(accessory.quantity.toString().trim()))}>
+                                      {accessory.name}
+                                    </ItemName>
+                                    : {accessory.quantity}
+                                  </AccessoryItem>
+                                ))
+                              }
+                            </AccessoryList>
                           );
                         }
                         
