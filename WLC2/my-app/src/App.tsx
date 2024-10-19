@@ -9,6 +9,7 @@ import Events from './Pages/Events';
 import Timeclock from './Pages/Timeclock';
 import Profile from './Pages/Profile';
 import BottomNavBar from './components/BottomNavBar';
+import { QueryClient, QueryClientProvider } from 'react-query'
 
 // Define and export the GoogleUser interface
 export interface GoogleUser {
@@ -26,84 +27,28 @@ const AppContainer = styled.div`
   min-height: 100vh;
 `;
 
+const queryClient = new QueryClient()
+
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<GoogleUser | null>(null);
-
-  useEffect(() => {
-    // Check if user is logged in when the app loads
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsLoggedIn(true);
-    }
-  }, []);
-
-  const handleLoginSuccess = (credentialResponse: CredentialResponse) => {
-    if (credentialResponse.credential) {
-      const decoded: any = jwtDecode(credentialResponse.credential);
-      const googleUser: GoogleUser = {
-        email: decoded.email,
-        name: decoded.name,
-        picture: decoded.picture
-      };
-      setUser(googleUser);
-      setIsLoggedIn(true);
-      // Store user data in localStorage
-      localStorage.setItem('user', JSON.stringify(googleUser));
-    } else {
-      console.error('No credential received');
-    }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setIsLoggedIn(false);
-    // Remove user data from localStorage
-    localStorage.removeItem('user');
-  };
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   return (
-    <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
-      <Router>
-        <AppContainer>
-          {!isLoggedIn ? (
-            <header className="App-header">
-              <img src={logo} className="App-logo" alt="logo" />
-              <h1 className="App-title">GigFriend</h1>
-              <div style={{ margin: '20px 0' }}>
-                <GoogleLogin
-                  onSuccess={handleLoginSuccess}
-                  onError={() => {
-                    console.log('Login Failed');
-                  }}
-                  useOneTap
-                />
-              </div>
-              <div style={{ flexGrow: 1, minHeight: '100px' }}></div>
-              <a
-                className="App-link"
-                href="https://weddinglightingco.com"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                WeddingLightingCo.com
-              </a>
-            </header>
-          ) : (
-            <>
-              <Routes>
-                <Route path="/events" element={<Events />} />
-                <Route path="/timeclock" element={<Timeclock />} />
-                <Route path="/profile" element={<Profile user={user} setIsLoggedIn={handleLogout} />} />
-                <Route path="*" element={<Navigate to="/events" replace />} />
-              </Routes>
-              <BottomNavBar />
-            </>
-          )}
-        </AppContainer>
-      </Router>
-    </GoogleOAuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
+        <Router>
+          <AppContainer>
+            <Routes>
+              <Route path="/events" element={<Events />} />
+              <Route path="/timeclock" element={<Timeclock />} />
+              <Route path="/profile" element={<Profile user={user} setIsLoggedIn={setIsLoggedIn} />} />
+              <Route path="*" element={<Navigate to="/events" replace />} />
+            </Routes>
+            <BottomNavBar />
+          </AppContainer>
+        </Router>
+      </GoogleOAuthProvider>
+    </QueryClientProvider>
   );
 }
 
