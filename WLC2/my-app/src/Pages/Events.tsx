@@ -485,7 +485,107 @@ const Events: React.FC = () => {
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <CloseButton onClick={closeModal}>&times;</CloseButton>
             <ModalHeader>{selectedOpportunity.subject}</ModalHeader>
-            {/* ... rest of the modal content ... */}
+            
+            <InfoSection>
+              <Icon><FaClock /></Icon>
+              <div>
+                <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
+                <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
+              </div>
+            </InfoSection>
+            
+            <InfoSection>
+              <Icon><FaMapMarkerAlt /></Icon>
+              <div>
+                <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
+                {selectedOpportunity.destination && selectedOpportunity.destination.address && (
+                  <>
+                    <p>{selectedOpportunity.destination.address.street}</p>
+                    <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
+                  </>
+                )}
+              </div>
+            </InfoSection>
+
+            {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
+              <InfoSection>
+                <Icon><FaPhone /></Icon>
+                <p><strong>Onsite Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
+              </InfoSection>
+            )}
+
+            {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
+              <div>
+                {(() => {
+                  let currentCategory: string | null = null;
+                  let currentSubCategory: string | null = null;
+                  
+                  return selectedOpportunity.opportunity_items.map((item, index) => {
+                    const quantity = parseFloat(item.quantity.toString().trim());
+                    const isZeroQuantity = quantity === 0 || isNaN(quantity);
+                    
+                    let output = [];
+                    
+                    if (item.opportunity_item_type_name === 'Group' && item.name !== currentCategory) {
+                      currentCategory = item.name;
+                      currentSubCategory = null;
+                      output.push(<CategoryHeader key={`cat-${item.id}`}>{item.name}</CategoryHeader>);
+                    } else if (item.opportunity_item_type_name === 'Principal' && item.name !== currentSubCategory) {
+                      currentSubCategory = item.name;
+                      output.push(
+                        <SubCategoryHeader 
+                          key={`subcat-${item.id}`}
+                          onClick={() => toggleSubCategory(item.name)}
+                          className={openSubCategories[item.name] ? 'open' : ''}
+                        >
+                          {item.name}
+                        </SubCategoryHeader>
+                      );
+                    }
+                    
+                    if (item.opportunity_item_type_name !== 'Group') {
+                      output.push(
+                        <AccessoryList key={`acc-${item.id}`} className={openSubCategories[currentSubCategory || ''] ? 'open' : ''}>
+                          <AccessoryItem>
+                            <ItemName isZeroQuantity={isZeroQuantity}>{item.name}</ItemName>
+                            {!isZeroQuantity && <span> - Quantity: {item.quantity}</span>}
+                            {item.description && (
+                              <PrincipalDescription>{item.description}</PrincipalDescription>
+                            )}
+                          </AccessoryItem>
+                        </AccessoryList>
+                      );
+                    }
+                    
+                    return output;
+                  });
+                })()}
+              </div>
+            )}
+
+            <CategoryHeader>Attachments</CategoryHeader>
+            {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
+              <DocumentList>
+                {selectedOpportunity.attachments.map((attachment) => (
+                  <DocumentItem key={attachment.id}>
+                    <Icon><FaFileAlt /></Icon>
+                    <DocumentLink 
+                      href={attachment.attachment_url}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      {attachment.name || attachment.attachment_file_name}
+                    </DocumentLink>
+                  </DocumentItem>
+                ))}
+              </DocumentList>
+            ) : (
+              <p>No attachments associated with this opportunity.</p>
+            )}
+            
+            <ButtonContainer>
+              <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
+            </ButtonContainer>
           </ModalContent>
         </Modal>
       )}
