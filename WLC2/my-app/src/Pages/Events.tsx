@@ -143,9 +143,13 @@ interface Opportunity {
   };
 }
 
+const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+
 const currentRMSApi = axios.create({
-  baseURL: '/api',  // This will be redirected to your Netlify function
+  baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
   headers: {
+    'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
+    'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json'
   }
 });

@@ -1,8 +1,0 @@
-[build]
-  functions = "netlify/functions"
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/current-rms-proxy/:splat"
-  status = 200
-
