@@ -152,7 +152,8 @@ const currentRMSApi = axios.create({
   baseURL: '/.netlify/functions/current-rms-proxy',
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  paramsSerializer: params => Object.entries(params).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&')
 });
 
 const Modal = styled.div`
@@ -403,7 +404,11 @@ const Events: React.FC = () => {
       setOpportunities(opportunitiesMap);
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      setError('Failed to load data. Please try again later.');
+      if (axios.isAxiosError(err) && err.response) {
+        setError(`Failed to load data: ${err.response.status} ${err.response.statusText}`);
+      } else {
+        setError('Failed to load data. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
