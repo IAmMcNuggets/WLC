@@ -529,29 +529,30 @@ const Events: React.FC = () => {
                               {item.name}
                             </SubCategoryHeader>
                           );
+                          
+                          const accessories = [];
+                          for (let i = index + 1; i < selectedOpportunity.opportunity_items.length; i++) {
+                            const nextItem = selectedOpportunity.opportunity_items[i];
+                            if (nextItem.opportunity_item_type_name === 'Accessory') {
+                              accessories.push(nextItem);
+                            } else {
+                              break;
+                            }
+                          }
+                          
                           output.push(
                             <AccessoryList 
                               key={`acclist-${item.id}`} 
                               className={openSubCategories[item.name] ? 'open' : ''}
                             >
-                              {selectedOpportunity.opportunity_items
-                                .filter(subItem => 
-                                  subItem.opportunity_item_type_name === 'Accessory' && 
-                                  selectedOpportunity.opportunity_items.indexOf(subItem) > index &&
-                                  (selectedOpportunity.opportunity_items[selectedOpportunity.opportunity_items.indexOf(subItem) - 1].opportunity_item_type_name === 'Principal' ? 
-                                    selectedOpportunity.opportunity_items[selectedOpportunity.opportunity_items.indexOf(subItem) - 1].name === currentSubCategory : 
-                                    true
-                                  )
-                                )
-                                .map(accessory => (
-                                  <AccessoryItem key={`acc-${accessory.id}`}>
-                                    <ItemName as="span" isZeroQuantity={parseFloat(accessory.quantity.toString().trim()) === 0 || isNaN(parseFloat(accessory.quantity.toString().trim()))}>
-                                      {accessory.name}
-                                    </ItemName>
-                                    : {accessory.quantity}
-                                  </AccessoryItem>
-                                ))
-                              }
+                              {accessories.map(accessory => (
+                                <AccessoryItem key={`acc-${accessory.id}`}>
+                                  <ItemName as="span" isZeroQuantity={parseFloat(accessory.quantity.toString().trim()) === 0 || isNaN(parseFloat(accessory.quantity.toString().trim()))}>
+                                    {accessory.name}
+                                  </ItemName>
+                                  : {accessory.quantity}
+                                </AccessoryItem>
+                              ))}
                             </AccessoryList>
                           );
                         }
