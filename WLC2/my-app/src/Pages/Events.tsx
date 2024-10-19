@@ -105,6 +105,7 @@ interface OpportunityItem {
   id: number;
   name: string;
   quantity: number | string;
+  opportunity_item_type_name: string;
 }
 
 interface Opportunity {
@@ -270,6 +271,24 @@ const ItemTable = styled.table`
 
 const ItemName = styled.td<{ isZeroQuantity: boolean }>`
   font-weight: ${props => props.isZeroQuantity ? 'bold' : 'normal'};
+`;
+
+const CategoryHeader = styled.h4`
+  margin-top: 20px;
+  margin-bottom: 10px;
+  color: #333;
+`;
+
+const SubCategoryHeader = styled.h5`
+  margin-top: 15px;
+  margin-bottom: 5px;
+  color: #555;
+  padding-left: 20px;
+`;
+
+const AccessoryItem = styled.div`
+  padding-left: 40px;
+  margin-bottom: 5px;
 `;
 
 const Events: React.FC = () => {
@@ -461,29 +480,39 @@ const Events: React.FC = () => {
 
                 <h3>Items:</h3>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
-                  <ItemTable>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Quantity</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedOpportunity.opportunity_items.map((item) => {
+                  <div>
+                    {(() => {
+                      let currentCategory: string | null = null;
+                      let currentSubCategory: string | null = null;
+                      
+                      return selectedOpportunity.opportunity_items.map((item, index) => {
                         const quantity = parseFloat(item.quantity.toString().trim());
                         const isZeroQuantity = quantity === 0 || isNaN(quantity);
-                        console.log(`Item: ${item.name}, Quantity: ${item.quantity}, Parsed: ${quantity}, IsZero: ${isZeroQuantity}`);
-                        return (
-                          <tr key={item.id}>
-                            <ItemName isZeroQuantity={isZeroQuantity}>
-                              {item.name}
-                            </ItemName>
-                            <td>{item.quantity}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </ItemTable>
+                        
+                        let output = [];
+                        
+                        if (item.opportunity_item_type_name === 'Group' && item.name !== currentCategory) {
+                          currentCategory = item.name;
+                          currentSubCategory = null;
+                          output.push(<CategoryHeader key={`cat-${item.id}`}>{item.name}</CategoryHeader>);
+                        } else if (item.opportunity_item_type_name === 'Principal' && item.name !== currentSubCategory) {
+                          currentSubCategory = item.name;
+                          output.push(<SubCategoryHeader key={`subcat-${item.id}`}>{item.name}</SubCategoryHeader>);
+                        } else if (item.opportunity_item_type_name === 'Accessory') {
+                          output.push(
+                            <AccessoryItem key={`acc-${item.id}`}>
+                              <ItemName as="span" isZeroQuantity={isZeroQuantity}>
+                                {item.name}
+                              </ItemName>
+                              : {item.quantity}
+                            </AccessoryItem>
+                          );
+                        }
+                        
+                        return output;
+                      });
+                    })()}
+                  </div>
                 ) : (
                   <p>No items associated with this opportunity.</p>
                 )}
