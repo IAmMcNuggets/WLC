@@ -33,6 +33,14 @@ function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
@@ -41,7 +49,15 @@ function App() {
             <Routes>
               <Route path="/events" element={<Events />} />
               <Route path="/timeclock" element={<Timeclock />} />
-              <Route path="/profile" element={<Profile user={user} setIsLoggedIn={setIsLoggedIn} />} />
+              <Route 
+                path="/profile" 
+                element={
+                  <Profile 
+                    user={user} 
+                    setIsLoggedIn={setIsLoggedIn} 
+                  />
+                } 
+              />
               <Route path="*" element={<Navigate to="/events" replace />} />
             </Routes>
             <BottomNavBar />
