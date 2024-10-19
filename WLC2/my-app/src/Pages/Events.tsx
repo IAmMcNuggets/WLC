@@ -535,15 +535,14 @@ const Events: React.FC = () => {
                               className={openSubCategories[item.name] ? 'open' : ''}
                             >
                               {selectedOpportunity.opportunity_items
-                                .filter(subItem => subItem.opportunity_item_type_name === 'Accessory' && 
-                                       selectedOpportunity.opportunity_items.findIndex(principal => 
-                                         principal.opportunity_item_type_name === 'Principal' && 
-                                         principal.name === currentSubCategory
-                                       ) < selectedOpportunity.opportunity_items.indexOf(subItem) &&
-                                       selectedOpportunity.opportunity_items.findIndex(nextPrincipal => 
-                                         nextPrincipal.opportunity_item_type_name === 'Principal' && 
-                                         selectedOpportunity.opportunity_items.indexOf(nextPrincipal) > selectedOpportunity.opportunity_items.indexOf(subItem)
-                                       ) === -1)
+                                .filter(subItem => 
+                                  subItem.opportunity_item_type_name === 'Accessory' && 
+                                  selectedOpportunity.opportunity_items.indexOf(subItem) > index &&
+                                  (selectedOpportunity.opportunity_items[selectedOpportunity.opportunity_items.indexOf(subItem) - 1].opportunity_item_type_name === 'Principal' ? 
+                                    selectedOpportunity.opportunity_items[selectedOpportunity.opportunity_items.indexOf(subItem) - 1].name === currentSubCategory : 
+                                    true
+                                  )
+                                )
                                 .map(accessory => (
                                   <AccessoryItem key={`acc-${accessory.id}`}>
                                     <ItemName as="span" isZeroQuantity={parseFloat(accessory.quantity.toString().trim()) === 0 || isNaN(parseFloat(accessory.quantity.toString().trim()))}>
