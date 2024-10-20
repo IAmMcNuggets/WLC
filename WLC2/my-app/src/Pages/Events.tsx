@@ -456,45 +456,66 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   }, []);
 
   const renderItems = useCallback((items: OpportunityItem[]) => {
-    const groupedItems: { [key: number]: OpportunityItem[] } = {};
+    const renderedItems: JSX.Element[] = [];
+    let currentPrincipal: OpportunityItem | null = null;
+    let accessories: OpportunityItem[] = [];
 
-    // Group accessories with their principals
+    const renderPrincipalWithAccessories = () => {
+      if (currentPrincipal) {
+        renderedItems.push(
+          <React.Fragment key={currentPrincipal.id}>
+            <PrincipalRow 
+              isGroup={false} 
+              isAccessory={false} 
+              onClick={() => currentPrincipal && togglePrincipal(currentPrincipal.id)}
+            >
+              <ToggleIcon>
+                {accessories.length > 0 && (openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />)}
+              </ToggleIcon>
+              <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
+              <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
+            </PrincipalRow>
+            {openPrincipals[currentPrincipal.id] && accessories.map((accessory) => (
+              <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
+                <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
+                <ItemQuantity>{accessory.quantity}</ItemQuantity>
+              </AccessoryRow>
+            ))}
+          </React.Fragment>
+        );
+      }
+      currentPrincipal = null;
+      accessories = [];
+    };
+
     items.forEach((item) => {
-      if (item.opportunity_item_type_name === 'Principal') {
-        groupedItems[item.id] = [item];
-      } else if (item.opportunity_item_type_name === 'Accessory' && groupedItems[item.id]) {
-        groupedItems[item.id].push(item);
+      if (item.opportunity_item_type_name === 'Group') {
+        renderPrincipalWithAccessories();
+        renderedItems.push(
+          <ItemRow key={item.id} isGroup={true} isAccessory={false}>
+            <ItemNameDiv isGroup={true} isAccessory={false}>{item.name}</ItemNameDiv>
+            <ItemQuantity>{item.quantity}</ItemQuantity>
+          </ItemRow>
+        );
+      } else if (item.opportunity_item_type_name === 'Principal') {
+        renderPrincipalWithAccessories();
+        currentPrincipal = item;
+      } else if (item.opportunity_item_type_name === 'Accessory' && currentPrincipal) {
+        accessories.push(item);
       } else {
-        groupedItems[item.id] = [item];
+        renderPrincipalWithAccessories();
+        renderedItems.push(
+          <ItemRow key={item.id} isGroup={false} isAccessory={false}>
+            <ItemNameDiv isGroup={false} isAccessory={false}>{item.name}</ItemNameDiv>
+            <ItemQuantity>{item.quantity}</ItemQuantity>
+          </ItemRow>
+        );
       }
     });
 
-    return Object.entries(groupedItems).map(([principalId, groupItems]) => {
-      const principal = groupItems[0];
-      const accessories = groupItems.slice(1);
+    renderPrincipalWithAccessories(); // Render the last principal and its accessories
 
-      return (
-        <React.Fragment key={principalId}>
-          <PrincipalRow 
-            isGroup={false} 
-            isAccessory={false} 
-            onClick={() => togglePrincipal(Number(principalId))}
-          >
-            <ToggleIcon>
-              {openPrincipals[Number(principalId)] ? <FaChevronDown /> : <FaChevronRight />}
-            </ToggleIcon>
-            <ItemNameDiv isGroup={false} isAccessory={false}>{principal.name}</ItemNameDiv>
-            <ItemQuantity>{principal.quantity}</ItemQuantity>
-          </PrincipalRow>
-          {openPrincipals[Number(principalId)] && accessories.map((accessory) => (
-            <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
-              <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
-              <ItemQuantity>{accessory.quantity}</ItemQuantity>
-            </AccessoryRow>
-          ))}
-        </React.Fragment>
-      );
-    });
+    return renderedItems;
   }, [openPrincipals, togglePrincipal]);
 
   const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
