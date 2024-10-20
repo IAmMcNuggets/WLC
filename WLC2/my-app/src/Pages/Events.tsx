@@ -6,7 +6,6 @@ import { GoogleUser } from '../App';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
-import { useGoogleLogin } from '@react-oauth/google';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -149,7 +148,7 @@ interface Opportunity {
   };
 }
 
-const corsProxy = 'https://proxy.cors.sh/';
+const corsProxy = 'https://corsproxy.io/?';
 
 const currentRMSApi = axios.create({
   baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
@@ -157,7 +156,7 @@ const currentRMSApi = axios.create({
     'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
     'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json',
-    'x-cors-api-key': process.env.REACT_APP_CORS_SH_API_KEY, // Add this line
+    // Remove the 'x-cors-api-key' header as it's not needed for this proxy
   }
 });
 
@@ -484,19 +483,15 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     [fetchAllData]
   );
 
-  const { data: queryActivities, isLoading, error: queryError } = useQuery<Activity[], Error>('activities', fetchAllData, {
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const login = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      console.log(tokenResponse);
-      // Handle successful login here
-    },
-    onError: () => {
-      console.log('Login Failed');
+  const { data: queryActivities, isLoading, error: queryError } = useQuery<Activity[], Error>(
+    'activities',
+    fetchAllData,
+    {
+      staleTime: CACHE_DURATION,
+      cacheTime: CACHE_DURATION,
+      enabled: !!user,
     }
-  });
+  );
 
   if (!user) {
     return <EventsContainer>Please log in to view your activities.</EventsContainer>;
@@ -632,7 +627,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <button onClick={() => login()}>Sign in with Google</button>
     </EventsContainer>
   );
 };
