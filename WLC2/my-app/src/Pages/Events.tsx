@@ -107,9 +107,10 @@ interface Attachment {
 interface OpportunityItem {
   id: number;
   name: string;
-  quantity: number | string;
+  quantity: number;
   opportunity_item_type_name: string;
-  description?: string; // Add this line
+  price: string;
+  // Add other properties as needed
 }
 
 interface Opportunity {
@@ -360,7 +361,8 @@ const fetchActivities = async (): Promise<Activity[]> => {
 };
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
-  const response = await currentRMSApi.get(`/opportunities/${id}`);
+  const response = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+  console.log('Fetched opportunity:', response.data.opportunity);
   return response.data.opportunity;
 };
 
@@ -372,7 +374,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
     ['opportunity', selectedActivity?.regarding_id],
     () => fetchOpportunity(selectedActivity?.regarding_id as number),
-    { enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity' }
+    { 
+      enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
+      onSuccess: (data) => {
+        console.log('Opportunity data set:', data);
+        setSelectedOpportunity(data);
+      }
+    }
   );
 
   useEffect(() => {
@@ -493,26 +501,31 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 {selectedOpportunity.venue && (
                   <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
                 )}
-                {/* Add more opportunity details as needed */}
                 <h4>Items:</h4>
-                <ItemTable>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Quantity</th>
-                      <th>Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>{item.opportunity_item_type_name}</td>
+                {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
+                  <ItemTable>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Type</th>
+                        <th>Price</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </ItemTable>
+                    </thead>
+                    <tbody>
+                      {selectedOpportunity.opportunity_items.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.name}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.opportunity_item_type_name}</td>
+                          <td>{item.price}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </ItemTable>
+                ) : (
+                  <p>No items found for this opportunity.</p>
+                )}
               </ModalSection>
             ) : (
               <p>No opportunity details available.</p>
