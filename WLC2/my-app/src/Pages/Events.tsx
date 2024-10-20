@@ -99,9 +99,16 @@ interface OpportunityDocument {
 
 interface Attachment {
   id: number;
+  attachable_id: number;
   name: string;
+  description: string;
   attachment_file_name: string;
+  attachment_content_type: string;
+  attachment_file_size: number;
   attachment_url: string;
+  attachment_thumb_url: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface OpportunityItem {
@@ -376,9 +383,15 @@ const fetchActivities = async (): Promise<Activity[]> => {
 };
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
-  const response = await currentRMSApi.get(`/opportunities/${id}?include[]=attachments&include[]=opportunity_items`);
-  console.log('Fetched opportunity:', response.data.opportunity);
-  return response.data.opportunity;
+  const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+  const opportunity = opportunityResponse.data.opportunity;
+
+  // Fetch attachments for this opportunity
+  const attachmentsResponse = await currentRMSApi.get(`/opportunities/${id}/attachments`);
+  opportunity.attachments = attachmentsResponse.data.attachments || [];
+
+  console.log('Fetched opportunity with attachments:', opportunity);
+  return opportunity;
 };
 
 const PrincipalRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
