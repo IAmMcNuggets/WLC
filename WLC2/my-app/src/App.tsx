@@ -20,11 +20,23 @@ export interface GoogleUser {
 }
 
 const AppContainer = styled.div`
-  background-image: url('./Background/86343.jpg');
+  background-image: url(${process.env.PUBLIC_URL + '/Background/86343.jpg'});
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const LoginContainer = styled.div`
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 2rem;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const queryClient = new QueryClient()
@@ -74,13 +86,13 @@ function App() {
                 <Route path="*" element={<Navigate to="/events" replace />} />
               </Routes>
             ) : (
-              <div className="login-container">
-                <img src={logo} alt="Logo" className="logo" />
+              <LoginContainer>
+                <img src={logo} alt="Logo" style={{ width: '200px', marginBottom: '1rem' }} />
                 <GoogleLogin
                   onSuccess={handleLogin}
                   onError={() => console.log('Login Failed')}
                 />
-              </div>
+              </LoginContainer>
             )}
             {isLoggedIn && <BottomNavBar />}
           </AppContainer>
