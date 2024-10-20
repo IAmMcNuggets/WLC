@@ -348,10 +348,13 @@ type ApiResponse<T> = {
 
 const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promise<T | null> => {
   try {
+    console.log(`Attempting to fetch from ${url}`);
     const response = await currentRMSApi.get<ApiResponse<T>>(url);
+    console.log(`Response received:`, response.data);
     return response.data.data;
   } catch (error) {
     if (retries > 0) {
+      console.log(`Fetch failed, retrying... (${retries} attempts left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithRetry<T>(url, retries - 1, delay * 2);
     }
@@ -376,10 +379,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       throw new Error('User not logged in or name not available');
     }
 
-    const now = new Date();
-    const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-    
+    console.log('Fetching activities data...');
     const activitiesData = await fetchWithRetry<Activity[]>('/activities', 3, 1000);
+    console.log('Received activities data:', activitiesData);
     
     if (!activitiesData || !Array.isArray(activitiesData)) {
       console.error('No activities data received or data is not an array');
