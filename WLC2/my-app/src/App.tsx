@@ -58,6 +58,8 @@ const AppTitle = styled.h1`
 const LoginButton = styled.div`
   margin-top: 1.5rem;
   width: 100%;
+  display: flex;
+  justify-content: center;
 `;
 
 const queryClient = new QueryClient()
@@ -115,7 +117,6 @@ function App() {
                     onSuccess={handleLogin}
                     onError={() => console.log('Login Failed')}
                     size="large"
-                    width="100%"
                     text="signin_with"
                     shape="rectangular"
                     logo_alignment="left"
