@@ -631,7 +631,10 @@ const Events: React.FC<EventsProps> = ({ user }) => {
             ) : selectedOpportunity ? (
               <ModalSection>
                 {selectedOpportunity.venue && (
-                  <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                  <InfoSection>
+                    <Icon><FaBuilding /></Icon>
+                    <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                  </InfoSection>
                 )}
                 {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
                   <InfoSection>
