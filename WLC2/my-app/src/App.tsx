@@ -26,25 +26,38 @@ const AppContainer = styled.div`
   background-attachment: fixed;
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
 `;
 
 const LoginContainer = styled.div`
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 2rem;
-  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 3rem;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
+  max-width: 400px;
+  width: 100%;
+`;
+
+const Logo = styled.img`
+  width: 180px;
+  margin-bottom: 1.5rem;
 `;
 
 const AppTitle = styled.h1`
   font-size: 2.5rem;
-  color: #000000;
-  margin: 1rem 0;
+  color: #333;
+  margin: 0 0 1.5rem;
   text-align: center;
+  font-weight: 600;
+`;
+
+const LoginButton = styled.div`
+  margin-top: 1.5rem;
+  width: 100%;
 `;
 
 const queryClient = new QueryClient()
@@ -95,12 +108,19 @@ function App() {
               </Routes>
             ) : (
               <LoginContainer>
-                <img src={logo} alt="Logo" style={{ width: '200px', marginBottom: '1rem' }} />
+                <Logo src={logo} alt="Gigfriend Logo" />
                 <AppTitle>Gigfriend</AppTitle>
-                <GoogleLogin
-                  onSuccess={handleLogin}
-                  onError={() => console.log('Login Failed')}
-                />
+                <LoginButton>
+                  <GoogleLogin
+                    onSuccess={handleLogin}
+                    onError={() => console.log('Login Failed')}
+                    size="large"
+                    width="100%"
+                    text="signin_with"
+                    shape="rectangular"
+                    logo_alignment="left"
+                  />
+                </LoginButton>
               </LoginContainer>
             )}
             {isLoggedIn && <BottomNavBar />}
