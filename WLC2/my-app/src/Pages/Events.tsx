@@ -222,11 +222,14 @@ const DocumentList = styled.ul`
 
 const DocumentItem = styled.li`
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
 `;
 
 const DocumentLink = styled.a`
   color: #4CAF50;
   text-decoration: none;
+  margin-left: 8px;
   &:hover {
     text-decoration: underline;
   }
@@ -650,6 +653,21 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <Icon><FaPhone /></Icon>
                     <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
                   </InfoSection>
+                )}
+                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 && (
+                  <>
+                    <h4>Attachments:</h4>
+                    <DocumentList>
+                      {selectedOpportunity.attachments.map((attachment) => (
+                        <DocumentItem key={attachment.id}>
+                          <Icon><FaFileAlt /></Icon>
+                          <DocumentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
+                            {attachment.name || attachment.attachment_file_name}
+                          </DocumentLink>
+                        </DocumentItem>
+                      ))}
+                    </DocumentList>
+                  </>
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
