@@ -356,8 +356,15 @@ const fetchActivities = async (): Promise<Activity[]> => {
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   try {
-    const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items&include[]=attachments`);
-    return opportunityResponse.data.opportunity;
+    const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+    const opportunity = opportunityResponse.data.opportunity;
+
+    // Fetch attachments separately
+    const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
+    console.log('Attachments response:', attachmentsResponse.data);
+    opportunity.attachments = attachmentsResponse.data.attachments || [];
+
+    return opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
     throw error;
