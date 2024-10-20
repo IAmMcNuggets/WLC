@@ -368,17 +368,14 @@ const fetchOpportunity = async (id: number): Promise<Opportunity> => {
     console.log('Opportunity response:', opportunityResponse.data);
     const opportunity = opportunityResponse.data.opportunity;
 
-    try {
-      console.log(`Fetching attachments for opportunity ID: ${id}`);
-      const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
-      console.log('Attachments response:', attachmentsResponse.data);
-      opportunity.attachments = attachmentsResponse.data.attachments || [];
-    } catch (attachmentError) {
-      console.error(`Error fetching attachments for opportunity ${id}:`, attachmentError);
-      opportunity.attachments = [];
-    }
-
+    // Fetch attachments for this specific opportunity
+    console.log(`Fetching attachments for opportunity ID: ${id}`);
+    const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
+    console.log('Attachments response:', attachmentsResponse.data);
+    
+    opportunity.attachments = attachmentsResponse.data.attachments || [];
     console.log('Processed opportunity with attachments:', opportunity);
+
     return opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
