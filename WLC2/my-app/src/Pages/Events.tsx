@@ -110,6 +110,7 @@ interface OpportunityItem {
 interface Attachment {
   id: number;
   attachable_id: number;
+  attachable_type: string;
   name: string;
   description: string;
   attachment_file_name: string;
@@ -368,14 +369,24 @@ const fetchOpportunity = async (id: number): Promise<Opportunity> => {
     console.log('Opportunity response:', opportunityResponse.data);
     const opportunity = opportunityResponse.data.opportunity;
 
-    // Fetch attachments for this specific opportunity
-    console.log(`Fetching attachments for opportunity ID: ${id}`);
-    const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
-    console.log('Attachments response:', attachmentsResponse.data);
-    
-    opportunity.attachments = attachmentsResponse.data.attachments || [];
-    console.log('Processed opportunity with attachments:', opportunity);
+    try {
+      console.log(`Fetching attachments for opportunity ID: ${id}`);
+      const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
+      console.log('Attachments response:', attachmentsResponse.data);
+      
+      // Filter attachments to only include those with attachable_type: 'Opportunity'
+      const filteredAttachments = attachmentsResponse.data.attachments.filter(
+        (attachment: Attachment) => attachment.attachable_type === 'Opportunity'
+      );
+      
+      opportunity.attachments = filteredAttachments;
+      console.log('Filtered attachments:', filteredAttachments);
+    } catch (attachmentError) {
+      console.error(`Error fetching attachments for opportunity ${id}:`, attachmentError);
+      opportunity.attachments = [];
+    }
 
+    console.log('Processed opportunity with filtered attachments:', opportunity);
     return opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
