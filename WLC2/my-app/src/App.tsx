@@ -41,26 +41,48 @@ function App() {
     }
   }, []);
 
+  const handleLogin = (credentialResponse: CredentialResponse) => {
+    if (credentialResponse.credential) {
+      const credentialResponseDecoded = jwtDecode(credentialResponse.credential) as GoogleUser;
+      setUser(credentialResponseDecoded);
+      setIsLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(credentialResponseDecoded));
+    } else {
+      console.error('Credential is undefined');
+      // Handle the error case
+    }
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
         <Router>
           <AppContainer>
-            <Routes>
-              <Route path="/events" element={<Events />} />
-              <Route path="/timeclock" element={<Timeclock />} />
-              <Route 
-                path="/profile" 
-                element={
-                  <Profile 
-                    user={user} 
-                    setIsLoggedIn={setIsLoggedIn} 
-                  />
-                } 
-              />
-              <Route path="*" element={<Navigate to="/events" replace />} />
-            </Routes>
-            <BottomNavBar />
+            {isLoggedIn ? (
+              <Routes>
+                <Route path="/events" element={<Events />} />
+                <Route path="/timeclock" element={<Timeclock />} />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <Profile 
+                      user={user} 
+                      setIsLoggedIn={setIsLoggedIn} 
+                    />
+                  } 
+                />
+                <Route path="*" element={<Navigate to="/events" replace />} />
+              </Routes>
+            ) : (
+              <div className="login-container">
+                <img src={logo} alt="Logo" className="logo" />
+                <GoogleLogin
+                  onSuccess={handleLogin}
+                  onError={() => console.log('Login Failed')}
+                />
+              </div>
+            )}
+            {isLoggedIn && <BottomNavBar />}
           </AppContainer>
         </Router>
       </GoogleOAuthProvider>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { GoogleUser } from '../App';
+import { useNavigate } from 'react-router-dom';
 
 const ProfileContainer = styled.div`
   min-height: 100vh;
@@ -91,6 +92,7 @@ interface ProfileProps {
 
 function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user && user.picture) {
@@ -113,6 +115,7 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const handleLogout = () => {
     localStorage.removeItem('user');
     setIsLoggedIn(false);
+    navigate('/');
   };
 
   if (!user) {
