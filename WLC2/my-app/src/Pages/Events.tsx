@@ -148,14 +148,15 @@ interface Opportunity {
   };
 }
 
-const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+const corsProxy = 'https://proxy.cors.sh/';
 
 const currentRMSApi = axios.create({
-  baseURL: 'https://cors-anywhere.herokuapp.com/https://api.current-rms.com/api/v1',
+  baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
   headers: {
     'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
     'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'x-cors-api-key': process.env.REACT_APP_CORS_SH_API_KEY, // Add this line
   }
 });
 
@@ -353,7 +354,7 @@ const Events: React.FC = () => {
   const fetchAllData = useCallback(async (): Promise<Activity[]> => {
     if (!user || !user.name) {
       setError('User not logged in or name not available');
-      return []; // Return an empty array
+      return [];
     }
 
     setError(null);
@@ -415,7 +416,7 @@ const Events: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError('Failed to load data. Please try again later.');
-      return []; // Return an empty array in case of error
+      return [];
     }
 
     const now = Date.now();
