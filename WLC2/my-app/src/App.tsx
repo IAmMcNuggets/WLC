@@ -10,7 +10,7 @@ import Timeclock from './Pages/Timeclock';
 import Profile from './Pages/Profile';
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
-
+import backgroundImage from './Background/86343.jpg';
 // Define and export the GoogleUser interface
 export interface GoogleUser {
   name: string;
@@ -20,12 +20,13 @@ export interface GoogleUser {
 }
 
 const AppContainer = styled.div`
-  background-image: url(${process.env.PUBLIC_URL + '/Background/86343.jpg'});
+  background-image: url(${backgroundImage});
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 `;
@@ -37,6 +38,13 @@ const LoginContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+`;
+
+const AppTitle = styled.h1`
+  font-size: 2.5rem;
+  color: #ffffff;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
 const queryClient = new QueryClient()
@@ -70,6 +78,7 @@ function App() {
       <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
         <Router>
           <AppContainer>
+            <AppTitle>Gigfriend</AppTitle>
             {isLoggedIn ? (
               <Routes>
                 <Route path="/events" element={<Events />} />
