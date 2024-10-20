@@ -376,7 +376,7 @@ const fetchActivities = async (): Promise<Activity[]> => {
 };
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
-  const response = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+  const response = await currentRMSApi.get(`/opportunities/${id}?include[]=attachments&include[]=opportunity_items`);
   console.log('Fetched opportunity:', response.data.opportunity);
   return response.data.opportunity;
 };
