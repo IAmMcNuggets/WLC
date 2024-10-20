@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 
@@ -154,7 +154,6 @@ interface Opportunity {
       postcode: string;
     };
   };
-  attachments: Attachment[];
 }
 
 const currentRMSApi = axios.create({
@@ -367,27 +366,7 @@ const fetchOpportunity = async (id: number): Promise<Opportunity> => {
     console.log(`Fetching opportunity with ID: ${id}`);
     const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
     console.log('Opportunity response:', opportunityResponse.data);
-    const opportunity = opportunityResponse.data.opportunity;
-
-    try {
-      console.log(`Fetching attachments for opportunity ID: ${id}`);
-      const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
-      console.log('Attachments response:', attachmentsResponse.data);
-      
-      // Filter attachments to only include those with matching attachable_id and type 'Opportunity'
-      const filteredAttachments = attachmentsResponse.data.attachments.filter(
-        (attachment: Attachment) => attachment.attachable_id === id && attachment.attachable_type === 'Opportunity'
-      );
-      
-      opportunity.attachments = filteredAttachments;
-      console.log('Filtered attachments:', filteredAttachments);
-    } catch (attachmentError) {
-      console.error(`Error fetching attachments for opportunity ${id}:`, attachmentError);
-      opportunity.attachments = [];
-    }
-
-    console.log('Processed opportunity with filtered attachments:', opportunity);
-    return opportunity;
+    return opportunityResponse.data.opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
     throw error;
@@ -459,26 +438,6 @@ const ItemQuantity = styled.div`
 
 const ToggleIcon = styled.div`
   margin-right: 10px;
-`;
-
-const AttachmentList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-`;
-
-const AttachmentItem = styled.li`
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-`;
-
-const AttachmentLink = styled.a`
-  color: #4CAF50;
-  text-decoration: none;
-  margin-left: 8px;
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -673,21 +632,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <Icon><FaPhone /></Icon>
                     <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
                   </InfoSection>
-                )}
-                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 && (
-                  <>
-                    <h4>Attachments:</h4>
-                    <AttachmentList>
-                      {selectedOpportunity.attachments.map((attachment) => (
-                        <AttachmentItem key={attachment.id}>
-                          <Icon><FaFileAlt /></Icon>
-                          <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
-                            {attachment.name || attachment.attachment_file_name}
-                          </AttachmentLink>
-                        </AttachmentItem>
-                      ))}
-                    </AttachmentList>
-                  </>
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
