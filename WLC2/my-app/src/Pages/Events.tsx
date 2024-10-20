@@ -481,12 +481,18 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 <p>{selectedActivity.description}</p>
               </ModalSection>
             )}
-            {selectedOpportunity && (
+            {opportunityLoading ? (
+              <p>Loading opportunity details...</p>
+            ) : opportunityError ? (
+              <p>Error loading opportunity details: {opportunityError.message}</p>
+            ) : selectedOpportunity ? (
               <ModalSection>
                 <h3>Opportunity Details:</h3>
                 <p><strong>Number:</strong> {selectedOpportunity.number}</p>
                 <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
-                <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                {selectedOpportunity.venue && (
+                  <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                )}
                 {/* Add more opportunity details as needed */}
                 <h4>Items:</h4>
                 <ItemTable>
@@ -498,7 +504,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedOpportunity.opportunity_items.map((item) => (
+                    {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.map((item) => (
                       <tr key={item.id}>
                         <td>{item.name}</td>
                         <td>{item.quantity}</td>
@@ -508,6 +514,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   </tbody>
                 </ItemTable>
               </ModalSection>
+            ) : (
+              <p>No opportunity details available.</p>
             )}
             <ButtonContainer>
               <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
