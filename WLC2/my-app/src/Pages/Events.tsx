@@ -380,6 +380,11 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     
     const activitiesData = await fetchWithRetry<Activity[]>('/activities', 3, 1000);
     
+    if (!activitiesData) {
+      console.error('No activities data received');
+      return [];
+    }
+
     const filteredActivities = activitiesData.filter((activity: Activity) => {
       return activity.participants.some(participant => 
         participant.member_name.toLowerCase() === user.name.toLowerCase()
