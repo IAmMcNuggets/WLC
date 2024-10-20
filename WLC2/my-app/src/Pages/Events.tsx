@@ -246,7 +246,7 @@ const ItemTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
-  font-size: 0.9rem; // Slightly smaller font size
+  font-size: 0.9rem;
 
   th, td {
     border: 1px solid #ddd;
@@ -551,17 +551,26 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
-                  <div>
-                    {selectedOpportunity.opportunity_items.map((item, index) => (
-                      <div key={item.id}>
-                        <p><strong>Item {index + 1}:</strong></p>
-                        <p>Name: {item.name}</p>
-                        <p>Type: {item.opportunity_item_type_name}</p>
-                        <p>Quantity: {item.quantity}</p>
-                        <p>Price: {item.price}</p>
-                      </div>
-                    ))}
-                  </div>
+                  <ItemTable>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedOpportunity.opportunity_items.map((item) => (
+                        <tr key={item.id}>
+                          <ItemName isZeroQuantity={item.quantity === 0}>{item.name}</ItemName>
+                          <td>{item.opportunity_item_type_name}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.price}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </ItemTable>
                 ) : (
                   <p>No items found for this opportunity.</p>
                 )}
