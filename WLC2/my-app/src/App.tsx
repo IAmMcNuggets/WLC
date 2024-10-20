@@ -90,7 +90,10 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
+      <GoogleOAuthProvider 
+        clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com"
+        onScriptLoadError={() => console.log('Failed to load Google OAuth script')}
+      >
         <Router>
           <AppContainer>
             {isLoggedIn ? (

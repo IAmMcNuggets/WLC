@@ -6,6 +6,7 @@ import { GoogleUser } from '../App';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
+import { useGoogleLogin } from '@react-oauth/google';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -491,6 +492,22 @@ const Events: React.FC = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const handleLogin = (tokenResponse: any) => {
+    const userInfo = {
+      name: tokenResponse.name,
+      email: tokenResponse.email,
+      // Add other relevant user information
+    };
+    setUser(userInfo);
+    localStorage.setItem('user', JSON.stringify(userInfo));
+  };
+
+  const login = useGoogleLogin({
+    onSuccess: handleLogin,
+    onError: () => console.log('Login Failed'),
+    flow: 'implicit'
+  });
+
   if (!user) {
     return <EventsContainer>Please log in to view your activities.</EventsContainer>;
   }
@@ -625,6 +642,7 @@ const Events: React.FC = () => {
           </ModalContent>
         </Modal>
       )}
+      <button onClick={() => login()}>Sign in with Google</button>
     </EventsContainer>
   );
 };
