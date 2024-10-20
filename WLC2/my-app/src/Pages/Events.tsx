@@ -162,39 +162,30 @@ const Modal = styled.div`
   top: 0;
   left: 0;
   width: 100%;
-  height: calc(100% - 80px); // Subtract the height of the bottom nav bar
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1001;
-  padding: 60px 0 0; // Remove bottom padding
-  overflow-y: auto;
+  z-index: 1000;
 `;
 
 const ModalContent = styled.div`
   background-color: white;
   padding: 20px;
   border-radius: 8px;
+  max-width: 500px;
   width: 90%;
-  max-width: 800px;
-  max-height: calc(100vh - 200px); // Adjust to account for top and bottom spaces
+  max-height: 80vh;
   overflow-y: auto;
-  position: relative;
-  margin: auto;
-  margin-bottom: 100px; // Add margin at the bottom to avoid overlapping with the nav bar
 `;
 
 const CloseButton = styled.button`
-  position: sticky;
-  top: 10px;
-  right: 10px;
   float: right;
-  font-size: 24px;
   background: none;
   border: none;
+  font-size: 1.5rem;
   cursor: pointer;
-  z-index: 1;
 `;
 
 const CloseModalButton = styled.button`
@@ -370,6 +361,7 @@ const fetchActivities = async (): Promise<Activity[]> => {
 
 const Events: React.FC<EventsProps> = ({ user }) => {
   const { data: activities, isLoading, error } = useQuery<Activity[], Error>('activities', fetchActivities);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
   const filteredActivities = useCallback(() => {
     if (!activities || !user) return [];
@@ -406,18 +398,27 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   const userActivities = filteredActivities();
 
+  const handleActivityClick = (activity: Activity) => {
+    setSelectedActivity(activity);
+  };
+
+  const closeModal = () => {
+    setSelectedActivity(null);
+  };
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>An error occurred: {error.message}</div>;
+  if (!user) return <div>Please log in to view your activities.</div>;
 
   return (
     <EventsContainer>
       <EventsTitle>Your Upcoming Activities</EventsTitle>
       {userActivities.length === 0 ? (
-        <p>No upcoming activities found for {user?.name}.</p>
+        <p>No upcoming activities found for {user.name || 'you'}.</p>
       ) : (
         <ActivityList>
           {userActivities.map((activity) => (
-            <ActivityItem key={activity.id}>
+            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
               <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
@@ -425,6 +426,24 @@ const Events: React.FC<EventsProps> = ({ user }) => {
             </ActivityItem>
           ))}
         </ActivityList>
+      )}
+      {selectedActivity && (
+        <Modal>
+          <ModalContent>
+            <CloseButton onClick={closeModal}>X</CloseButton>
+            <h2>{selectedActivity.subject}</h2>
+            <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
+            <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
+            <p><strong>Location:</strong> {selectedActivity.location}</p>
+            <p>{selectedActivity.description}</p>
+            <p><strong>Participants:</strong></p>
+            <ul>
+              {selectedActivity.participants.map((participant, index) => (
+                <li key={index}>{participant.member_name} ({participant.member_email})</li>
+              ))}
+            </ul>
+          </ModalContent>
+        </Modal>
       )}
     </EventsContainer>
   );
