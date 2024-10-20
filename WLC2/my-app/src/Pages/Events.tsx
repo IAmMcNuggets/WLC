@@ -356,13 +356,8 @@ const fetchActivities = async (): Promise<Activity[]> => {
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   try {
-    console.log(`Attempting to fetch opportunity ${id}`);
     const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items&include[]=attachments`);
-    console.log('Opportunity response:', opportunityResponse.data);
-    const opportunity = opportunityResponse.data.opportunity;
-
-    console.log('Processed opportunity:', opportunity);
-    return opportunity;
+    return opportunityResponse.data.opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
     throw error;
@@ -539,7 +534,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     { 
       enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
       onSuccess: (data) => {
-        console.log('Opportunity data set:', data);
         setSelectedOpportunity(data);
       }
     }
@@ -561,11 +555,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const filteredActivities = useCallback(() => {
     if (!activities || !user) return [];
 
-    console.log('All activities:', activities);
-    console.log('Current user:', user);
-
     return activities.filter(activity => {
-      const isParticipant = activity.participants.some(participant => {
+      return activity.participants.some(participant => {
         const participantNameMatch = user.name && participant.member_name
           ? participant.member_name.toLowerCase().includes(user.name.toLowerCase())
           : false;
@@ -573,21 +564,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           ? participant.member_email.toLowerCase() === user.email.toLowerCase()
           : false;
         
-        console.log('Comparing:', {
-          activitySubject: activity.subject,
-          participantName: participant.member_name,
-          userName: user.name,
-          participantEmail: participant.member_email,
-          userEmail: user.email,
-          nameMatch: participantNameMatch,
-          emailMatch: participantEmailMatch
-        });
-
         return participantNameMatch || participantEmailMatch;
       });
-
-      console.log(`Activity ${activity.subject} is ${isParticipant ? '' : 'not '}a match`);
-      return isParticipant;
     });
   }, [activities, user]);
 
