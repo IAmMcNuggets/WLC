@@ -431,17 +431,41 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         <Modal>
           <ModalContent>
             <CloseButton onClick={closeModal}>X</CloseButton>
-            <h2>{selectedActivity.subject}</h2>
-            <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
-            <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
-            <p><strong>Location:</strong> {selectedActivity.location}</p>
-            <p>{selectedActivity.description}</p>
-            <p><strong>Participants:</strong></p>
-            <ul>
-              {selectedActivity.participants.map((participant, index) => (
-                <li key={index}>{participant.member_name} ({participant.member_email})</li>
-              ))}
-            </ul>
+            <ModalHeader>{selectedActivity.subject}</ModalHeader>
+            <ModalGrid>
+              <ModalSection>
+                <InfoSection>
+                  <Icon><FaClock /></Icon>
+                  <div>
+                    <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
+                    <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
+                  </div>
+                </InfoSection>
+                {selectedActivity.location && (
+                  <InfoSection>
+                    <Icon><FaMapMarkerAlt /></Icon>
+                    <p><strong>Location:</strong> {selectedActivity.location}</p>
+                  </InfoSection>
+                )}
+              </ModalSection>
+              <ModalSection>
+                <h3>Participants:</h3>
+                <ParticipantList>
+                  {selectedActivity.participants.map((participant, index) => (
+                    <li key={index}>{participant.member_name} ({participant.member_email})</li>
+                  ))}
+                </ParticipantList>
+              </ModalSection>
+            </ModalGrid>
+            {selectedActivity.description && (
+              <ModalSection>
+                <h3>Description:</h3>
+                <p>{selectedActivity.description}</p>
+              </ModalSection>
+            )}
+            <ButtonContainer>
+              <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
+            </ButtonContainer>
           </ModalContent>
         </Modal>
       )}
