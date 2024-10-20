@@ -445,77 +445,76 @@ const ToggleIcon = styled.div`
   margin-right: 10px;
 `;
 
-const renderItems = useCallback((items: OpportunityItem[]) => {
-  const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
-
-  const togglePrincipal = (id: number) => {
-    setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const renderedItems: JSX.Element[] = [];
-  let currentPrincipal: OpportunityItem | null = null;
-  let accessories: OpportunityItem[] = [];
-
-  const renderPrincipalWithAccessories = () => {
-    if (currentPrincipal) {
-      renderedItems.push(
-        <PrincipalRow 
-          key={currentPrincipal.id} 
-          isGroup={false} 
-          isAccessory={false} 
-          onClick={() => togglePrincipal(currentPrincipal!.id)}
-        >
-          <ToggleIcon>
-            {openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />}
-          </ToggleIcon>
-          <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
-          <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
-        </PrincipalRow>
-      );
-      if (openPrincipals[currentPrincipal.id]) {
-        accessories.forEach(accessory => {
-          renderedItems.push(
-            <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
-              <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
-              <ItemQuantity>{accessory.quantity}</ItemQuantity>
-            </AccessoryRow>
-          );
-        });
-      }
-    }
-  };
-
-  items.forEach((item) => {
-    const isGroup = item.opportunity_item_type_name === 'Group';
-    const isPrincipal = item.opportunity_item_type_name === 'Principal';
-    const isAccessory = item.opportunity_item_type_name === 'Accessory';
-
-    if (isPrincipal) {
-      renderPrincipalWithAccessories();
-      currentPrincipal = item;
-      accessories = [];
-    } else if (isAccessory && currentPrincipal) {
-      accessories.push(item);
-    } else {
-      renderedItems.push(
-        <ItemRow key={item.id} isGroup={isGroup} isAccessory={isAccessory}>
-          <ItemNameDiv isGroup={isGroup} isAccessory={isAccessory}>{item.name}</ItemNameDiv>
-          {!isGroup && <ItemQuantity>{item.quantity}</ItemQuantity>}
-        </ItemRow>
-      );
-    }
-  });
-
-  // Render the last principal and its accessories
-  renderPrincipalWithAccessories();
-
-  return renderedItems;
-}, []);
-
 const Events: React.FC<EventsProps> = ({ user }) => {
   const { data: activities, isLoading: activitiesLoading, error: activitiesError } = useQuery<Activity[], Error>('activities', fetchActivities);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
+
+  const togglePrincipal = useCallback((id: number) => {
+    setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  const renderItems = useCallback((items: OpportunityItem[]) => {
+    const renderedItems: JSX.Element[] = [];
+    let currentPrincipal: OpportunityItem | null = null;
+    let accessories: OpportunityItem[] = [];
+
+    const renderPrincipalWithAccessories = () => {
+      if (currentPrincipal) {
+        renderedItems.push(
+          <PrincipalRow 
+            key={currentPrincipal.id} 
+            isGroup={false} 
+            isAccessory={false} 
+            onClick={() => togglePrincipal(currentPrincipal!.id)}
+          >
+            <ToggleIcon>
+              {openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />}
+            </ToggleIcon>
+            <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
+            <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
+          </PrincipalRow>
+        );
+        if (openPrincipals[currentPrincipal.id]) {
+          accessories.forEach(accessory => {
+            renderedItems.push(
+              <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
+                <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
+                <ItemQuantity>{accessory.quantity}</ItemQuantity>
+              </AccessoryRow>
+            );
+          });
+        }
+      }
+    };
+
+    items.forEach((item) => {
+      const isGroup = item.opportunity_item_type_name === 'Group';
+      const isPrincipal = item.opportunity_item_type_name === 'Principal';
+      const isAccessory = item.opportunity_item_type_name === 'Accessory';
+
+      if (isPrincipal) {
+        renderPrincipalWithAccessories();
+        currentPrincipal = item;
+        accessories = [];
+      } else if (isAccessory && currentPrincipal) {
+        accessories.push(item);
+      } else {
+        renderedItems.push(
+          <ItemRow key={item.id} isGroup={isGroup} isAccessory={isAccessory}>
+            <ItemNameDiv isGroup={isGroup} isAccessory={isAccessory}>{item.name}</ItemNameDiv>
+            {!isGroup && <ItemQuantity>{item.quantity}</ItemQuantity>}
+          </ItemRow>
+        );
+      }
+    });
+
+    // Render the last principal and its accessories
+    renderPrincipalWithAccessories();
+
+    return renderedItems;
+  }, [openPrincipals, togglePrincipal]);
 
   const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
     ['opportunity', selectedActivity?.regarding_id],
