@@ -363,248 +363,64 @@ const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promi
   }
 };
 
+const fetchActivities = async (): Promise<Activity[]> => {
+  const response = await currentRMSApi.get('/activities');
+  return response.data.activities;
+};
+
 const Events: React.FC<EventsProps> = ({ user }) => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [opportunities, setOpportunities] = useState<{ [id: number]: Opportunity }>({});
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-  const [openSubCategories, setOpenSubCategories] = useState<{ [key: string]: boolean }>({});
-  const [opportunityLoading, setOpportunityLoading] = useState(false);
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: activities, isLoading, error } = useQuery<Activity[], Error>('activities', fetchActivities);
 
-  const fetchAllData = useCallback(async (): Promise<Activity[]> => {
-    if (!user || !user.name) {
-      throw new Error('User not logged in or name not available');
-    }
+  const filteredActivities = useCallback(() => {
+    if (!activities || !user) return [];
 
-    console.log('Fetching activities data...');
-    const activitiesData = await fetchWithRetry<Activity[]>('/activities', 3, 1000);
-    console.log('Received activities data:', activitiesData);
-    
-    if (!activitiesData || !Array.isArray(activitiesData)) {
-      console.error('No activities data received or data is not an array');
-      return [];
-    }
+    console.log('All activities:', activities);
+    console.log('Current user:', user);
 
-    const userNameParts = user.name.toLowerCase().split(' ');
-    console.log('User name parts:', userNameParts);
-
-    const filteredActivities = activitiesData.filter((activity: Activity) => {
-      return activity.participants.some(participant => {
-        const participantNameParts = participant.member_name.toLowerCase().split(' ');
-        console.log('Participant name parts:', participantNameParts);
+    return activities.filter(activity => {
+      const isParticipant = activity.participants.some(participant => {
+        const participantNameMatch = participant.member_name.toLowerCase().includes(user.name.toLowerCase());
+        const participantEmailMatch = participant.member_email.toLowerCase() === user.email.toLowerCase();
         
-        // Check if all parts of the user's name are in the participant's name
-        return userNameParts.every(part => participantNameParts.includes(part));
+        console.log('Comparing:', {
+          activitySubject: activity.subject,
+          participantName: participant.member_name,
+          userName: user.name,
+          participantEmail: participant.member_email,
+          userEmail: user.email,
+          nameMatch: participantNameMatch,
+          emailMatch: participantEmailMatch
+        });
+
+        return participantNameMatch || participantEmailMatch; // Match if either name or email matches
       });
+
+      console.log(`Activity ${activity.subject} is ${isParticipant ? '' : 'not '}a match`);
+      return isParticipant;
     });
+  }, [activities, user]);
 
-    console.log('Filtered activities:', filteredActivities);
+  const userActivities = filteredActivities();
 
-    return filteredActivities;
-  }, [user]);
-
-  useEffect(() => {
-    if (user && user.name) {
-      fetchAllData();
-    }
-  }, [user, fetchAllData]);
-
-  useEffect(() => {
-    // Load data from localStorage on component mount
-    const cachedActivities = localStorage.getItem('activitiesData');
-    const cachedOpportunities = localStorage.getItem('opportunitiesData');
-    if (cachedActivities && cachedOpportunities) {
-      setActivities(JSON.parse(cachedActivities));
-      setOpportunities(JSON.parse(cachedOpportunities));
-    }
-  }, []);
-
-  const handleActivityClick = (activity: Activity) => {
-    if (activity.regarding_type === 'Opportunity') {
-      setOpportunityLoading(true);
-      setSelectedOpportunity(opportunities[activity.regarding_id] || null);
-      setOpportunityLoading(false);
-    }
-  };
-
-  const closeModal = () => {
-    setSelectedOpportunity(null);
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    };
-    return new Date(dateString).toLocaleString(undefined, options);
-  };
-
-  const toggleSubCategory = (subCategory: string) => {
-    setOpenSubCategories(prev => ({
-      ...prev,
-      [subCategory]: !prev[subCategory]
-    }));
-  };
-
-  const debouncedFetch = useCallback(
-    debounce(() => {
-      fetchAllData();
-    }, 300),
-    [fetchAllData]
-  );
-
-  const { data: queryActivities, isLoading, error: queryError } = useQuery<Activity[], Error>(
-    'activities',
-    fetchAllData,
-    {
-      staleTime: CACHE_DURATION,
-      cacheTime: CACHE_DURATION,
-      enabled: !!user,
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    }
-  );
-
-  if (!user) {
-    return <EventsContainer>Please log in to view your activities.</EventsContainer>;
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>An error occurred: {error.message}</div>;
 
   return (
     <EventsContainer>
       <EventsTitle>Your Upcoming Activities</EventsTitle>
-      {isLoading ? (
-        <p>Loading your activities and opportunities...</p>
-      ) : queryError ? (
-        <p>Error loading data: {queryError.message}</p>
-      ) : queryActivities && queryActivities.length === 0 ? (
+      {userActivities.length === 0 ? (
         <p>No upcoming activities found for {user?.name}.</p>
       ) : (
         <ActivityList>
-          {queryActivities?.map((activity) => (
-            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
+          {userActivities.map((activity) => (
+            <ActivityItem key={activity.id}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
-              <ActivityDetail><strong>Starts:</strong> {formatDateTime(activity.starts_at)}</ActivityDetail>
-              <ActivityDetail><strong>Ends:</strong> {formatDateTime(activity.ends_at)}</ActivityDetail>
+              <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
+              <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
               {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
             </ActivityItem>
           ))}
         </ActivityList>
-      )}
-      {selectedOpportunity && (
-        <Modal onClick={closeModal}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <CloseButton onClick={closeModal}>&times;</CloseButton>
-            <ModalHeader>{selectedOpportunity.subject}</ModalHeader>
-            
-            <InfoSection>
-              <Icon><FaClock /></Icon>
-              <div>
-                <p><strong>Starts:</strong> {formatDateTime(selectedOpportunity.starts_at)}</p>
-                <p><strong>Ends:</strong> {formatDateTime(selectedOpportunity.ends_at)}</p>
-              </div>
-            </InfoSection>
-            
-            <InfoSection>
-              <Icon><FaMapMarkerAlt /></Icon>
-              <div>
-                <p><strong>Venue:</strong> {selectedOpportunity.venue?.name || 'N/A'}</p>
-                {selectedOpportunity.destination && selectedOpportunity.destination.address && (
-                  <>
-                    <p>{selectedOpportunity.destination.address.street}</p>
-                    <p>{`${selectedOpportunity.destination.address.city}, ${selectedOpportunity.destination.address.county} ${selectedOpportunity.destination.address.postcode}`}</p>
-                  </>
-                )}
-              </div>
-            </InfoSection>
-
-            {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
-              <InfoSection>
-                <Icon><FaPhone /></Icon>
-                <p><strong>Onsite Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
-              </InfoSection>
-            )}
-
-            {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 && (
-              <div>
-                {(() => {
-                  let currentCategory: string | null = null;
-                  let currentSubCategory: string | null = null;
-                  
-                  return selectedOpportunity.opportunity_items.map((item, index) => {
-                    const quantity = parseFloat(item.quantity.toString().trim());
-                    const isZeroQuantity = quantity === 0 || isNaN(quantity);
-                    
-                    let output = [];
-                    
-                    if (item.opportunity_item_type_name === 'Group' && item.name !== currentCategory) {
-                      currentCategory = item.name;
-                      currentSubCategory = null;
-                      output.push(<CategoryHeader key={`cat-${item.id}`}>{item.name}</CategoryHeader>);
-                    } else if (item.opportunity_item_type_name === 'Principal' && item.name !== currentSubCategory) {
-                      currentSubCategory = item.name;
-                      output.push(
-                        <SubCategoryHeader 
-                          key={`subcat-${item.id}`}
-                          onClick={() => toggleSubCategory(item.name)}
-                          className={openSubCategories[item.name] ? 'open' : ''}
-                        >
-                          {item.name}
-                        </SubCategoryHeader>
-                      );
-                    }
-                    
-                    if (item.opportunity_item_type_name !== 'Group') {
-                      output.push(
-                        <AccessoryList key={`acc-${item.id}`} className={openSubCategories[currentSubCategory || ''] ? 'open' : ''}>
-                          <AccessoryItem>
-                            <ItemName isZeroQuantity={isZeroQuantity}>{item.name}</ItemName>
-                            {!isZeroQuantity && <span> - Quantity: {item.quantity}</span>}
-                            {item.description && (
-                              <PrincipalDescription>{item.description}</PrincipalDescription>
-                            )}
-                          </AccessoryItem>
-                        </AccessoryList>
-                      );
-                    }
-                    
-                    return output;
-                  });
-                })()}
-              </div>
-            )}
-
-            <CategoryHeader>Attachments</CategoryHeader>
-            {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
-              <DocumentList>
-                {selectedOpportunity.attachments.map((attachment) => (
-                  <DocumentItem key={attachment.id}>
-                    <Icon><FaFileAlt /></Icon>
-                    <DocumentLink 
-                      href={attachment.attachment_url}
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
-                      {attachment.name || attachment.attachment_file_name}
-                    </DocumentLink>
-                  </DocumentItem>
-                ))}
-              </DocumentList>
-            ) : (
-              <p>No attachments associated with this opportunity.</p>
-            )}
-            
-            <ButtonContainer>
-              <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
-            </ButtonContainer>
-          </ModalContent>
-        </Modal>
       )}
     </EventsContainer>
   );
