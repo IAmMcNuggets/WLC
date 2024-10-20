@@ -539,7 +539,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   useEffect(() => {
     if (selectedOpportunity) {
       console.log('Selected Opportunity:', selectedOpportunity);
-      console.log('Opportunity Items:', selectedOpportunity.opportunity_items);
+      console.log('Venue information:', selectedOpportunity.venue);
     }
   }, [selectedOpportunity]);
 
