@@ -524,6 +524,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
       onSuccess: (data) => {
         console.log('Opportunity data set in component:', data);
+        console.log('Venue information:', data.venue); // Add this line
         setSelectedOpportunity(data);
       }
     }
@@ -604,7 +605,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
                   </div>
                 </InfoSection>
-                {selectedOpportunity && selectedOpportunity.venue && (
+                {selectedOpportunity && selectedOpportunity.venue && selectedOpportunity.venue.name && (
                   <InfoSection>
                     <Icon><FaBuilding /></Icon>
                     <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
