@@ -110,6 +110,7 @@ interface OpportunityItem {
   quantity: number;
   opportunity_item_type_name: string;
   price: string;
+  description?: string;
   // Add other properties as needed
 }
 
@@ -430,6 +431,46 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   const closeModal = () => {
     setSelectedActivity(null);
+  };
+
+  const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
+
+  const togglePrincipal = (id: number) => {
+    setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const renderItems = (items: OpportunityItem[]) => {
+    let currentGroup: OpportunityItem | null = null;
+    let currentPrincipal: OpportunityItem | null = null;
+
+    return items.map((item, index) => {
+      if (item.opportunity_item_type_name === 'Group') {
+        currentGroup = item;
+        return <CategoryHeader key={item.id}>{item.name}</CategoryHeader>;
+      } else if (item.opportunity_item_type_name === 'Principal') {
+        currentPrincipal = item;
+        return (
+          <React.Fragment key={item.id}>
+            <SubCategoryHeader 
+              className={openPrincipals[item.id] ? 'open' : ''}
+              onClick={() => togglePrincipal(item.id)}
+            >
+              {item.name} - Quantity: {item.quantity}, Price: {item.price}
+            </SubCategoryHeader>
+            <PrincipalDescription>{item.description}</PrincipalDescription>
+          </React.Fragment>
+        );
+      } else if (item.opportunity_item_type_name === 'Accessory' && currentPrincipal) {
+        return (
+          <AccessoryList key={item.id} className={openPrincipals[currentPrincipal.id] ? 'open' : ''}>
+            <AccessoryItem>
+              {item.name} - Quantity: {item.quantity}, Price: {item.price}
+            </AccessoryItem>
+          </AccessoryList>
+        );
+      }
+      return null;
+    });
   };
 
   if (activitiesLoading) return <div>Loading activities...</div>;
