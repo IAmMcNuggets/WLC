@@ -463,29 +463,26 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     const renderPrincipalWithAccessories = () => {
       if (currentPrincipal) {
         renderedItems.push(
-          <PrincipalRow 
-            key={currentPrincipal.id} 
-            isGroup={false} 
-            isAccessory={false} 
-            onClick={() => togglePrincipal(currentPrincipal!.id)}
-          >
-            <ToggleIcon>
-              {openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />}
-            </ToggleIcon>
-            <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
-            <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
-          </PrincipalRow>
-        );
-        if (openPrincipals[currentPrincipal.id]) {
-          accessories.forEach(accessory => {
-            renderedItems.push(
+          <React.Fragment key={currentPrincipal.id}>
+            <PrincipalRow 
+              isGroup={false} 
+              isAccessory={false} 
+              onClick={() => togglePrincipal(currentPrincipal!.id)}
+            >
+              <ToggleIcon>
+                {openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />}
+              </ToggleIcon>
+              <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
+              <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
+            </PrincipalRow>
+            {openPrincipals[currentPrincipal.id] && accessories.map(accessory => (
               <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
                 <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
                 <ItemQuantity>{accessory.quantity}</ItemQuantity>
               </AccessoryRow>
-            );
-          });
-        }
+            ))}
+          </React.Fragment>
+        );
       }
     };
 
