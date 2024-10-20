@@ -402,10 +402,7 @@ const fetchOpportunityWithAttachments = async (id: number): Promise<Opportunity>
     console.log('Opportunity response:', opportunityResponse.data);
     const opportunity = opportunityResponse.data.opportunity;
 
-    // Fetch attachments separately
-    opportunity.attachments = await fetchAttachments(id);
-
-    console.log('Processed opportunity with attachments:', opportunity);
+    console.log('Processed opportunity:', opportunity);
     return opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
@@ -511,6 +508,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
               <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
               <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
             </PrincipalRow>
+            {currentPrincipal.description && (
+              <PrincipalDescription>{currentPrincipal.description}</PrincipalDescription>
+            )}
             {openPrincipals[principalId] && accessories.map((accessory) => (
               <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
                 <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
@@ -686,24 +686,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <Icon><FaPhone /></Icon>
                     <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
                   </InfoSection>
-                )}
-                <h3>Attachments Section:</h3>
-                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
-                  <>
-                    <h4>Attachments:</h4>
-                    <DocumentList>
-                      {selectedOpportunity.attachments.map((attachment) => (
-                        <DocumentItem key={attachment.id}>
-                          <Icon><FaFileAlt /></Icon>
-                          <DocumentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
-                            {attachment.name || attachment.attachment_file_name}
-                          </DocumentLink>
-                        </DocumentItem>
-                      ))}
-                    </DocumentList>
-                  </>
-                ) : (
-                  <p>No attachments found for this opportunity.</p>
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
