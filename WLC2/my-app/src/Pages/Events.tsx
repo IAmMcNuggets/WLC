@@ -445,12 +445,12 @@ const ToggleIcon = styled.div`
   margin-right: 10px;
 `;
 
-const renderItems = (items: OpportunityItem[]) => {
+const renderItems = useCallback((items: OpportunityItem[]) => {
   const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
 
-  const togglePrincipal = useCallback((id: number) => {
+  const togglePrincipal = (id: number) => {
     setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
-  }, []);
+  };
 
   const renderedItems: JSX.Element[] = [];
   let currentPrincipal: OpportunityItem | null = null;
@@ -510,7 +510,7 @@ const renderItems = (items: OpportunityItem[]) => {
   renderPrincipalWithAccessories();
 
   return renderedItems;
-};
+}, []);
 
 const Events: React.FC<EventsProps> = ({ user }) => {
   const { data: activities, isLoading: activitiesLoading, error: activitiesError } = useQuery<Activity[], Error>('activities', fetchActivities);
