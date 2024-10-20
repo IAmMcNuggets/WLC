@@ -379,8 +379,12 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
     return activities.filter(activity => {
       const isParticipant = activity.participants.some(participant => {
-        const participantNameMatch = participant.member_name.toLowerCase().includes(user.name.toLowerCase());
-        const participantEmailMatch = participant.member_email.toLowerCase() === user.email.toLowerCase();
+        const participantNameMatch = user.name && participant.member_name
+          ? participant.member_name.toLowerCase().includes(user.name.toLowerCase())
+          : false;
+        const participantEmailMatch = user.email && participant.member_email
+          ? participant.member_email.toLowerCase() === user.email.toLowerCase()
+          : false;
         
         console.log('Comparing:', {
           activitySubject: activity.subject,
@@ -392,7 +396,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           emailMatch: participantEmailMatch
         });
 
-        return participantNameMatch || participantEmailMatch; // Match if either name or email matches
+        return participantNameMatch || participantEmailMatch;
       });
 
       console.log(`Activity ${activity.subject} is ${isParticipant ? '' : 'not '}a match`);
