@@ -629,14 +629,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   </InfoSection>
                 )}
               </ModalSection>
-              <ModalSection>
-                <h3>Participants:</h3>
-                <ParticipantList>
-                  {selectedActivity.participants.map((participant, index) => (
-                    <li key={index}>{participant.member_name} ({participant.member_email})</li>
-                  ))}
-                </ParticipantList>
-              </ModalSection>
             </ModalGrid>
             {selectedActivity.description && (
               <ModalSection>
@@ -650,11 +642,14 @@ const Events: React.FC<EventsProps> = ({ user }) => {
               <p>Error loading opportunity details: {opportunityError.message}</p>
             ) : selectedOpportunity ? (
               <ModalSection>
-                <h3>Opportunity Details:</h3>
-                <p><strong>Number:</strong> {selectedOpportunity.number}</p>
-                <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
                 {selectedOpportunity.venue && (
                   <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                )}
+                {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
+                  <InfoSection>
+                    <Icon><FaPhone /></Icon>
+                    <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
+                  </InfoSection>
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
