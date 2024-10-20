@@ -346,7 +346,7 @@ type ApiResponse<T> = {
   // Add other properties if needed
 };
 
-const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promise<T> => {
+const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promise<T | null> => {
   try {
     const response = await currentRMSApi.get<ApiResponse<T>>(url);
     return response.data.data;
@@ -355,7 +355,8 @@ const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promi
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithRetry<T>(url, retries - 1, delay * 2);
     }
-    throw error;
+    console.error(`Failed to fetch data from ${url}:`, error);
+    return null;
   }
 };
 
@@ -380,8 +381,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     
     const activitiesData = await fetchWithRetry<Activity[]>('/activities', 3, 1000);
     
-    if (!activitiesData) {
-      console.error('No activities data received');
+    if (!activitiesData || !Array.isArray(activitiesData)) {
+      console.error('No activities data received or data is not an array');
       return [];
     }
 
