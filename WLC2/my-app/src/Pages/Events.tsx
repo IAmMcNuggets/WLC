@@ -359,9 +359,27 @@ const fetchActivities = async (): Promise<Activity[]> => {
   return response.data.activities;
 };
 
+const fetchOpportunity = async (id: number): Promise<Opportunity> => {
+  const response = await currentRMSApi.get(`/opportunities/${id}`);
+  return response.data.opportunity;
+};
+
 const Events: React.FC<EventsProps> = ({ user }) => {
-  const { data: activities, isLoading, error } = useQuery<Activity[], Error>('activities', fetchActivities);
+  const { data: activities, isLoading: activitiesLoading, error: activitiesError } = useQuery<Activity[], Error>('activities', fetchActivities);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+
+  const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
+    ['opportunity', selectedActivity?.regarding_id],
+    () => fetchOpportunity(selectedActivity?.regarding_id as number),
+    { enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity' }
+  );
+
+  useEffect(() => {
+    if (opportunity) {
+      setSelectedOpportunity(opportunity);
+    }
+  }, [opportunity]);
 
   const filteredActivities = useCallback(() => {
     if (!activities || !user) return [];
@@ -406,8 +424,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     setSelectedActivity(null);
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>An error occurred: {error.message}</div>;
+  if (activitiesLoading) return <div>Loading activities...</div>;
+  if (activitiesError) return <div>An error occurred: {activitiesError.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
 
   return (
@@ -461,6 +479,34 @@ const Events: React.FC<EventsProps> = ({ user }) => {
               <ModalSection>
                 <h3>Description:</h3>
                 <p>{selectedActivity.description}</p>
+              </ModalSection>
+            )}
+            {selectedOpportunity && (
+              <ModalSection>
+                <h3>Opportunity Details:</h3>
+                <p><strong>Number:</strong> {selectedOpportunity.number}</p>
+                <p><strong>Status:</strong> {selectedOpportunity.status_name}</p>
+                <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                {/* Add more opportunity details as needed */}
+                <h4>Items:</h4>
+                <ItemTable>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Quantity</th>
+                      <th>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedOpportunity.opportunity_items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.name}</td>
+                        <td>{item.quantity}</td>
+                        <td>{item.opportunity_item_type_name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </ItemTable>
               </ModalSection>
             )}
             <ButtonContainer>
