@@ -42,9 +42,9 @@ const LoginContainer = styled.div`
 
 const AppTitle = styled.h1`
   font-size: 2.5rem;
-  color: #ffffff;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  color: #000000;
+  margin: 1rem 0;
+  text-align: center;
 `;
 
 const queryClient = new QueryClient()
@@ -97,6 +97,7 @@ function App() {
             ) : (
               <LoginContainer>
                 <img src={logo} alt="Logo" style={{ width: '200px', marginBottom: '1rem' }} />
+                <AppTitle>Gigfriend</AppTitle>
                 <GoogleLogin
                   onSuccess={handleLogin}
                   onError={() => console.log('Login Failed')}
