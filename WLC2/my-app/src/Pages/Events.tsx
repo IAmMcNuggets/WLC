@@ -388,45 +388,21 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       return [];
     }
 
+    const userNameParts = user.name.toLowerCase().split(' ');
+    console.log('User name parts:', userNameParts);
+
     const filteredActivities = activitiesData.filter((activity: Activity) => {
-      return activity.participants.some(participant => 
-        participant.member_name.toLowerCase() === user.name.toLowerCase()
-      );
+      return activity.participants.some(participant => {
+        const participantNameParts = participant.member_name.toLowerCase().split(' ');
+        console.log('Participant name parts:', participantNameParts);
+        
+        // Check if all parts of the user's name are in the participant's name
+        return userNameParts.every(part => participantNameParts.includes(part));
+      });
     });
 
-    setActivities(prev => [...prev, ...filteredActivities]);
-    setPage(prev => prev + 1);
-    setHasMore(filteredActivities.length === 20);
+    console.log('Filtered activities:', filteredActivities);
 
-    const opportunityIds = filteredActivities
-      .filter((activity: Activity) => activity.regarding_type === 'Opportunity')
-      .map((activity: Activity) => activity.regarding_id);
-
-    const opportunitiesData = await Promise.all(
-      opportunityIds.map((id: number) => 
-        Promise.all([
-          currentRMSApi.get(`/opportunities/${id}`),
-          currentRMSApi.get(`/opportunities/${id}/opportunity_items`),
-          currentRMSApi.get('/attachments', {
-            params: { 
-              'q[attachable_id_eq]': id,
-              'q[attachable_type_eq]': 'Opportunity'
-            }
-          })
-        ])
-      )
-    );
-
-    const opportunitiesMap = opportunitiesData.reduce((acc: { [key: number]: Opportunity }, [opp, items, attachments], index) => {
-      acc[opportunityIds[index]] = {
-        ...opp.data.opportunity,
-        opportunity_items: items.data.opportunity_items || [],
-        attachments: attachments.data.attachments || []
-      };
-      return acc;
-    }, {});
-
-    setOpportunities(opportunitiesMap);
     return filteredActivities;
   }, [user]);
 
