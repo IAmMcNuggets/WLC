@@ -97,21 +97,6 @@ interface OpportunityDocument {
   name: string; // Add this line
 }
 
-interface Attachment {
-  id: number;
-  attachable_id: number;
-  attachable_type: string;
-  name: string;
-  description: string;
-  attachment_file_name: string;
-  attachment_content_type: string;
-  attachment_file_size: number;
-  attachment_url: string;
-  attachment_thumb_url: string;
-  created_at: string;
-  updated_at: string;
-}
-
 interface OpportunityItem {
   id: number;
   name: string;
@@ -141,8 +126,6 @@ interface Opportunity {
     postcode: string;
     country_name: string;
   };
-  opportunity_documents: OpportunityDocument[];
-  attachments: Attachment[];
   custom_fields: {
     'on-site_contact_phone': string;
     // Add other custom fields as needed
@@ -221,26 +204,6 @@ const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
   margin-top: 20px;
-`;
-
-const DocumentList = styled.ul`
-  list-style-type: none;
-  padding: 0;
-`;
-
-const DocumentItem = styled.li`
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-`;
-
-const DocumentLink = styled.a`
-  color: #4CAF50;
-  text-decoration: none;
-  margin-left: 8px;
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 const ModalGrid = styled.div`
@@ -383,19 +346,7 @@ const fetchActivities = async (): Promise<Activity[]> => {
   return response.data.activities;
 };
 
-const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
-  try {
-    console.log(`Fetching attachments for regarding_id: ${regardingId}`);
-    const response = await currentRMSApi.get(`/attachments?filter[attachable_id]=${regardingId}&filter[attachable_type]=Opportunity`);
-    console.log('Attachments response:', response.data);
-    return response.data.attachments || [];
-  } catch (error) {
-    console.error(`Error fetching attachments for regarding_id ${regardingId}:`, error);
-    return [];
-  }
-};
-
-const fetchOpportunityWithAttachments = async (id: number): Promise<Opportunity> => {
+const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   try {
     console.log(`Attempting to fetch opportunity ${id}`);
     const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
@@ -556,7 +507,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
     ['opportunity', selectedActivity?.regarding_id],
-    () => fetchOpportunityWithAttachments(selectedActivity?.regarding_id as number),
+    () => fetchOpportunity(selectedActivity?.regarding_id as number),
     { 
       enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
       onSuccess: (data) => {
@@ -576,7 +527,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     if (selectedOpportunity) {
       console.log('Selected Opportunity:', selectedOpportunity);
       console.log('Opportunity Items:', selectedOpportunity.opportunity_items);
-      console.log('Attachments:', selectedOpportunity.attachments);
     }
   }, [selectedOpportunity]);
 
