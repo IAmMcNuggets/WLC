@@ -175,7 +175,7 @@ const Modal = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1003; // Increased to be higher than the bottom nav bar
 `;
 
 const ModalContent = styled.div`
@@ -186,6 +186,9 @@ const ModalContent = styled.div`
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
+  position: relative; // Add this to ensure it's above the overlay
+  z-index: 1004; // Add this to ensure it's above the overlay
+  padding-bottom: 80px; // Adjust this value based on the height of your bottom nav bar
 `;
 
 const CloseButton = styled.button`
