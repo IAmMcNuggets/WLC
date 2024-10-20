@@ -383,15 +383,21 @@ const fetchActivities = async (): Promise<Activity[]> => {
 };
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
-  const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
-  const opportunity = opportunityResponse.data.opportunity;
+  try {
+    console.log(`Attempting to fetch opportunity ${id}`);
+    const response = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items&include[]=attachments`);
+    console.log('Opportunity response:', response.data);
+    const opportunity = response.data.opportunity;
 
-  // Fetch attachments for this opportunity
-  const attachmentsResponse = await currentRMSApi.get(`/opportunities/${id}/attachments`);
-  opportunity.attachments = attachmentsResponse.data.attachments || [];
+    // Ensure attachments is always an array
+    opportunity.attachments = opportunity.attachments || [];
 
-  console.log('Fetched opportunity with attachments:', opportunity);
-  return opportunity;
+    console.log('Processed opportunity:', opportunity);
+    return opportunity;
+  } catch (error) {
+    console.error(`Error fetching opportunity ${id}:`, error);
+    throw error;
+  }
 };
 
 const PrincipalRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
