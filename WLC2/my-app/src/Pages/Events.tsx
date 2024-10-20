@@ -109,9 +109,16 @@ interface OpportunityItem {
 
 interface Attachment {
   id: number;
+  attachable_id: number;
   name: string;
+  description: string;
   attachment_file_name: string;
+  attachment_content_type: string;
+  attachment_file_size: number;
   attachment_url: string;
+  attachment_thumb_url: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Opportunity {
@@ -356,13 +363,18 @@ const fetchActivities = async (): Promise<Activity[]> => {
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   try {
+    console.log(`Fetching opportunity with ID: ${id}`);
     const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+    console.log('Opportunity response:', opportunityResponse.data);
     const opportunity = opportunityResponse.data.opportunity;
 
     // Fetch attachments separately
+    console.log(`Fetching attachments for opportunity ID: ${id}`);
     const attachmentsResponse = await currentRMSApi.get(`/attachments?filter[attachable_id]=${id}&filter[attachable_type]=Opportunity`);
     console.log('Attachments response:', attachmentsResponse.data);
+    
     opportunity.attachments = attachmentsResponse.data.attachments || [];
+    console.log('Processed opportunity with attachments:', opportunity);
 
     return opportunity;
   } catch (error) {
@@ -541,6 +553,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     { 
       enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
       onSuccess: (data) => {
+        console.log('Opportunity data set in component:', data);
         setSelectedOpportunity(data);
       }
     }
