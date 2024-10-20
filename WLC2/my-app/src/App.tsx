@@ -78,7 +78,6 @@ function App() {
       <GoogleOAuthProvider clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com">
         <Router>
           <AppContainer>
-            {!isLoggedIn && <AppTitle>Gigfriend</AppTitle>}
             {isLoggedIn ? (
               <Routes>
                 <Route path="/events" element={<Events />} />
