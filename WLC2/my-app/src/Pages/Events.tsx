@@ -148,15 +148,12 @@ interface Opportunity {
   };
 }
 
-const corsProxy = 'https://corsproxy.io/?';
-
 const currentRMSApi = axios.create({
-  baseURL: `${corsProxy}https://api.current-rms.com/api/v1`,
+  baseURL: 'https://api.current-rms.com/api/v1',
   headers: {
     'X-SUBDOMAIN': process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
     'X-AUTH-TOKEN': process.env.REACT_APP_CURRENT_RMS_API_KEY,
     'Content-Type': 'application/json',
-    // Remove the 'x-cors-api-key' header as it's not needed for this proxy
   }
 });
 
@@ -343,6 +340,19 @@ interface EventsProps {
   user: GoogleUser | null;
 }
 
+const fetchWithRetry = async (url: string, retries = 3, delay = 1000) => {
+  try {
+    const response = await currentRMSApi.get(url);
+    return response.data;
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return fetchWithRetry(url, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [opportunities, setOpportunities] = useState<{ [id: number]: Opportunity }>({});
@@ -356,78 +366,55 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   const fetchAllData = useCallback(async (): Promise<Activity[]> => {
     if (!user || !user.name) {
-      setError('User not logged in or name not available');
-      return [];
+      throw new Error('User not logged in or name not available');
     }
 
-    setError(null);
-    try {
-      const now = new Date();
-      const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-      
-      const activitiesResponse = await currentRMSApi.get('/activities', {
-        params: {
-          'filter[starts_at_gteq]': now.toISOString(),
-          'filter[starts_at_lteq]': oneMonthLater.toISOString(),
-          'include[]': 'participants',
-          'sort': 'starts_at',
-          'page': page,
-          'per_page': 20
-        }
-      });
-
-      const filteredActivities = activitiesResponse.data.activities.filter((activity: Activity) => {
-        return activity.participants.some(participant => 
-          participant.member_name.toLowerCase() === user.name.toLowerCase()
-        );
-      });
-
-      setActivities(prev => [...prev, ...filteredActivities]);
-      setPage(prev => prev + 1);
-      setHasMore(filteredActivities.length === 20);
-
-      const opportunityIds = filteredActivities
-        .filter((activity: Activity) => activity.regarding_type === 'Opportunity')
-        .map((activity: Activity) => activity.regarding_id);
-
-      const opportunitiesData = await Promise.all(
-        opportunityIds.map((id: number) => 
-          Promise.all([
-            currentRMSApi.get(`/opportunities/${id}`),
-            currentRMSApi.get(`/opportunities/${id}/opportunity_items`),
-            currentRMSApi.get('/attachments', {
-              params: { 
-                'q[attachable_id_eq]': id,
-                'q[attachable_type_eq]': 'Opportunity'
-              }
-            })
-          ])
-        )
+    const now = new Date();
+    const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    
+    const activitiesData = await fetchWithRetry('/activities', 3, 1000);
+    
+    const filteredActivities = activitiesData.activities.filter((activity: Activity) => {
+      return activity.participants.some(participant => 
+        participant.member_name.toLowerCase() === user.name.toLowerCase()
       );
+    });
 
-      const opportunitiesMap = opportunitiesData.reduce((acc, [opp, items, attachments], index) => {
-        acc[opportunityIds[index]] = {
-          ...opp.data.opportunity,
-          opportunity_items: items.data.opportunity_items || [],
-          attachments: attachments.data.attachments || []
-        };
-        return acc;
-      }, {});
+    setActivities(prev => [...prev, ...filteredActivities]);
+    setPage(prev => prev + 1);
+    setHasMore(filteredActivities.length === 20);
 
-      setOpportunities(opportunitiesMap);
-      return filteredActivities;
-    } catch (err) {
-      console.error('Failed to fetch data:', err);
-      setError('Failed to load data. Please try again later.');
-      return [];
-    }
+    const opportunityIds = filteredActivities
+      .filter((activity: Activity) => activity.regarding_type === 'Opportunity')
+      .map((activity: Activity) => activity.regarding_id);
 
-    const now = Date.now();
-    setLastFetchTime(now);
-    // Store fetched data in localStorage
-    localStorage.setItem('activitiesData', JSON.stringify(activities));
-    localStorage.setItem('opportunitiesData', JSON.stringify(opportunities));
-  }, [user, lastFetchTime, page, hasMore]);
+    const opportunitiesData = await Promise.all(
+      opportunityIds.map((id: number) => 
+        Promise.all([
+          currentRMSApi.get(`/opportunities/${id}`),
+          currentRMSApi.get(`/opportunities/${id}/opportunity_items`),
+          currentRMSApi.get('/attachments', {
+            params: { 
+              'q[attachable_id_eq]': id,
+              'q[attachable_type_eq]': 'Opportunity'
+            }
+          })
+        ])
+      )
+    );
+
+    const opportunitiesMap = opportunitiesData.reduce((acc, [opp, items, attachments], index) => {
+      acc[opportunityIds[index]] = {
+        ...opp.data.opportunity,
+        opportunity_items: items.data.opportunity_items || [],
+        attachments: attachments.data.attachments || []
+      };
+      return acc;
+    }, {});
+
+    setOpportunities(opportunitiesMap);
+    return filteredActivities;
+  }, [user]);
 
   useEffect(() => {
     if (user && user.name) {
@@ -490,6 +477,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       staleTime: CACHE_DURATION,
       cacheTime: CACHE_DURATION,
       enabled: !!user,
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     }
   );
 
@@ -503,7 +492,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       {isLoading ? (
         <p>Loading your activities and opportunities...</p>
       ) : queryError ? (
-        <p>{queryError.message}</p>
+        <p>Error loading data: {queryError.message}</p>
       ) : queryActivities && queryActivities.length === 0 ? (
         <p>No upcoming activities found for {user?.name}.</p>
       ) : (
