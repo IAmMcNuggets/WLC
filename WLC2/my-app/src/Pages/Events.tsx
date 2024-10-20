@@ -340,14 +340,20 @@ interface EventsProps {
   user: GoogleUser | null;
 }
 
-const fetchWithRetry = async (url: string, retries = 3, delay = 1000) => {
+// Define a generic type for the API response
+type ApiResponse<T> = {
+  data: T;
+  // Add other properties if needed
+};
+
+const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promise<T> => {
   try {
-    const response = await currentRMSApi.get(url);
-    return response.data;
+    const response = await currentRMSApi.get<ApiResponse<T>>(url);
+    return response.data.data;
   } catch (error) {
     if (retries > 0) {
       await new Promise(resolve => setTimeout(resolve, delay));
-      return fetchWithRetry(url, retries - 1, delay * 2);
+      return fetchWithRetry<T>(url, retries - 1, delay * 2);
     }
     throw error;
   }
@@ -372,9 +378,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     const now = new Date();
     const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
     
-    const activitiesData = await fetchWithRetry('/activities', 3, 1000);
+    const activitiesData = await fetchWithRetry<Activity[]>('/activities', 3, 1000);
     
-    const filteredActivities = activitiesData.activities.filter((activity: Activity) => {
+    const filteredActivities = activitiesData.filter((activity: Activity) => {
       return activity.participants.some(participant => 
         participant.member_name.toLowerCase() === user.name.toLowerCase()
       );
@@ -403,7 +409,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       )
     );
 
-    const opportunitiesMap = opportunitiesData.reduce((acc, [opp, items, attachments], index) => {
+    const opportunitiesMap = opportunitiesData.reduce((acc: { [key: number]: Opportunity }, [opp, items, attachments], index) => {
       acc[opportunityIds[index]] = {
         ...opp.data.opportunity,
         opportunity_items: items.data.opportunity_items || [],
