@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 
@@ -604,6 +604,12 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
                   </div>
                 </InfoSection>
+                {selectedOpportunity && selectedOpportunity.venue && (
+                  <InfoSection>
+                    <Icon><FaBuilding /></Icon>
+                    <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                  </InfoSection>
+                )}
                 {selectedActivity.location && (
                   <InfoSection>
                     <Icon><FaMapMarkerAlt /></Icon>
