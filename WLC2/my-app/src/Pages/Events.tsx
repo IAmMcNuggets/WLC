@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaFileAlt, FaChevronDown, FaChevronRight } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 
