@@ -98,7 +98,7 @@ function App() {
           <AppContainer>
             {isLoggedIn ? (
               <Routes>
-                <Route path="/events" element={<Events />} />
+                <Route path="/events" element={<Events user={user} />} />
                 <Route path="/timeclock" element={<Timeclock />} />
                 <Route 
                   path="/profile" 

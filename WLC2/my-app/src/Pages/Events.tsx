@@ -340,10 +340,13 @@ const Icon = styled.span`
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-const Events: React.FC = () => {
+interface EventsProps {
+  user: GoogleUser | null;
+}
+
+const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [opportunities, setOpportunities] = useState<{ [id: number]: Opportunity }>({});
-  const [user, setUser] = useState<GoogleUser | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [openSubCategories, setOpenSubCategories] = useState<{ [key: string]: boolean }>({});
   const [opportunityLoading, setOpportunityLoading] = useState(false);
@@ -428,13 +431,6 @@ const Events: React.FC = () => {
   }, [user, lastFetchTime, page, hasMore]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
-
-  useEffect(() => {
     if (user && user.name) {
       fetchAllData();
     }
@@ -490,22 +486,6 @@ const Events: React.FC = () => {
 
   const { data: queryActivities, isLoading, error: queryError } = useQuery<Activity[], Error>('activities', fetchAllData, {
     staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const handleLogin = (tokenResponse: any) => {
-    const userInfo = {
-      name: tokenResponse.name,
-      email: tokenResponse.email,
-      // Add other relevant user information
-    };
-    setUser(userInfo);
-    localStorage.setItem('user', JSON.stringify(userInfo));
-  };
-
-  const login = useGoogleLogin({
-    onSuccess: handleLogin,
-    onError: () => console.log('Login Failed'),
-    flow: 'implicit'
   });
 
   if (!user) {
