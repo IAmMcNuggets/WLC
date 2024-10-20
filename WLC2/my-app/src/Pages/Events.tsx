@@ -107,6 +107,13 @@ interface OpportunityItem {
   // Add other properties as needed
 }
 
+interface Attachment {
+  id: number;
+  name: string;
+  attachment_file_name: string;
+  attachment_url: string;
+}
+
 interface Opportunity {
   id: number;
   subject: string;
@@ -139,6 +146,7 @@ interface Opportunity {
       postcode: string;
     };
   };
+  attachments: Attachment[];
 }
 
 const currentRMSApi = axios.create({
@@ -349,7 +357,7 @@ const fetchActivities = async (): Promise<Activity[]> => {
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   try {
     console.log(`Attempting to fetch opportunity ${id}`);
-    const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+    const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items&include[]=attachments`);
     console.log('Opportunity response:', opportunityResponse.data);
     const opportunity = opportunityResponse.data.opportunity;
 
@@ -426,6 +434,26 @@ const ItemQuantity = styled.div`
 
 const ToggleIcon = styled.div`
   margin-right: 10px;
+`;
+
+const AttachmentList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+`;
+
+const AttachmentItem = styled.li`
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+`;
+
+const AttachmentLink = styled.a`
+  color: #4CAF50;
+  text-decoration: none;
+  margin-left: 8px;
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -636,6 +664,21 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <Icon><FaPhone /></Icon>
                     <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
                   </InfoSection>
+                )}
+                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 && (
+                  <>
+                    <h4>Attachments:</h4>
+                    <AttachmentList>
+                      {selectedOpportunity.attachments.map((attachment) => (
+                        <AttachmentItem key={attachment.id}>
+                          <Icon><FaFileAlt /></Icon>
+                          <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
+                            {attachment.name || attachment.attachment_file_name}
+                          </AttachmentLink>
+                        </AttachmentItem>
+                      ))}
+                    </AttachmentList>
+                  </>
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
