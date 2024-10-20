@@ -264,8 +264,8 @@ const ItemTable = styled.table`
   }
 `;
 
-const ItemName = styled.td<{ isZeroQuantity: boolean }>`
-  font-weight: ${props => props.isZeroQuantity ? 'bold' : 'normal'};
+const ItemName = styled.td<{ isGroup: boolean }>`
+  font-weight: ${props => props.isGroup ? 'bold' : 'normal'};
 `;
 
 const CategoryHeader = styled.h4`
@@ -367,6 +367,18 @@ const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   return response.data.opportunity;
 };
 
+const PrincipalRow = styled.tr`
+  background-color: #f0f0f0;
+`;
+
+const AccessoryRow = styled.tr`
+  background-color: #ffffff;
+`;
+
+const AccessoryName = styled.td`
+  padding-left: 20px;
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const { data: activities, isLoading: activitiesLoading, error: activitiesError } = useQuery<Activity[], Error>('activities', fetchActivities);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -447,33 +459,34 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const renderItems = (items: OpportunityItem[]) => {
-    let currentGroup: OpportunityItem | null = null;
     let currentPrincipal: OpportunityItem | null = null;
 
     return items.map((item, index) => {
       if (item.opportunity_item_type_name === 'Group') {
-        currentGroup = item;
-        return <CategoryHeader key={item.id}>{item.name}</CategoryHeader>;
+        currentPrincipal = null;
+        return (
+          <tr key={item.id}>
+            <ItemName isGroup={true} colSpan={4}>{item.name}</ItemName>
+          </tr>
+        );
       } else if (item.opportunity_item_type_name === 'Principal') {
         currentPrincipal = item;
         return (
-          <React.Fragment key={item.id}>
-            <SubCategoryHeader 
-              className={openPrincipals[item.id] ? 'open' : ''}
-              onClick={() => togglePrincipal(item.id)}
-            >
-              {item.name} - Quantity: {item.quantity}, Price: {item.price}
-            </SubCategoryHeader>
-            <PrincipalDescription>{item.description}</PrincipalDescription>
-          </React.Fragment>
+          <PrincipalRow key={item.id}>
+            <ItemName isGroup={false}>{item.name}</ItemName>
+            <td>{item.opportunity_item_type_name}</td>
+            <td>{item.quantity}</td>
+            <td>{item.price}</td>
+          </PrincipalRow>
         );
       } else if (item.opportunity_item_type_name === 'Accessory' && currentPrincipal) {
         return (
-          <AccessoryList key={item.id} className={openPrincipals[currentPrincipal.id] ? 'open' : ''}>
-            <AccessoryItem>
-              {item.name} - Quantity: {item.quantity}, Price: {item.price}
-            </AccessoryItem>
-          </AccessoryList>
+          <AccessoryRow key={item.id}>
+            <AccessoryName>{item.name}</AccessoryName>
+            <td>{item.opportunity_item_type_name}</td>
+            <td>{item.quantity}</td>
+            <td>{item.price}</td>
+          </AccessoryRow>
         );
       }
       return null;
@@ -561,14 +574,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedOpportunity.opportunity_items.map((item) => (
-                        <tr key={item.id}>
-                          <ItemName isZeroQuantity={item.quantity === 0}>{item.name}</ItemName>
-                          <td>{item.opportunity_item_type_name}</td>
-                          <td>{item.quantity}</td>
-                          <td>{item.price}</td>
-                        </tr>
-                      ))}
+                      {renderItems(selectedOpportunity.opportunity_items)}
                     </tbody>
                   </ItemTable>
                 ) : (
