@@ -488,6 +488,16 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const login = useGoogleLogin({
+    onSuccess: (tokenResponse) => {
+      console.log(tokenResponse);
+      // Handle successful login here
+    },
+    onError: () => {
+      console.log('Login Failed');
+    }
+  });
+
   if (!user) {
     return <EventsContainer>Please log in to view your activities.</EventsContainer>;
   }
