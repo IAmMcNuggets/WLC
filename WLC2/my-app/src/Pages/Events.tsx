@@ -378,12 +378,26 @@ const fetchOpportunity = async (id: number): Promise<Opportunity> => {
   return response.data.opportunity;
 };
 
-const PrincipalRow = styled.tr`
+const PrincipalRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
   background-color: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
 `;
 
-const AccessoryRow = styled.tr`
+const AccessoryRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  padding-left: 40px;
   background-color: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 const AccessoryName = styled.td`
@@ -427,31 +441,75 @@ const ItemQuantity = styled.div`
   color: #666;
 `;
 
-const renderItems = (items: OpportunityItem[]) => {
-  let currentPrincipal: OpportunityItem | null = null;
+const ToggleIcon = styled.div`
+  margin-right: 10px;
+`;
 
-  return items.map((item) => {
+const renderItems = (items: OpportunityItem[]) => {
+  const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
+
+  const togglePrincipal = useCallback((id: number) => {
+    setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  const renderedItems: JSX.Element[] = [];
+  let currentPrincipal: OpportunityItem | null = null;
+  let accessories: OpportunityItem[] = [];
+
+  const renderPrincipalWithAccessories = () => {
+    if (currentPrincipal) {
+      renderedItems.push(
+        <PrincipalRow 
+          key={currentPrincipal.id} 
+          isGroup={false} 
+          isAccessory={false} 
+          onClick={() => togglePrincipal(currentPrincipal!.id)}
+        >
+          <ToggleIcon>
+            {openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />}
+          </ToggleIcon>
+          <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
+          <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
+        </PrincipalRow>
+      );
+      if (openPrincipals[currentPrincipal.id]) {
+        accessories.forEach(accessory => {
+          renderedItems.push(
+            <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
+              <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
+              <ItemQuantity>{accessory.quantity}</ItemQuantity>
+            </AccessoryRow>
+          );
+        });
+      }
+    }
+  };
+
+  items.forEach((item) => {
     const isGroup = item.opportunity_item_type_name === 'Group';
     const isPrincipal = item.opportunity_item_type_name === 'Principal';
     const isAccessory = item.opportunity_item_type_name === 'Accessory';
 
     if (isPrincipal) {
+      renderPrincipalWithAccessories();
       currentPrincipal = item;
+      accessories = [];
+    } else if (isAccessory && currentPrincipal) {
+      accessories.push(item);
+    } else {
+      renderedItems.push(
+        <ItemRow key={item.id} isGroup={isGroup} isAccessory={isAccessory}>
+          <ItemNameDiv isGroup={isGroup} isAccessory={isAccessory}>{item.name}</ItemNameDiv>
+          {!isGroup && <ItemQuantity>{item.quantity}</ItemQuantity>}
+        </ItemRow>
+      );
     }
-
-    return (
-      <ItemRow 
-        key={item.id} 
-        isGroup={isGroup} 
-        isAccessory={isAccessory}
-      >
-        <ItemNameDiv isGroup={isGroup} isAccessory={isAccessory}>
-          {item.name}
-        </ItemNameDiv>
-        {!isGroup && <ItemQuantity>{item.quantity}</ItemQuantity>}
-      </ItemRow>
-    );
   });
+
+  // Render the last principal and its accessories
+  renderPrincipalWithAccessories();
+
+  return renderedItems;
 };
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -525,12 +583,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   const closeModal = () => {
     setSelectedActivity(null);
-  };
-
-  const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
-
-  const togglePrincipal = (id: number) => {
-    setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   if (activitiesLoading) return <div>Loading activities...</div>;
