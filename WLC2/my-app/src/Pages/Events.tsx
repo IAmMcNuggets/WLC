@@ -264,7 +264,18 @@ const ItemTable = styled.table`
   }
 `;
 
-const ItemName = styled.td<{ isGroup: boolean }>`
+const ItemName = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
+  flex: 1;
+  font-weight: ${props => props.isGroup ? 'bold' : 'normal'};
+  color: ${props => props.isGroup ? '#333' : '#555'};
+  ${props => props.isAccessory && `
+    padding-left: 20px;
+    font-size: 0.95em;
+  `}
+`;
+
+// Rename this to ItemNameCell
+const ItemNameCell = styled.td<{ isGroup: boolean }>`
   font-weight: ${props => props.isGroup ? 'bold' : 'normal'};
 `;
 
@@ -379,6 +390,70 @@ const AccessoryName = styled.td`
   padding-left: 20px;
 `;
 
+const ItemList = styled.div`
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+`;
+
+const ItemRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: ${props => 
+    props.isGroup ? '#f5f5f5' : 
+    props.isAccessory ? '#ffffff' : '#fafafa'};
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ItemNameDiv = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
+  flex: 1;
+  font-weight: ${props => props.isGroup ? 'bold' : 'normal'};
+  color: ${props => props.isGroup ? '#333' : '#555'};
+  ${props => props.isAccessory && `
+    padding-left: 20px;
+    font-size: 0.95em;
+  `}
+`;
+
+const ItemQuantity = styled.div`
+  width: 80px;
+  text-align: right;
+  color: #666;
+`;
+
+const renderItems = (items: OpportunityItem[]) => {
+  let currentPrincipal: OpportunityItem | null = null;
+
+  return items.map((item) => {
+    const isGroup = item.opportunity_item_type_name === 'Group';
+    const isPrincipal = item.opportunity_item_type_name === 'Principal';
+    const isAccessory = item.opportunity_item_type_name === 'Accessory';
+
+    if (isPrincipal) {
+      currentPrincipal = item;
+    }
+
+    return (
+      <ItemRow 
+        key={item.id} 
+        isGroup={isGroup} 
+        isAccessory={isAccessory}
+      >
+        <ItemNameDiv isGroup={isGroup} isAccessory={isAccessory}>
+          {item.name}
+        </ItemNameDiv>
+        {!isGroup && <ItemQuantity>{item.quantity}</ItemQuantity>}
+      </ItemRow>
+    );
+  });
+};
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const { data: activities, isLoading: activitiesLoading, error: activitiesError } = useQuery<Activity[], Error>('activities', fetchActivities);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -458,41 +533,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const renderItems = (items: OpportunityItem[]) => {
-    let currentPrincipal: OpportunityItem | null = null;
-
-    return items.map((item, index) => {
-      if (item.opportunity_item_type_name === 'Group') {
-        currentPrincipal = null;
-        return (
-          <tr key={item.id}>
-            <ItemName isGroup={true} colSpan={4}>{item.name}</ItemName>
-          </tr>
-        );
-      } else if (item.opportunity_item_type_name === 'Principal') {
-        currentPrincipal = item;
-        return (
-          <PrincipalRow key={item.id}>
-            <ItemName isGroup={false}>{item.name}</ItemName>
-            <td>{item.opportunity_item_type_name}</td>
-            <td>{item.quantity}</td>
-            <td>{item.price}</td>
-          </PrincipalRow>
-        );
-      } else if (item.opportunity_item_type_name === 'Accessory' && currentPrincipal) {
-        return (
-          <AccessoryRow key={item.id}>
-            <AccessoryName>{item.name}</AccessoryName>
-            <td>{item.opportunity_item_type_name}</td>
-            <td>{item.quantity}</td>
-            <td>{item.price}</td>
-          </AccessoryRow>
-        );
-      }
-      return null;
-    });
-  };
-
   if (activitiesLoading) return <div>Loading activities...</div>;
   if (activitiesError) return <div>An error occurred: {activitiesError.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -564,19 +604,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
-                  <ItemTable>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Quantity</th>
-                        <th>Price</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {renderItems(selectedOpportunity.opportunity_items)}
-                    </tbody>
-                  </ItemTable>
+                  <ItemList>
+                    {renderItems(selectedOpportunity.opportunity_items)}
+                  </ItemList>
                 ) : (
                   <p>No items found for this opportunity.</p>
                 )}
