@@ -456,61 +456,45 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   }, []);
 
   const renderItems = useCallback((items: OpportunityItem[]) => {
-    const renderedItems: JSX.Element[] = [];
-    let currentPrincipal: OpportunityItem | null = null;
-    let accessories: OpportunityItem[] = [];
+    const groupedItems: { [key: number]: OpportunityItem[] } = {};
 
-    const renderPrincipalWithAccessories = () => {
-      if (currentPrincipal) {
-        renderedItems.push(
-          <React.Fragment key={currentPrincipal.id}>
-            <PrincipalRow 
-              isGroup={false} 
-              isAccessory={false} 
-              onClick={() => togglePrincipal(currentPrincipal!.id)}
-            >
-              <ToggleIcon>
-                {openPrincipals[currentPrincipal.id] ? <FaChevronDown /> : <FaChevronRight />}
-              </ToggleIcon>
-              <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
-              <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
-            </PrincipalRow>
-            {openPrincipals[currentPrincipal.id] && accessories.map(accessory => (
-              <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
-                <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
-                <ItemQuantity>{accessory.quantity}</ItemQuantity>
-              </AccessoryRow>
-            ))}
-          </React.Fragment>
-        );
-      }
-    };
-
+    // Group accessories with their principals
     items.forEach((item) => {
-      const isGroup = item.opportunity_item_type_name === 'Group';
-      const isPrincipal = item.opportunity_item_type_name === 'Principal';
-      const isAccessory = item.opportunity_item_type_name === 'Accessory';
-
-      if (isPrincipal) {
-        renderPrincipalWithAccessories();
-        currentPrincipal = item;
-        accessories = [];
-      } else if (isAccessory && currentPrincipal) {
-        accessories.push(item);
+      if (item.opportunity_item_type_name === 'Principal') {
+        groupedItems[item.id] = [item];
+      } else if (item.opportunity_item_type_name === 'Accessory' && groupedItems[item.id]) {
+        groupedItems[item.id].push(item);
       } else {
-        renderedItems.push(
-          <ItemRow key={item.id} isGroup={isGroup} isAccessory={isAccessory}>
-            <ItemNameDiv isGroup={isGroup} isAccessory={isAccessory}>{item.name}</ItemNameDiv>
-            {!isGroup && <ItemQuantity>{item.quantity}</ItemQuantity>}
-          </ItemRow>
-        );
+        groupedItems[item.id] = [item];
       }
     });
 
-    // Render the last principal and its accessories
-    renderPrincipalWithAccessories();
+    return Object.entries(groupedItems).map(([principalId, groupItems]) => {
+      const principal = groupItems[0];
+      const accessories = groupItems.slice(1);
 
-    return renderedItems;
+      return (
+        <React.Fragment key={principalId}>
+          <PrincipalRow 
+            isGroup={false} 
+            isAccessory={false} 
+            onClick={() => togglePrincipal(Number(principalId))}
+          >
+            <ToggleIcon>
+              {openPrincipals[Number(principalId)] ? <FaChevronDown /> : <FaChevronRight />}
+            </ToggleIcon>
+            <ItemNameDiv isGroup={false} isAccessory={false}>{principal.name}</ItemNameDiv>
+            <ItemQuantity>{principal.quantity}</ItemQuantity>
+          </PrincipalRow>
+          {openPrincipals[Number(principalId)] && accessories.map((accessory) => (
+            <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
+              <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
+              <ItemQuantity>{accessory.quantity}</ItemQuantity>
+            </AccessoryRow>
+          ))}
+        </React.Fragment>
+      );
+    });
   }, [openPrincipals, togglePrincipal]);
 
   const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
