@@ -544,6 +544,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     if (selectedOpportunity) {
       console.log('Selected Opportunity:', selectedOpportunity);
       console.log('Opportunity Items:', selectedOpportunity.opportunity_items);
+      console.log('Attachments:', selectedOpportunity.attachments);
     }
   }, [selectedOpportunity]);
 
@@ -654,7 +655,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
                   </InfoSection>
                 )}
-                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 && (
+                <h3>Attachments Section:</h3>
+                {selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
                   <>
                     <h4>Attachments:</h4>
                     <DocumentList>
@@ -668,6 +670,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       ))}
                     </DocumentList>
                   </>
+                ) : (
+                  <p>No attachments found for this opportunity.</p>
                 )}
                 <h4>Items:</h4>
                 {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
