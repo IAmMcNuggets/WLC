@@ -100,6 +100,7 @@ interface OpportunityDocument {
 interface Attachment {
   id: number;
   attachable_id: number;
+  attachable_type: string;
   name: string;
   description: string;
   attachment_file_name: string;
@@ -382,17 +383,29 @@ const fetchActivities = async (): Promise<Activity[]> => {
   return response.data.activities;
 };
 
-const fetchOpportunity = async (id: number): Promise<Opportunity> => {
+const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
+  try {
+    console.log(`Fetching attachments for regarding_id: ${regardingId}`);
+    const response = await currentRMSApi.get(`/attachments?filter[attachable_id]=${regardingId}&filter[attachable_type]=Opportunity`);
+    console.log('Attachments response:', response.data);
+    return response.data.attachments || [];
+  } catch (error) {
+    console.error(`Error fetching attachments for regarding_id ${regardingId}:`, error);
+    return [];
+  }
+};
+
+const fetchOpportunityWithAttachments = async (id: number): Promise<Opportunity> => {
   try {
     console.log(`Attempting to fetch opportunity ${id}`);
-    const response = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items&include[]=attachments`);
-    console.log('Opportunity response:', response.data);
-    const opportunity = response.data.opportunity;
+    const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+    console.log('Opportunity response:', opportunityResponse.data);
+    const opportunity = opportunityResponse.data.opportunity;
 
-    // Ensure attachments is always an array
-    opportunity.attachments = opportunity.attachments || [];
+    // Fetch attachments separately
+    opportunity.attachments = await fetchAttachments(id);
 
-    console.log('Processed opportunity:', opportunity);
+    console.log('Processed opportunity with attachments:', opportunity);
     return opportunity;
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
@@ -543,7 +556,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
     ['opportunity', selectedActivity?.regarding_id],
-    () => fetchOpportunity(selectedActivity?.regarding_id as number),
+    () => fetchOpportunityWithAttachments(selectedActivity?.regarding_id as number),
     { 
       enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
       onSuccess: (data) => {
