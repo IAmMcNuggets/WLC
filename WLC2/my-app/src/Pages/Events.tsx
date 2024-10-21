@@ -466,6 +466,11 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   );
 
+  console.log('User:', user);
+  console.log('Activities:', activities);
+  console.log('Loading:', activitiesLoading);
+  console.log('Error:', activitiesError);
+
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
@@ -570,7 +575,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const filteredActivities = useCallback(() => {
     if (!activities || !user) return [];
 
-    return activities.filter(activity => {
+    console.log('Filtering activities for user:', user.name || user.email);
+    const filtered = activities.filter(activity => {
       return activity.participants.some(participant => {
         const participantNameMatch = user.name && participant.member_name
           ? participant.member_name.toLowerCase().includes(user.name.toLowerCase())
@@ -582,6 +588,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         return participantNameMatch || participantEmailMatch;
       });
     });
+    console.log('Filtered activities:', filtered);
+    return filtered;
   }, [activities, user]);
 
   const userActivities = filteredActivities();
