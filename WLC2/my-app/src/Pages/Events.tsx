@@ -595,35 +595,25 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   if (activitiesLoading) return <div>Loading activities...</div>;
-  if (activitiesError instanceof Error && (
-    <p>Error loading activities: {activitiesError.message}</p>
-  )) return;
+  if (activitiesError instanceof Error) return <p>Error loading activities: {activitiesError.message}</p>;
   if (!user) return <div>Please log in to view your activities.</div>;
 
   return (
     <EventsContainer>
       <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
-      {activitiesLoading ? (
-        <p>Loading activities...</p>
-      ) : activitiesError instanceof Error ? (
-        <p>Error loading activities: {activitiesError.message}</p>
+      {filteredActivities().length === 0 ? (
+        <p>No upcoming activities found for {user?.name || 'you'} in the next 30 days.</p>
       ) : (
-        <>
-          {filteredActivities().length === 0 ? (
-            <p>No upcoming activities found for {user?.name || 'you'} in the next 30 days.</p>
-          ) : (
-            <ActivityList>
-              {filteredActivities().map((activity) => (
-                <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
-                  <ActivityTitle>{activity.subject}</ActivityTitle>
-                  <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
-                  <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
-                  {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
-                </ActivityItem>
-              ))}
-            </ActivityList>
-          )}
-        </>
+        <ActivityList>
+          {filteredActivities().map((activity) => (
+            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
+              <ActivityTitle>{activity.subject}</ActivityTitle>
+              <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
+              <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
+              {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
+            </ActivityItem>
+          ))}
+        </ActivityList>
       )}
       {selectedActivity && (
         <Modal>
