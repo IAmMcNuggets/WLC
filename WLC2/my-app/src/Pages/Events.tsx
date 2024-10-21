@@ -420,7 +420,7 @@ const ItemList = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
-const ItemRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
+const ItemRow = styled.div<{ isGroup?: boolean; isAccessory?: boolean }>`
   display: flex;
   align-items: center;
   padding: 12px 16px;
@@ -525,12 +525,16 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   }, [activities, user]);
 
   const fetchOpportunityDetails = useCallback(async (opportunityId: number) => {
+    console.log(`Fetching opportunity details for ID: ${opportunityId}`);
     try {
       const response = await currentRMSApi.get(`/opportunities/${opportunityId}`);
+      console.log('Opportunity response:', response.data);
       setSelectedOpportunity(response.data.opportunity);
       
       // Fetch opportunity items
+      console.log(`Fetching opportunity items for ID: ${opportunityId}`);
       const itemsResponse = await currentRMSApi.get(`/opportunities/${opportunityId}/opportunity_items`);
+      console.log('Opportunity items response:', itemsResponse.data);
       setOpportunityItems(itemsResponse.data.opportunity_items);
     } catch (error) {
       console.error('Error fetching opportunity details:', error);
@@ -540,10 +544,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   }, []);
 
   const handleActivityClick = useCallback((activity: Activity) => {
+    console.log('Activity clicked:', activity);
     setSelectedActivity(activity);
     if (activity.regarding_id) {
+      console.log(`Activity has regarding_id: ${activity.regarding_id}`);
       fetchOpportunityDetails(activity.regarding_id);
     } else {
+      console.log('Activity has no regarding_id');
       setSelectedOpportunity(null);
       setOpportunityItems([]);
     }
@@ -553,14 +560,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     setSelectedActivity(null);
     setSelectedOpportunity(null);
   };
-
-  const renderItems = useCallback((items: OpportunityItem[]) => {
-    return items.map(item => (
-      <div key={item.id}>
-        {item.name} - Quantity: {item.quantity}
-      </div>
-    ));
-  }, []);
 
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
@@ -627,9 +626,17 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 )}
                 <h4>Items:</h4>
                 {opportunityItems.length > 0 ? (
-                  <ItemList>
-                    {renderItems(opportunityItems)}
-                  </ItemList>
+                  <>
+                    {console.log('Rendering ItemList with items:', opportunityItems)}
+                    <ItemList>
+                      {opportunityItems.map(item => (
+                        <ItemRow key={item.id} isGroup={false} isAccessory={false}>
+                          <ItemNameDiv isGroup={false} isAccessory={false}>{item.name}</ItemNameDiv>
+                          <ItemQuantity>Quantity: {item.quantity}</ItemQuantity>
+                        </ItemRow>
+                      ))}
+                    </ItemList>
+                  </>
                 ) : (
                   <p>No items found for this opportunity.</p>
                 )}
