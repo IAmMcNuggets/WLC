@@ -307,9 +307,12 @@ const AccessoryItem = styled.div`
 `;
 
 const PrincipalDescription = styled.p`
-  margin-left: 20px;
+  margin-top: 10px;
   font-size: 0.9em;
-  color: #666;
+  color: #34495e;
+  padding: 10px;
+  background-color: #ecf0f1;
+  border-radius: 4px;
 `;
 
 const ModalHeader = styled.h2`
@@ -480,19 +483,51 @@ const RefreshButton = styled.button`
 const GroupHeader = styled.div`
   font-weight: bold;
   font-size: 1.1em;
-  margin-top: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
   background-color: #f0f0f0;
-  padding: 5px;
+  padding: 10px 15px;
+  border-radius: 5px;
+  color: #333;
 `;
 
 const PrincipalItem = styled.div`
-  margin-left: 20px;
+  margin: 10px 0;
+  padding: 10px 15px;
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
   cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+`;
+
+const PrincipalName = styled.span`
+  font-weight: bold;
+  color: #2c3e50;
+`;
+
+const PrincipalQuantity = styled.span`
+  margin-left: 10px;
+  color: #7f8c8d;
+`;
+
+const ExpandIcon = styled.span`
+  float: right;
+  transition: transform 0.3s ease;
 `;
 
 const AccessoryItemDiv = styled.div`
-  margin-left: 40px;
+  margin: 5px 0 5px 20px;
+  padding: 8px 15px;
+  background-color: #f8f9fa;
+  border-left: 3px solid #3498db;
   font-size: 0.9em;
+  color: #2c3e50;
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -661,9 +696,12 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                         currentPrincipal = item;
                         return (
                           <PrincipalItem key={item.id} onClick={() => togglePrincipal(item.id)}>
-                            {item.name} (Qty: {item.quantity})
-                            {expandedPrincipals[item.id] ? ' 🔽' : ' 🔼'}
-                            {item.description && (
+                            <PrincipalName>{item.name}</PrincipalName>
+                            <PrincipalQuantity>(Qty: {item.quantity})</PrincipalQuantity>
+                            <ExpandIcon style={{ transform: expandedPrincipals[item.id] ? 'rotate(180deg)' : 'none' }}>
+                              ▼
+                            </ExpandIcon>
+                            {expandedPrincipals[item.id] && item.description && (
                               <PrincipalDescription>{item.description}</PrincipalDescription>
                             )}
                           </PrincipalItem>
