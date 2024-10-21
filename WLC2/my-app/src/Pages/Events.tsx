@@ -663,6 +663,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                           <PrincipalItem key={item.id} onClick={() => togglePrincipal(item.id)}>
                             {item.name} (Qty: {item.quantity})
                             {expandedPrincipals[item.id] ? ' 🔽' : ' 🔼'}
+                            {item.description && (
+                              <PrincipalDescription>{item.description}</PrincipalDescription>
+                            )}
                           </PrincipalItem>
                         );
                       } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
