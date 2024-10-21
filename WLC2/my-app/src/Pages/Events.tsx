@@ -511,11 +511,6 @@ const PrincipalName = styled.span`
   color: #2c3e50;
 `;
 
-const PrincipalQuantity = styled.span`
-  margin-left: 10px;
-  color: #7f8c8d;
-`;
-
 const ExpandIcon = styled.span`
   float: right;
   transition: transform 0.3s ease;
@@ -697,11 +692,10 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                         return (
                           <PrincipalItem key={item.id} onClick={() => togglePrincipal(item.id)}>
                             <PrincipalName>{item.name}</PrincipalName>
-                            <PrincipalQuantity>(Qty: {item.quantity})</PrincipalQuantity>
                             <ExpandIcon style={{ transform: expandedPrincipals[item.id] ? 'rotate(180deg)' : 'none' }}>
                               ▼
                             </ExpandIcon>
-                            {expandedPrincipals[item.id] && item.description && (
+                            {item.description && (
                               <PrincipalDescription>{item.description}</PrincipalDescription>
                             )}
                           </PrincipalItem>
