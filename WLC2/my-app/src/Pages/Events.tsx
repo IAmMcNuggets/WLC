@@ -455,13 +455,16 @@ const ToggleIcon = styled.div`
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
-  const fetchActivities = async (startDate: string, endDate: string): Promise<Activity[]> => {
+  const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
     try {
       const response = await currentRMSApi.get('/activities', {
@@ -472,22 +475,20 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         }
       });
       console.log('Activities response:', response.data);
-      return response.data.activities;
+      setActivities(response.data.activities);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching activities:', error);
-      throw error;
+      setError(error as Error);
+      setIsLoading(false);
     }
   };
 
-  const { data: activities, isLoading, error, refetch } = useQuery<Activity[], Error>(
-    ['activities', today.toISOString(), nextMonth.toISOString()],
-    () => fetchActivities(today.toISOString(), nextMonth.toISOString()),
-    {
-      enabled: !!user,
-      staleTime: Infinity, // This will prevent refetching unless explicitly invalidated
-      cacheTime: Infinity, // This will keep the data cached indefinitely
+  useEffect(() => {
+    if (user) {
+      fetchActivities(today.toISOString(), nextMonth.toISOString());
     }
-  );
+  }, [user]); // This effect will run only when the user changes
 
   const filteredActivities = useMemo(() => {
     if (!activities || !user) return [];
@@ -604,7 +605,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <button onClick={() => refetch()}>Refresh Activities</button>
+      <button onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>Refresh Activities</button>
     </EventsContainer>
   );
 };
