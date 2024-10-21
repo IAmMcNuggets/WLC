@@ -682,6 +682,14 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   {(() => {
                     let currentGroup: string | null = null;
                     let currentPrincipal: OpportunityItem | null = null;
+                    let hasAccessories: boolean = false;
+
+                    // First pass to determine which principals have accessories
+                    const principalsWithAccessories = new Set(
+                      opportunityItems
+                        .filter(item => item.opportunity_item_type_name === "Accessory")
+                        .map(item => item.id - 1) // Assuming the principal ID is always one less than its accessory
+                    );
 
                     return opportunityItems.map((item, index) => {
                       if (item.opportunity_item_type_name === "Group") {
@@ -689,18 +697,21 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                         return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
                       } else if (item.opportunity_item_type_name === "Principal") {
                         currentPrincipal = item;
+                        hasAccessories = principalsWithAccessories.has(item.id);
                         return (
-                          <PrincipalItem key={item.id} onClick={() => togglePrincipal(item.id)}>
+                          <PrincipalItem key={item.id} onClick={() => hasAccessories && togglePrincipal(item.id)}>
                             <PrincipalName>{item.name}</PrincipalName>
-                            <ExpandIcon style={{ transform: expandedPrincipals[item.id] ? 'rotate(180deg)' : 'none' }}>
-                              ▼
-                            </ExpandIcon>
+                            {hasAccessories && (
+                              <ExpandIcon style={{ transform: expandedPrincipals[item.id] ? 'rotate(180deg)' : 'none' }}>
+                                ▼
+                              </ExpandIcon>
+                            )}
                             {item.description && (
                               <PrincipalDescription>{item.description}</PrincipalDescription>
                             )}
                           </PrincipalItem>
                         );
-                      } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
+                      } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal && hasAccessories) {
                         return expandedPrincipals[currentPrincipal.id] && (
                           <AccessoryItemDiv key={item.id}>
                             {item.name} (Qty: {item.quantity})
