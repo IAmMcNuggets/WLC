@@ -477,6 +477,24 @@ const RefreshButton = styled.button`
   }
 `;
 
+const GroupHeader = styled.div`
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-top: 10px;
+  background-color: #f0f0f0;
+  padding: 5px;
+`;
+
+const PrincipalItem = styled.div`
+  margin-left: 20px;
+  cursor: pointer;
+`;
+
+const AccessoryItemDiv = styled.div`
+  margin-left: 40px;
+  font-size: 0.9em;
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -484,6 +502,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
+  const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -561,6 +580,10 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     setSelectedOpportunity(null);
   };
 
+  const togglePrincipal = (id: number) => {
+    setExpandedPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -625,21 +648,34 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   </InfoSection>
                 )}
                 <h4>Items:</h4>
-                {opportunityItems.length > 0 ? (
-                  <>
-                    {console.log('Rendering ItemList with items:', opportunityItems)}
-                    <ItemList>
-                      {opportunityItems.map(item => (
-                        <ItemRow key={item.id} isGroup={false} isAccessory={false}>
-                          <ItemNameDiv isGroup={false} isAccessory={false}>{item.name}</ItemNameDiv>
-                          <ItemQuantity>Quantity: {item.quantity}</ItemQuantity>
-                        </ItemRow>
-                      ))}
-                    </ItemList>
-                  </>
-                ) : (
-                  <p>No items found for this opportunity.</p>
-                )}
+                <ItemList>
+                  {(() => {
+                    let currentGroup: string | null = null;
+                    let currentPrincipal: OpportunityItem | null = null;
+
+                    return opportunityItems.map((item, index) => {
+                      if (item.opportunity_item_type_name === "Group") {
+                        currentGroup = item.name;
+                        return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
+                      } else if (item.opportunity_item_type_name === "Principal") {
+                        currentPrincipal = item;
+                        return (
+                          <PrincipalItem key={item.id} onClick={() => togglePrincipal(item.id)}>
+                            {item.name} (Qty: {item.quantity})
+                            {expandedPrincipals[item.id] ? ' 🔽' : ' 🔼'}
+                          </PrincipalItem>
+                        );
+                      } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
+                        return expandedPrincipals[currentPrincipal.id] && (
+                          <AccessoryItemDiv key={item.id}>
+                            {item.name} (Qty: {item.quantity})
+                          </AccessoryItemDiv>
+                        );
+                      }
+                      return null;
+                    });
+                  })()}
+                </ItemList>
               </ModalSection>
             )}
             <ButtonContainer>
