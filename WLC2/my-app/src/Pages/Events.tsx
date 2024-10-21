@@ -179,16 +179,17 @@ const Modal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: white;
+  background-color: #f0f8ff; // Light blue background
   padding: 20px;
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
-  position: relative; // Add this to ensure it's above the overlay
-  z-index: 1004; // Add this to ensure it's above the overlay
-  padding-bottom: 80px; // Adjust this value based on the height of your bottom nav bar
+  position: relative;
+  z-index: 1004;
+  padding-bottom: 80px;
+  box-shadow: 0 4px 6px rgba(0, 0, 100, 0.1);
 `;
 
 const CloseButton = styled.button`
@@ -309,15 +310,15 @@ const AccessoryItem = styled.div`
 const PrincipalDescription = styled.p`
   margin-top: 10px;
   font-size: 0.9em;
-  color: #34495e;
+  color: #1e40af; // Dark blue
   padding: 10px;
-  background-color: #ecf0f1;
+  background-color: #dbeafe; // Very light blue
   border-radius: 4px;
 `;
 
 const ModalHeader = styled.h2`
-  color: #333;
-  border-bottom: 2px solid #4CAF50;
+  color: #1e3a8a; // Dark blue
+  border-bottom: 2px solid #3b82f6; // Medium blue
   padding-bottom: 10px;
   margin-bottom: 20px;
 `;
@@ -330,7 +331,7 @@ const InfoSection = styled.div`
 
 const Icon = styled.span`
   margin-right: 10px;
-  color: #4CAF50;
+  color: #3b82f6; // Medium blue
 `;
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -417,10 +418,10 @@ const AccessoryName = styled.td`
 `;
 
 const ItemList = styled.div`
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  // Remove these lines:
+  // border: 1px solid #e0e0e0;
+  // border-radius: 4px;
+  // box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
 const ItemRow = styled.div<{ isGroup?: boolean; isAccessory?: boolean }>`
@@ -485,30 +486,30 @@ const GroupHeader = styled.div`
   font-size: 1.1em;
   margin-top: 15px;
   margin-bottom: 10px;
-  background-color: #f0f0f0;
+  background-color: #dbeafe; // Very light blue
   padding: 10px 15px;
   border-radius: 5px;
-  color: #333;
+  color: #1e3a8a; // Dark blue
 `;
 
 const PrincipalItem = styled.div`
   margin: 10px 0;
   padding: 10px 15px;
   background-color: #ffffff;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #bfdbfe; // Light blue border
   border-radius: 5px;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: #f9f9f9;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: #eff6ff; // Very light blue on hover
+    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.1); // Light blue shadow
   }
 `;
 
 const PrincipalName = styled.span`
   font-weight: bold;
-  color: #2c3e50;
+  color: #2563eb; // Blue
 `;
 
 const ExpandIcon = styled.span`
@@ -519,10 +520,10 @@ const ExpandIcon = styled.span`
 const AccessoryItemDiv = styled.div`
   margin: 5px 0 5px 20px;
   padding: 8px 15px;
-  background-color: #f8f9fa;
-  border-left: 3px solid #3498db;
+  background-color: #f0f9ff; // Very light blue
+  border-left: 3px solid #60a5fa; // Medium blue
   font-size: 0.9em;
-  color: #2c3e50;
+  color: #1e3a8a; // Dark blue
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -685,27 +686,22 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 <h4>Items:</h4>
                 <ItemList>
                   {(() => {
-                    console.log('Rendering ItemList, opportunityItems:', opportunityItems);
                     let currentGroup: string | null = null;
                     let currentPrincipal: OpportunityItem | null = null;
 
-                    // Determine which principals have accessories
                     const principalsWithAccessories = new Set(
                       opportunityItems
                         .filter(item => item.opportunity_item_type_name === "Accessory")
                         .map(item => item.id - 1)
                     );
-                    console.log('Principals with accessories:', principalsWithAccessories);
 
                     return opportunityItems.map((item, index) => {
-                      console.log('Rendering item:', item);
                       if (item.opportunity_item_type_name === "Group") {
                         currentGroup = item.name;
                         return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
                       } else if (item.opportunity_item_type_name === "Principal") {
                         currentPrincipal = item;
                         const hasAccessories = principalsWithAccessories.has(item.id);
-                        console.log('Principal:', item.name, 'hasAccessories:', hasAccessories, 'isExpanded:', expandedPrincipals[item.id]);
                         return (
                           <PrincipalItem key={item.id} onClick={() => hasAccessories && togglePrincipal(item.id)}>
                             <PrincipalName>{item.name}</PrincipalName>
@@ -721,7 +717,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                         );
                       } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
                         const isExpanded = expandedPrincipals[currentPrincipal.id];
-                        console.log('Accessory:', item.name, 'for Principal:', currentPrincipal.name, 'isExpanded:', isExpanded);
                         return isExpanded ? (
                           <AccessoryItemDiv key={item.id}>
                             {item.name} (Qty: {item.quantity})
