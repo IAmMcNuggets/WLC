@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
@@ -455,165 +455,82 @@ const ToggleIcon = styled.div`
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
-  const { data: activities, isLoading: activitiesLoading, error: activitiesError }: UseQueryResult<Activity[], Error> = useQuery(
+  const fetchActivities = async (startDate: string, endDate: string): Promise<Activity[]> => {
+    console.log('Fetching activities:', startDate, endDate);
+    try {
+      const response = await currentRMSApi.get('/activities', {
+        params: {
+          'q[starts_at_gteq]': startDate,
+          'q[starts_at_lt]': endDate,
+          'per_page': 100
+        }
+      });
+      console.log('Activities response:', response.data);
+      return response.data.activities;
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      throw error;
+    }
+  };
+
+  const { data: activities, isLoading, error } = useQuery<Activity[], Error>(
     ['activities', today.toISOString(), nextMonth.toISOString()],
     () => fetchActivities(today.toISOString(), nextMonth.toISOString()),
     {
-      enabled: !!user
+      enabled: !!user,
+      retry: 3,
+      retryDelay: 1000,
+      onError: (error) => console.error('Query error:', error)
     }
   );
 
-  console.log('User:', user);
-  console.log('Activities:', activities);
-  console.log('Loading:', activitiesLoading);
-  console.log('Error:', activitiesError);
+  const filteredActivities = useMemo(() => {
+    if (!activities || !user) return [];
+    return activities.filter(activity => 
+      activity.participants.some(participant => 
+        participant.member_name?.toLowerCase().includes(user.name?.toLowerCase() || '') ||
+        participant.member_email?.toLowerCase() === user.email?.toLowerCase()
+      )
+    );
+  }, [activities, user]);
 
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-  const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
+  const handleActivityClick = useCallback((activity: Activity) => {
+    setSelectedActivity(activity);
+    // Fetch opportunity details here if needed
+  }, []);
 
-  const togglePrincipal = useCallback((id: number) => {
-    setOpenPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
+  const closeModal = useCallback(() => {
+    setSelectedActivity(null);
+    setSelectedOpportunity(null);
   }, []);
 
   const renderItems = useCallback((items: OpportunityItem[]) => {
-    const renderedItems: JSX.Element[] = [];
-    let currentPrincipal: OpportunityItem | null = null;
-    let accessories: OpportunityItem[] = [];
+    // Implement your item rendering logic here
+    return items.map(item => (
+      <div key={item.id}>
+        {item.name} - Quantity: {item.quantity}
+      </div>
+    ));
+  }, []);
 
-    const renderPrincipalWithAccessories = () => {
-      if (currentPrincipal) {
-        const principalId = currentPrincipal.id;
-        renderedItems.push(
-          <React.Fragment key={principalId}>
-            <PrincipalRow 
-              isGroup={false} 
-              isAccessory={false} 
-              onClick={() => togglePrincipal(principalId)}
-            >
-              <ToggleIcon>
-                {accessories.length > 0 && (openPrincipals[principalId] ? <FaChevronDown /> : <FaChevronRight />)}
-              </ToggleIcon>
-              <ItemNameDiv isGroup={false} isAccessory={false}>{currentPrincipal.name}</ItemNameDiv>
-              <ItemQuantity>{currentPrincipal.quantity}</ItemQuantity>
-            </PrincipalRow>
-            {currentPrincipal.description && (
-              <PrincipalDescription>{currentPrincipal.description}</PrincipalDescription>
-            )}
-            {openPrincipals[principalId] && accessories.map((accessory) => (
-              <AccessoryRow key={accessory.id} isGroup={false} isAccessory={true}>
-                <ItemNameDiv isGroup={false} isAccessory={true}>{accessory.name}</ItemNameDiv>
-                <ItemQuantity>{accessory.quantity}</ItemQuantity>
-              </AccessoryRow>
-            ))}
-          </React.Fragment>
-        );
-      }
-      currentPrincipal = null;
-      accessories = [];
-    };
-
-    items.forEach((item) => {
-      if (item.opportunity_item_type_name === 'Group') {
-        renderPrincipalWithAccessories();
-        renderedItems.push(
-          <ItemRow key={item.id} isGroup={true} isAccessory={false}>
-            <ItemNameDiv isGroup={true} isAccessory={false}>{item.name}</ItemNameDiv>
-            <ItemQuantity>{item.quantity}</ItemQuantity>
-          </ItemRow>
-        );
-      } else if (item.opportunity_item_type_name === 'Principal') {
-        renderPrincipalWithAccessories();
-        currentPrincipal = item;
-      } else if (item.opportunity_item_type_name === 'Accessory' && currentPrincipal) {
-        accessories.push(item);
-      } else {
-        renderPrincipalWithAccessories();
-        renderedItems.push(
-          <ItemRow key={item.id} isGroup={false} isAccessory={false}>
-            <ItemNameDiv isGroup={false} isAccessory={false}>{item.name}</ItemNameDiv>
-            <ItemQuantity>{item.quantity}</ItemQuantity>
-          </ItemRow>
-        );
-      }
-    });
-
-    renderPrincipalWithAccessories(); // Render the last principal and its accessories
-
-    return renderedItems;
-  }, [openPrincipals, togglePrincipal]);
-
-  const { data: opportunity, isLoading: opportunityLoading, error: opportunityError } = useQuery<Opportunity, Error>(
-    ['opportunity', selectedActivity?.regarding_id],
-    () => fetchOpportunity(selectedActivity?.regarding_id as number),
-    { 
-      enabled: !!selectedActivity && selectedActivity.regarding_type === 'Opportunity',
-      onSuccess: (data) => {
-        console.log('Opportunity data set in component:', data);
-        console.log('Venue information:', data.venue); // Add this line
-        setSelectedOpportunity(data);
-      }
-    }
-  );
-
-  useEffect(() => {
-    if (opportunity) {
-      setSelectedOpportunity(opportunity);
-    }
-  }, [opportunity]);
-
-  useEffect(() => {
-    if (selectedOpportunity) {
-      console.log('Selected Opportunity:', selectedOpportunity);
-      console.log('Venue information:', selectedOpportunity.venue);
-    }
-  }, [selectedOpportunity]);
-
-  const filteredActivities = useCallback(() => {
-    if (!activities || !user) return [];
-
-    console.log('Filtering activities for user:', user.name || user.email);
-    const filtered = activities.filter(activity => {
-      return activity.participants.some(participant => {
-        const participantNameMatch = user.name && participant.member_name
-          ? participant.member_name.toLowerCase().includes(user.name.toLowerCase())
-          : false;
-        const participantEmailMatch = user.email && participant.member_email
-          ? participant.member_email.toLowerCase() === user.email.toLowerCase()
-          : false;
-        
-        return participantNameMatch || participantEmailMatch;
-      });
-    });
-    console.log('Filtered activities:', filtered);
-    return filtered;
-  }, [activities, user]);
-
-  const userActivities = filteredActivities();
-
-  const handleActivityClick = (activity: Activity) => {
-    setSelectedActivity(activity);
-  };
-
-  const closeModal = () => {
-    setSelectedActivity(null);
-  };
-
-  if (activitiesLoading) return <div>Loading activities...</div>;
-  if (activitiesError instanceof Error) return <p>Error loading activities: {activitiesError.message}</p>;
+  if (isLoading) return <div>Loading activities...</div>;
+  if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
 
   return (
     <EventsContainer>
       <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
-      {filteredActivities().length === 0 ? (
-        <p>No upcoming activities found for {user?.name || 'you'} in the next 30 days.</p>
+      {filteredActivities.length === 0 ? (
+        <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
       ) : (
         <ActivityList>
-          {filteredActivities().map((activity) => (
+          {filteredActivities.map((activity) => (
             <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
@@ -657,11 +574,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 <p>{selectedActivity.description}</p>
               </ModalSection>
             )}
-            {opportunityLoading ? (
-              <p>Loading opportunity details...</p>
-            ) : opportunityError ? (
-              <p>Error loading opportunity details: {opportunityError.message}</p>
-            ) : selectedOpportunity ? (
+            {selectedOpportunity && (
               <ModalSection>
                 {selectedOpportunity.venue && (
                   <InfoSection>
@@ -684,8 +597,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   <p>No items found for this opportunity.</p>
                 )}
               </ModalSection>
-            ) : (
-              <p>No opportunity details available.</p>
             )}
             <ButtonContainer>
               <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
