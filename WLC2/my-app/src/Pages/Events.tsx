@@ -523,11 +523,24 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     );
   }, [activities, user]);
 
-  const handleActivityClick = (activity: Activity) => {
+  const fetchOpportunityDetails = useCallback(async (opportunityId: number) => {
+    try {
+      const response = await currentRMSApi.get(`/opportunities/${opportunityId}`);
+      setSelectedOpportunity(response.data.opportunity);
+    } catch (error) {
+      console.error('Error fetching opportunity details:', error);
+      setSelectedOpportunity(null);
+    }
+  }, []);
+
+  const handleActivityClick = useCallback((activity: Activity) => {
     setSelectedActivity(activity);
-    // Fetch opportunity details if needed
-    // setSelectedOpportunity(...);
-  };
+    if (activity.regarding_id) {
+      fetchOpportunityDetails(activity.regarding_id);
+    } else {
+      setSelectedOpportunity(null);
+    }
+  }, [fetchOpportunityDetails]);
 
   const closeModal = () => {
     setSelectedActivity(null);
@@ -535,7 +548,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const renderItems = useCallback((items: OpportunityItem[]) => {
-    // Implement your item rendering logic here
     return items.map(item => (
       <div key={item.id}>
         {item.name} - Quantity: {item.quantity}
@@ -578,12 +590,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
                   </div>
                 </InfoSection>
-                {selectedOpportunity && selectedOpportunity.venue && selectedOpportunity.venue.name && (
-                  <InfoSection>
-                    <Icon><FaBuilding /></Icon>
-                    <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
-                  </InfoSection>
-                )}
                 {selectedActivity.location && (
                   <InfoSection>
                     <Icon><FaMapMarkerAlt /></Icon>
