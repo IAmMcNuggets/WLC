@@ -359,9 +359,20 @@ const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promi
   }
 };
 
-const fetchActivities = async (): Promise<Activity[]> => {
-  const response = await currentRMSApi.get('/activities');
-  return response.data.activities;
+const fetchActivities = async (startDate: string, endDate: string): Promise<Activity[]> => {
+  try {
+    const response = await currentRMSApi.get('/activities', {
+      params: {
+        'q[starts_at_gteq]': startDate,
+        'q[starts_at_lt]': endDate,
+        'per_page': 100 // Adjust this number as needed
+      }
+    });
+    return response.data.activities;
+  } catch (error) {
+    console.error('Error fetching activities:', error);
+    throw error;
+  }
 };
 
 const fetchOpportunity = async (id: number): Promise<Opportunity> => {
@@ -444,7 +455,17 @@ const ToggleIcon = styled.div`
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
-  const { data: activities, isLoading: activitiesLoading, error: activitiesError } = useQuery<Activity[], Error>('activities', fetchActivities);
+  const today = new Date();
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+  const { data: activities, isLoading: activitiesLoading, error: activitiesError }: UseQueryResult<Activity[], Error> = useQuery(
+    ['activities', today.toISOString(), nextMonth.toISOString()],
+    () => fetchActivities(today.toISOString(), nextMonth.toISOString()),
+    {
+      enabled: !!user
+    }
+  );
+
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [openPrincipals, setOpenPrincipals] = useState<{ [key: number]: boolean }>({});
@@ -574,25 +595,35 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   if (activitiesLoading) return <div>Loading activities...</div>;
-  if (activitiesError) return <div>An error occurred: {activitiesError.message}</div>;
+  if (activitiesError instanceof Error && (
+    <p>Error loading activities: {activitiesError.message}</p>
+  )) return;
   if (!user) return <div>Please log in to view your activities.</div>;
 
   return (
     <EventsContainer>
-      <EventsTitle>Your Upcoming Activities</EventsTitle>
-      {userActivities.length === 0 ? (
-        <p>No upcoming activities found for {user.name || 'you'}.</p>
+      <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
+      {activitiesLoading ? (
+        <p>Loading activities...</p>
+      ) : activitiesError instanceof Error ? (
+        <p>Error loading activities: {activitiesError.message}</p>
       ) : (
-        <ActivityList>
-          {userActivities.map((activity) => (
-            <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
-              <ActivityTitle>{activity.subject}</ActivityTitle>
-              <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
-              <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
-              {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
-            </ActivityItem>
-          ))}
-        </ActivityList>
+        <>
+          {filteredActivities().length === 0 ? (
+            <p>No upcoming activities found for {user?.name || 'you'} in the next 30 days.</p>
+          ) : (
+            <ActivityList>
+              {filteredActivities().map((activity) => (
+                <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
+                  <ActivityTitle>{activity.subject}</ActivityTitle>
+                  <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
+                  <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
+                  {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
+                </ActivityItem>
+              ))}
+            </ActivityList>
+          )}
+        </>
       )}
       {selectedActivity && (
         <Modal>
