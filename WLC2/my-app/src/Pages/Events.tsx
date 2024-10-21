@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 
@@ -454,6 +454,29 @@ const ToggleIcon = styled.div`
   margin-right: 10px;
 `;
 
+const RefreshButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+  margin-top: 20px;
+
+  &:hover {
+    background-color: #45a049;
+  }
+
+  svg {
+    margin-right: 8px;
+  }
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -605,7 +628,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <button onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>Refresh Activities</button>
+      <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
+        <FaSync /> Refresh Activities
+      </RefreshButton>
     </EventsContainer>
   );
 };
