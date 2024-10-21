@@ -611,7 +611,12 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const togglePrincipal = (id: number) => {
-    setExpandedPrincipals(prev => ({ ...prev, [id]: !prev[id] }));
+    console.log('Toggling principal:', id);
+    setExpandedPrincipals(prev => {
+      const newState = { ...prev, [id]: !prev[id] };
+      console.log('New expanded state:', newState);
+      return newState;
+    });
   };
 
   if (isLoading) return <div>Loading activities...</div>;
@@ -680,24 +685,27 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 <h4>Items:</h4>
                 <ItemList>
                   {(() => {
+                    console.log('Rendering ItemList, opportunityItems:', opportunityItems);
                     let currentGroup: string | null = null;
                     let currentPrincipal: OpportunityItem | null = null;
-                    let hasAccessories: boolean = false;
 
-                    // First pass to determine which principals have accessories
+                    // Determine which principals have accessories
                     const principalsWithAccessories = new Set(
                       opportunityItems
                         .filter(item => item.opportunity_item_type_name === "Accessory")
-                        .map(item => item.id - 1) // Assuming the principal ID is always one less than its accessory
+                        .map(item => item.id - 1)
                     );
+                    console.log('Principals with accessories:', principalsWithAccessories);
 
                     return opportunityItems.map((item, index) => {
+                      console.log('Rendering item:', item);
                       if (item.opportunity_item_type_name === "Group") {
                         currentGroup = item.name;
                         return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
                       } else if (item.opportunity_item_type_name === "Principal") {
                         currentPrincipal = item;
-                        hasAccessories = principalsWithAccessories.has(item.id);
+                        const hasAccessories = principalsWithAccessories.has(item.id);
+                        console.log('Principal:', item.name, 'hasAccessories:', hasAccessories, 'isExpanded:', expandedPrincipals[item.id]);
                         return (
                           <PrincipalItem key={item.id} onClick={() => hasAccessories && togglePrincipal(item.id)}>
                             <PrincipalName>{item.name}</PrincipalName>
@@ -711,12 +719,14 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                             )}
                           </PrincipalItem>
                         );
-                      } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal && hasAccessories) {
-                        return expandedPrincipals[currentPrincipal.id] && (
+                      } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
+                        const isExpanded = expandedPrincipals[currentPrincipal.id];
+                        console.log('Accessory:', item.name, 'for Principal:', currentPrincipal.name, 'isExpanded:', isExpanded);
+                        return isExpanded ? (
                           <AccessoryItemDiv key={item.id}>
                             {item.name} (Qty: {item.quantity})
                           </AccessoryItemDiv>
-                        );
+                        ) : null;
                       }
                       return null;
                     });
