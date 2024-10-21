@@ -483,6 +483,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [error, setError] = useState<Error | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -527,9 +528,14 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     try {
       const response = await currentRMSApi.get(`/opportunities/${opportunityId}`);
       setSelectedOpportunity(response.data.opportunity);
+      
+      // Fetch opportunity items
+      const itemsResponse = await currentRMSApi.get(`/opportunities/${opportunityId}/opportunity_items`);
+      setOpportunityItems(itemsResponse.data.opportunity_items);
     } catch (error) {
       console.error('Error fetching opportunity details:', error);
       setSelectedOpportunity(null);
+      setOpportunityItems([]);
     }
   }, []);
 
@@ -539,6 +545,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       fetchOpportunityDetails(activity.regarding_id);
     } else {
       setSelectedOpportunity(null);
+      setOpportunityItems([]);
     }
   }, [fetchOpportunityDetails]);
 
@@ -619,9 +626,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   </InfoSection>
                 )}
                 <h4>Items:</h4>
-                {selectedOpportunity.opportunity_items && selectedOpportunity.opportunity_items.length > 0 ? (
+                {opportunityItems.length > 0 ? (
                   <ItemList>
-                    {renderItems(selectedOpportunity.opportunity_items)}
+                    {renderItems(opportunityItems)}
                   </ItemList>
                 ) : (
                   <p>No items found for this opportunity.</p>
