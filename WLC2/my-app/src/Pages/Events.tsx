@@ -479,14 +479,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
-  const { data: activities, isLoading, error } = useQuery<Activity[], Error>(
+  const { data: activities, isLoading, error, refetch } = useQuery<Activity[], Error>(
     ['activities', today.toISOString(), nextMonth.toISOString()],
     () => fetchActivities(today.toISOString(), nextMonth.toISOString()),
     {
       enabled: !!user,
-      retry: 3,
-      retryDelay: 1000,
-      onError: (error) => console.error('Query error:', error)
+      staleTime: Infinity, // This will prevent refetching unless explicitly invalidated
+      cacheTime: Infinity, // This will keep the data cached indefinitely
     }
   );
 
@@ -500,15 +499,16 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     );
   }, [activities, user]);
 
-  const handleActivityClick = useCallback((activity: Activity) => {
+  const handleActivityClick = (activity: Activity) => {
     setSelectedActivity(activity);
-    // Fetch opportunity details here if needed
-  }, []);
+    // Fetch opportunity details if needed
+    // setSelectedOpportunity(...);
+  };
 
-  const closeModal = useCallback(() => {
+  const closeModal = () => {
     setSelectedActivity(null);
     setSelectedOpportunity(null);
-  }, []);
+  };
 
   const renderItems = useCallback((items: OpportunityItem[]) => {
     // Implement your item rendering logic here
@@ -604,6 +604,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
+      <button onClick={() => refetch()}>Refresh Activities</button>
     </EventsContainer>
   );
 };
