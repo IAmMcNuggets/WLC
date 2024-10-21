@@ -179,7 +179,7 @@ const Modal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #f0f8ff; // Light blue background
+  background-color: #ffffff; // White background
   padding: 20px;
   border-radius: 8px;
   max-width: 500px;
@@ -312,7 +312,7 @@ const PrincipalDescription = styled.p`
   font-size: 0.9em;
   color: #1e40af; // Dark blue
   padding: 10px;
-  background-color: #dbeafe; // Very light blue
+  background-color: #f0f7ff; // Very light blue
   border-radius: 4px;
 `;
 
@@ -495,15 +495,15 @@ const GroupHeader = styled.div`
 const PrincipalItem = styled.div`
   margin: 10px 0;
   padding: 10px 15px;
-  background-color: #ffffff;
-  border: 1px solid #bfdbfe; // Light blue border
+  background-color: #f8fafc; // Very light blue-gray background
+  border: 1px solid #e2e8f0; // Light gray border
   border-radius: 5px;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: #eff6ff; // Very light blue on hover
-    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.1); // Light blue shadow
+    background-color: #f0f7ff; // Light blue on hover
+    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.1);
   }
 `;
 
@@ -520,7 +520,7 @@ const ExpandIcon = styled.span`
 const AccessoryItemDiv = styled.div`
   margin: 5px 0 5px 20px;
   padding: 8px 15px;
-  background-color: #f0f9ff; // Very light blue
+  background-color: #f8fafc; // Very light blue-gray
   border-left: 3px solid #60a5fa; // Medium blue
   font-size: 0.9em;
   color: #1e3a8a; // Dark blue
