@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync, FaFile } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 
@@ -104,16 +104,22 @@ interface OpportunityItem {
   opportunity_item_type_name: string;
   price: string;
   description?: string;
+  attachable_id?: number; // Change this line
   // Add other properties as needed
 }
 
 interface Attachment {
   id: number;
   attachable_id: number;
-  attachable_type: string;
   name: string;
+  description: string;
+  attachment_file_name: string;
+  attachment_content_type: string;
+  attachment_file_size: number;
   attachment_url: string;
-  // Add other relevant fields
+  attachment_thumb_url: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Opportunity {
@@ -520,6 +526,59 @@ const AccessoryItemDiv = styled.div`
   color: #1e3a8a; // Dark blue
 `;
 
+const AttachmentList = styled.div`
+  margin-top: 10px;
+`;
+
+const AttachmentItem = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #f0f7ff;
+  border-radius: 4px;
+`;
+
+const AttachmentIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const AttachmentDetails = styled.div`
+  flex: 1;
+`;
+
+const AttachmentName = styled.h5`
+  margin: 0 0 5px 0;
+  color: #1e3a8a;
+`;
+
+const AttachmentDescription = styled.p`
+  margin: 0 0 5px 0;
+  font-size: 0.9em;
+  color: #4b5563;
+`;
+
+const AttachmentLink = styled.a`
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 0.9em;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -528,7 +587,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
-  const [activityAttachments, setActivityAttachments] = useState<Attachment[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -574,34 +633,54 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     try {
       const response = await currentRMSApi.get(`/opportunities/${opportunityId}`);
       console.log('Opportunity response:', response.data);
-      setSelectedOpportunity(response.data.opportunity);
+      const opportunity = response.data.opportunity;
+      setSelectedOpportunity(opportunity);
       
       // Fetch opportunity items
       console.log(`Fetching opportunity items for ID: ${opportunityId}`);
       const itemsResponse = await currentRMSApi.get(`/opportunities/${opportunityId}/opportunity_items`);
       console.log('Opportunity items response:', itemsResponse.data);
       setOpportunityItems(itemsResponse.data.opportunity_items);
+
+      // Check for attachment information in opportunity items
+      const attachmentIds = itemsResponse.data.opportunity_items
+        .filter((item: OpportunityItem) => item.attachable_id)
+        .map((item: OpportunityItem) => item.attachable_id);
+
+      if (attachmentIds.length > 0) {
+        await fetchAttachments(attachmentIds);
+      } else {
+        console.log('No attachment IDs found in opportunity items');
+        setAttachments([]);
+      }
+
     } catch (error) {
       console.error('Error fetching opportunity details:', error);
       setSelectedOpportunity(null);
       setOpportunityItems([]);
+      setAttachments([]);
     }
   }, []);
 
-  const fetchActivityAttachments = async (activityId: number) => {
+  const fetchAttachments = async (attachmentIds: number[]) => {
+    console.log(`Attempting to fetch ${attachmentIds.length} attachments`);
     try {
-      const response = await currentRMSApi.get(`/activities/${activityId}/attachments`);
-      setActivityAttachments(response.data.attachments);
+      const attachmentPromises = attachmentIds.map(id => 
+        currentRMSApi.get(`/attachments/${id}`)
+      );
+      const attachmentResponses = await Promise.all(attachmentPromises);
+      const fetchedAttachments = attachmentResponses.map(response => response.data.attachment);
+      console.log('Fetched attachments:', fetchedAttachments);
+      setAttachments(fetchedAttachments);
     } catch (error) {
-      console.error('Error fetching activity attachments:', error);
-      setActivityAttachments([]);
+      console.error('Error fetching attachments:', error);
+      setAttachments([]);
     }
   };
 
   const handleActivityClick = useCallback((activity: Activity) => {
     console.log('Activity clicked:', activity);
     setSelectedActivity(activity);
-    fetchActivityAttachments(activity.id);
     if (activity.regarding_id) {
       console.log(`Activity has regarding_id: ${activity.regarding_id}`);
       fetchOpportunityDetails(activity.regarding_id);
@@ -733,20 +812,43 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     });
                   })()}
                 </ItemList>
-              </ModalSection>
-            )}
-            {activityAttachments.length > 0 && (
-              <ModalSection>
-                <h3>Attachments:</h3>
-                <ul>
-                  {activityAttachments.map(attachment => (
-                    <li key={attachment.id}>
-                      <a href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
-                        {attachment.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <ModalSection>
+                  <h4>Attachments:</h4>
+                  {(() => {
+                    console.log('Attachments in render:', attachments);
+                    if (attachments.length > 0) {
+                      return (
+                        <AttachmentList>
+                          {attachments.map((attachment) => (
+                            <AttachmentItem key={attachment.id}>
+                              <AttachmentIcon>
+                                {attachment.attachment_content_type.startsWith('image') ? (
+                                  <img src={attachment.attachment_thumb_url} alt={attachment.name} />
+                                ) : (
+                                  <FaFile />
+                                )}
+                              </AttachmentIcon>
+                              <AttachmentDetails>
+                                <AttachmentName>{attachment.name}</AttachmentName>
+                                <AttachmentDescription>{attachment.description}</AttachmentDescription>
+                                <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
+                                  Download
+                                </AttachmentLink>
+                              </AttachmentDetails>
+                            </AttachmentItem>
+                          ))}
+                        </AttachmentList>
+                      );
+                    } else {
+                      return (
+                        <div>
+                          <p>No attachments found for this opportunity.</p>
+                          <p>To view attachments, please check the opportunity details in the Current RMS system.</p>
+                        </div>
+                      );
+                    }
+                  })()}
+                </ModalSection>
               </ModalSection>
             )}
             <ButtonContainer>
