@@ -812,43 +812,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     });
                   })()}
                 </ItemList>
-                <ModalSection>
-                  <h4>Attachments:</h4>
-                  {(() => {
-                    console.log('Attachments in render:', attachments);
-                    if (attachments.length > 0) {
-                      return (
-                        <AttachmentList>
-                          {attachments.map((attachment) => (
-                            <AttachmentItem key={attachment.id}>
-                              <AttachmentIcon>
-                                {attachment.attachment_content_type.startsWith('image') ? (
-                                  <img src={attachment.attachment_thumb_url} alt={attachment.name} />
-                                ) : (
-                                  <FaFile />
-                                )}
-                              </AttachmentIcon>
-                              <AttachmentDetails>
-                                <AttachmentName>{attachment.name}</AttachmentName>
-                                <AttachmentDescription>{attachment.description}</AttachmentDescription>
-                                <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
-                                  Download
-                                </AttachmentLink>
-                              </AttachmentDetails>
-                            </AttachmentItem>
-                          ))}
-                        </AttachmentList>
-                      );
-                    } else {
-                      return (
-                        <div>
-                          <p>No attachments found for this opportunity.</p>
-                          <p>To view attachments, please check the opportunity details in the Current RMS system.</p>
-                        </div>
-                      );
-                    }
-                  })()}
-                </ModalSection>
+                {/* Attachments section removed */}
               </ModalSection>
             )}
             <ButtonContainer>
