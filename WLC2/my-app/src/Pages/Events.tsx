@@ -112,14 +112,8 @@ interface Attachment {
   attachable_id: number;
   attachable_type: string;
   name: string;
-  description: string;
-  attachment_file_name: string;
-  attachment_content_type: string;
-  attachment_file_size: number;
   attachment_url: string;
-  attachment_thumb_url: string;
-  created_at: string;
-  updated_at: string;
+  // Add other relevant fields
 }
 
 interface Opportunity {
@@ -534,6 +528,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
+  const [activityAttachments, setActivityAttachments] = useState<Attachment[]>([]);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -593,9 +588,20 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   }, []);
 
+  const fetchActivityAttachments = async (activityId: number) => {
+    try {
+      const response = await currentRMSApi.get(`/activities/${activityId}/attachments`);
+      setActivityAttachments(response.data.attachments);
+    } catch (error) {
+      console.error('Error fetching activity attachments:', error);
+      setActivityAttachments([]);
+    }
+  };
+
   const handleActivityClick = useCallback((activity: Activity) => {
     console.log('Activity clicked:', activity);
     setSelectedActivity(activity);
+    fetchActivityAttachments(activity.id);
     if (activity.regarding_id) {
       console.log(`Activity has regarding_id: ${activity.regarding_id}`);
       fetchOpportunityDetails(activity.regarding_id);
@@ -727,6 +733,20 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     });
                   })()}
                 </ItemList>
+              </ModalSection>
+            )}
+            {activityAttachments.length > 0 && (
+              <ModalSection>
+                <h3>Attachments:</h3>
+                <ul>
+                  {activityAttachments.map(attachment => (
+                    <li key={attachment.id}>
+                      <a href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
+                        {attachment.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </ModalSection>
             )}
             <ButtonContainer>
