@@ -537,19 +537,26 @@ const AttachmentLink = styled.a`
 `;
 
 // Add this function to fetch attachments
-const fetchAttachments = async (opportunityId: number): Promise<Attachment[]> => {
+const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
   try {
-    // Try fetching attachments using a different endpoint
+    console.log(`Fetching attachments for regarding_id: ${regardingId}`);
     const response = await currentRMSApi.get(`/attachments`, {
       params: {
         'q[attachable_type]': 'Opportunity',
-        'q[attachable_id]': opportunityId
+        'per_page': 100 // Increase this if necessary to get all attachments
       }
     });
     console.log('Attachments response:', response.data);
-    return response.data.attachments || [];
+    
+    // Filter attachments to only include those matching the regardingId
+    const filteredAttachments = response.data.attachments.filter(
+      (attachment: Attachment) => attachment.attachable_id === regardingId
+    );
+    
+    console.log('Filtered attachments:', filteredAttachments);
+    return filteredAttachments;
   } catch (error) {
-    console.error(`Error fetching attachments for opportunity ${opportunityId}:`, error);
+    console.error(`Error fetching attachments for regarding_id ${regardingId}:`, error);
     return [];
   }
 };
@@ -603,22 +610,22 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     );
   }, [activities, user]);
 
-  const fetchOpportunityDetails = useCallback(async (opportunityId: number) => {
-    console.log(`Fetching opportunity details for ID: ${opportunityId}`);
+  const fetchOpportunityDetails = useCallback(async (activity: Activity) => {
+    console.log(`Fetching opportunity details for ID: ${activity.regarding_id}`);
     try {
-      const response = await currentRMSApi.get(`/opportunities/${opportunityId}`);
+      const response = await currentRMSApi.get(`/opportunities/${activity.regarding_id}`);
       console.log('Opportunity response:', response.data);
       const opportunity = response.data.opportunity;
       setSelectedOpportunity(opportunity);
       
       // Fetch opportunity items
-      console.log(`Fetching opportunity items for ID: ${opportunityId}`);
-      const itemsResponse = await currentRMSApi.get(`/opportunities/${opportunityId}/opportunity_items`);
+      console.log(`Fetching opportunity items for ID: ${activity.regarding_id}`);
+      const itemsResponse = await currentRMSApi.get(`/opportunities/${activity.regarding_id}/opportunity_items`);
       console.log('Opportunity items response:', itemsResponse.data);
       setOpportunityItems(itemsResponse.data.opportunity_items);
 
-      // Fetch attachments
-      const attachmentsData = await fetchAttachments(opportunityId);
+      // Fetch attachments using the regarding_id
+      const attachmentsData = await fetchAttachments(activity.regarding_id);
       setAttachments(attachmentsData);
 
     } catch (error) {
@@ -634,7 +641,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     setSelectedActivity(activity);
     if (activity.regarding_id) {
       console.log(`Activity has regarding_id: ${activity.regarding_id}`);
-      fetchOpportunityDetails(activity.regarding_id);
+      fetchOpportunityDetails(activity);
     } else {
       console.log('Activity has no regarding_id');
       setSelectedOpportunity(null);
