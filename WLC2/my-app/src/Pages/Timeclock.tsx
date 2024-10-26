@@ -197,7 +197,11 @@ function Timeclock() {
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return new Date(dateString).toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: true 
+    });
   };
 
   const calculateDuration = (clockIn: string, clockOut: string | null) => {
@@ -207,18 +211,20 @@ function Timeclock() {
     const diff = end.getTime() - start.getTime();
     const hours = Math.floor(diff / 3600000);
     const minutes = Math.floor((diff % 3600000) / 60000);
-    return `${hours}h ${minutes}m`;
+    return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
   };
 
   const exportToCSV = () => {
     const csvContent = [
       ['Date', 'Clock In', 'Clock Out', 'Duration'],
-      ...timeEntries.map(entry => [
-        formatDate(new Date(entry.clockIn)),
-        formatTime(entry.clockIn),
-        entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out',
-        calculateDuration(entry.clockIn, entry.clockOut)
-      ])
+      ...timeEntries.map(entry => {
+        const date = new Date(entry.clockIn);
+        const formattedDate = `${date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
+        const clockIn = formatTime(entry.clockIn);
+        const clockOut = entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out';
+        const duration = calculateDuration(entry.clockIn, entry.clockOut);
+        return [formattedDate, clockIn, clockOut, duration];
+      })
     ].map(e => e.join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
