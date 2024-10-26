@@ -154,6 +154,7 @@ interface Opportunity {
       postcode: string;
     };
   };
+  attachments: Attachment[];
 }
 
 const currentRMSApi = axios.create({
@@ -379,12 +380,18 @@ const fetchActivities = async (startDate: string, endDate: string): Promise<Acti
   }
 };
 
-const fetchOpportunity = async (id: number): Promise<Opportunity> => {
+const fetchOpportunity = async (id: number): Promise<Opportunity & { attachments: Attachment[] }> => {
   try {
     console.log(`Fetching opportunity with ID: ${id}`);
-    const opportunityResponse = await currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`);
+    const [opportunityResponse, attachmentsResponse] = await Promise.all([
+      currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`),
+      fetchAttachments(id)
+    ]);
     console.log('Opportunity response:', opportunityResponse.data);
-    return opportunityResponse.data.opportunity;
+    return {
+      ...opportunityResponse.data.opportunity,
+      attachments: attachmentsResponse
+    };
   } catch (error) {
     console.error(`Error fetching opportunity ${id}:`, error);
     throw error;
@@ -526,58 +533,36 @@ const AccessoryItemDiv = styled.div`
   color: #1e3a8a; // Dark blue
 `;
 
-const AttachmentList = styled.div`
-  margin-top: 10px;
+const AttachmentSection = styled.div`
+  margin-top: 20px;
 `;
 
-const AttachmentItem = styled.div`
-  display: flex;
-  align-items: center;
+const AttachmentList = styled.ul`
+  list-style-type: none;
+  padding: 0;
+`;
+
+const AttachmentItem = styled.li`
   margin-bottom: 10px;
-  padding: 10px;
-  background-color: #f0f7ff;
-  border-radius: 4px;
-`;
-
-const AttachmentIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: cover;
-  }
-`;
-
-const AttachmentDetails = styled.div`
-  flex: 1;
-`;
-
-const AttachmentName = styled.h5`
-  margin: 0 0 5px 0;
-  color: #1e3a8a;
-`;
-
-const AttachmentDescription = styled.p`
-  margin: 0 0 5px 0;
-  font-size: 0.9em;
-  color: #4b5563;
 `;
 
 const AttachmentLink = styled.a`
   color: #3b82f6;
   text-decoration: none;
-  font-size: 0.9em;
-
   &:hover {
     text-decoration: underline;
   }
 `;
+
+const fetchAttachments = async (opportunityId: number): Promise<Attachment[]> => {
+  try {
+    const response = await currentRMSApi.get(`/opportunities/${opportunityId}/attachments`);
+    return response.data.attachments;
+  } catch (error) {
+    console.error(`Error fetching attachments for opportunity ${opportunityId}:`, error);
+    return [];
+  }
+};
 
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -648,7 +633,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         .map((item: OpportunityItem) => item.attachable_id);
 
       if (attachmentIds.length > 0) {
-        await fetchAttachments(attachmentIds);
+        await fetchAttachments(opportunityId);
       } else {
         console.log('No attachment IDs found in opportunity items');
         setAttachments([]);
@@ -661,22 +646,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       setAttachments([]);
     }
   }, []);
-
-  const fetchAttachments = async (attachmentIds: number[]) => {
-    console.log(`Attempting to fetch ${attachmentIds.length} attachments`);
-    try {
-      const attachmentPromises = attachmentIds.map(id => 
-        currentRMSApi.get(`/attachments/${id}`)
-      );
-      const attachmentResponses = await Promise.all(attachmentPromises);
-      const fetchedAttachments = attachmentResponses.map(response => response.data.attachment);
-      console.log('Fetched attachments:', fetchedAttachments);
-      setAttachments(fetchedAttachments);
-    } catch (error) {
-      console.error('Error fetching attachments:', error);
-      setAttachments([]);
-    }
-  };
 
   const handleActivityClick = useCallback((activity: Activity) => {
     console.log('Activity clicked:', activity);
@@ -812,12 +781,28 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     });
                   })()}
                 </ItemList>
-                {/* Attachments section removed */}
+                <AttachmentSection>
+                  <h3>Attachments</h3>
+                  {selectedOpportunity.attachments.length > 0 ? (
+                    <AttachmentList>
+                      {selectedOpportunity.attachments.map((attachment) => (
+                        <AttachmentItem key={attachment.id}>
+                          <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
+                            {attachment.name || attachment.attachment_file_name}
+                          </AttachmentLink>
+                          {attachment.description && <p>{attachment.description}</p>}
+                        </AttachmentItem>
+                      ))}
+                    </AttachmentList>
+                  ) : (
+                    <p>No attachments available</p>
+                  )}
+                </AttachmentSection>
+                <ButtonContainer>
+                  <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
+                </ButtonContainer>
               </ModalSection>
             )}
-            <ButtonContainer>
-              <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
-            </ButtonContainer>
           </ModalContent>
         </Modal>
       )}
