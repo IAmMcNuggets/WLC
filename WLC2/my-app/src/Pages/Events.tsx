@@ -540,20 +540,39 @@ const AttachmentLink = styled.a`
 const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
   try {
     console.log(`Fetching attachments for regarding_id: ${regardingId}`);
-    const response = await currentRMSApi.get(`/attachments`, {
-      params: {
-        'q[attachable_type]': 'Opportunity',
-        'per_page': 100 // Increase this if necessary to get all attachments
+    let allAttachments: Attachment[] = [];
+    let page = 1;
+    let hasMorePages = true;
+
+    while (hasMorePages) {
+      const response = await currentRMSApi.get(`/attachments`, {
+        params: {
+          'q[attachable_type]': 'Opportunity',
+          'per_page': 100,
+          'page': page
+        }
+      });
+      
+      const { attachments, meta } = response.data;
+      allAttachments = [...allAttachments, ...attachments];
+      
+      console.log(`Fetched page ${page} of attachments`);
+      
+      if (meta.page * meta.per_page >= meta.total_row_count) {
+        hasMorePages = false;
+      } else {
+        page++;
       }
-    });
-    console.log('Attachments response:', response.data);
-    
+    }
+
+    console.log(`Total attachments fetched: ${allAttachments.length}`);
+
     // Filter attachments to only include those matching the regardingId
-    const filteredAttachments = response.data.attachments.filter(
+    const filteredAttachments = allAttachments.filter(
       (attachment: Attachment) => attachment.attachable_id === regardingId
     );
     
-    console.log('Filtered attachments:', filteredAttachments);
+    console.log(`Filtered attachments for regarding_id ${regardingId}:`, filteredAttachments);
     return filteredAttachments;
   } catch (error) {
     console.error(`Error fetching attachments for regarding_id ${regardingId}:`, error);
