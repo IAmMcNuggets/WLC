@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { saveAs } from 'file-saver';
 
 const TimeclockContainer = styled.div`
   min-height: 100vh;
@@ -112,6 +113,15 @@ const DeleteButton = styled.button`
   }
 `;
 
+const ExportButton = styled(Button)`
+  background-color: #2196F3;
+  margin-top: 20px;
+
+  &:hover {
+    background-color: #1976D2;
+  }
+`;
+
 interface TimeEntryData {
   id: number;
   clockIn: string;
@@ -200,6 +210,21 @@ function Timeclock() {
     return `${hours}h ${minutes}m`;
   };
 
+  const exportToCSV = () => {
+    const csvContent = [
+      ['Date', 'Clock In', 'Clock Out', 'Duration'],
+      ...timeEntries.map(entry => [
+        formatDate(new Date(entry.clockIn)),
+        formatTime(entry.clockIn),
+        entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out',
+        calculateDuration(entry.clockIn, entry.clockOut)
+      ])
+    ].map(e => e.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, 'timeclock_entries.csv');
+  };
+
   return (
     <TimeclockContainer>
       <TimeclockTitle>Timeclock</TimeclockTitle>
@@ -207,6 +232,7 @@ function Timeclock() {
         <Button onClick={handleClockIn} disabled={isClockedIn}>Clock In</Button>
         <Button onClick={handleClockOut} disabled={!isClockedIn} isClockOut>Clock Out</Button>
       </TimeclockControls>
+      <ExportButton onClick={exportToCSV}>Export to CSV</ExportButton>
       <TimeEntryList>
         {timeEntries.map((entry) => (
           <TimeEntry key={entry.id}>
