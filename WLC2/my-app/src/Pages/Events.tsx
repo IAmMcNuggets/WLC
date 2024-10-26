@@ -380,24 +380,6 @@ const fetchActivities = async (startDate: string, endDate: string): Promise<Acti
   }
 };
 
-const fetchOpportunity = async (id: number): Promise<Opportunity & { attachments: Attachment[] }> => {
-  try {
-    console.log(`Fetching opportunity with ID: ${id}`);
-    const [opportunityResponse, attachmentsResponse] = await Promise.all([
-      currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`),
-      fetchAttachments(id)
-    ]);
-    console.log('Opportunity response:', opportunityResponse.data);
-    return {
-      ...opportunityResponse.data.opportunity,
-      attachments: attachmentsResponse
-    };
-  } catch (error) {
-    console.error(`Error fetching opportunity ${id}:`, error);
-    throw error;
-  }
-};
-
 const PrincipalRow = styled.div<{ isGroup: boolean; isAccessory: boolean }>`
   display: flex;
   align-items: center;
@@ -674,6 +656,28 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     });
   };
 
+  // Move fetchOpportunity inside the component
+  const fetchOpportunity = async (id: number): Promise<Opportunity & { attachments: Attachment[] }> => {
+    try {
+      console.log(`Fetching opportunity with ID: ${id}`);
+      setIsLoading(true);
+      const [opportunityResponse, attachmentsResponse] = await Promise.all([
+        currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`),
+        fetchAttachments(id)
+      ]);
+      console.log('Opportunity response:', opportunityResponse.data);
+      setIsLoading(false);
+      return {
+        ...opportunityResponse.data.opportunity,
+        attachments: attachmentsResponse
+      };
+    } catch (error) {
+      console.error(`Error fetching opportunity ${id}:`, error);
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -783,7 +787,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                 </ItemList>
                 <AttachmentSection>
                   <h3>Attachments</h3>
-                  {selectedOpportunity.attachments.length > 0 ? (
+                  {isLoading ? (
+                    <p>Loading attachments...</p>
+                  ) : selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
                     <AttachmentList>
                       {selectedOpportunity.attachments.map((attachment) => (
                         <AttachmentItem key={attachment.id}>
