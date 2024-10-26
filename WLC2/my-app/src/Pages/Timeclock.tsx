@@ -225,7 +225,7 @@ function Timeclock() {
         const duration = calculateDuration(entry.clockIn, entry.clockOut);
         return [formattedDate, clockIn, clockOut, duration];
       })
-    ].map(e => e.join(',')).join('\n');
+    ].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, 'timeclock_entries.csv');
