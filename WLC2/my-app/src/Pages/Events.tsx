@@ -539,8 +539,15 @@ const AttachmentLink = styled.a`
 // Add this function to fetch attachments
 const fetchAttachments = async (opportunityId: number): Promise<Attachment[]> => {
   try {
-    const response = await currentRMSApi.get(`/opportunities/${opportunityId}/attachments`);
-    return response.data.attachments;
+    // Try fetching attachments using a different endpoint
+    const response = await currentRMSApi.get(`/attachments`, {
+      params: {
+        'q[attachable_type]': 'Opportunity',
+        'q[attachable_id]': opportunityId
+      }
+    });
+    console.log('Attachments response:', response.data);
+    return response.data.attachments || [];
   } catch (error) {
     console.error(`Error fetching attachments for opportunity ${opportunityId}:`, error);
     return [];
