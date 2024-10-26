@@ -536,6 +536,7 @@ const AttachmentLink = styled.a`
   }
 `;
 
+// Add this function to fetch attachments
 const fetchAttachments = async (opportunityId: number): Promise<Attachment[]> => {
   try {
     const response = await currentRMSApi.get(`/opportunities/${opportunityId}/attachments`);
@@ -609,17 +610,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       console.log('Opportunity items response:', itemsResponse.data);
       setOpportunityItems(itemsResponse.data.opportunity_items);
 
-      // Check for attachment information in opportunity items
-      const attachmentIds = itemsResponse.data.opportunity_items
-        .filter((item: OpportunityItem) => item.attachable_id)
-        .map((item: OpportunityItem) => item.attachable_id);
-
-      if (attachmentIds.length > 0) {
-        await fetchAttachments(opportunityId);
-      } else {
-        console.log('No attachment IDs found in opportunity items');
-        setAttachments([]);
-      }
+      // Fetch attachments
+      const attachmentsData = await fetchAttachments(opportunityId);
+      setAttachments(attachmentsData);
 
     } catch (error) {
       console.error('Error fetching opportunity details:', error);
@@ -639,6 +632,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       console.log('Activity has no regarding_id');
       setSelectedOpportunity(null);
       setOpportunityItems([]);
+      setAttachments([]);
     }
   }, [fetchOpportunityDetails]);
 
@@ -789,9 +783,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   <h3>Attachments</h3>
                   {isLoading ? (
                     <p>Loading attachments...</p>
-                  ) : selectedOpportunity.attachments && selectedOpportunity.attachments.length > 0 ? (
+                  ) : attachments.length > 0 ? (
                     <AttachmentList>
-                      {selectedOpportunity.attachments.map((attachment) => (
+                      {attachments.map((attachment) => (
                         <AttachmentItem key={attachment.id}>
                           <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
                             {attachment.name || attachment.attachment_file_name}
