@@ -28,19 +28,39 @@ const TrainingContainer = styled.div`
   padding: 20px;
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
-  margin: 20px;
+  margin: 20px 0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 90%;
   max-width: 600px;
+`;
+
+const ContainerTitle = styled.h2`
+  font-size: 1.5rem;
+  color: #333;
+  margin-bottom: 15px;
 `;
 
 const Training: React.FC = () => {
   return (
     <TrainingPage>
       <TrainingTitle>Training</TrainingTitle>
+      
       <TrainingContainer>
-        {/* Add your training content here */}
-        <p>Welcome to the Training page. Content coming soon!</p>
+        <ContainerTitle>Manuals</ContainerTitle>
+        <p>Access our comprehensive collection of manuals and documentation.</p>
+        {/* Add content or links to manuals */}
+      </TrainingContainer>
+
+      <TrainingContainer>
+        <ContainerTitle>Training Videos</ContainerTitle>
+        <p>Watch instructional videos to enhance your skills and knowledge.</p>
+        {/* Add content or links to training videos */}
+      </TrainingContainer>
+
+      <TrainingContainer>
+        <ContainerTitle>How-to Guides</ContainerTitle>
+        <p>Step-by-step guides for various processes and procedures.</p>
+        {/* Add content or links to how-to guides */}
       </TrainingContainer>
     </TrainingPage>
   );
