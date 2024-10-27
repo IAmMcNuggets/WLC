@@ -32,6 +32,7 @@ const TrainingContainer = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 90%;
   max-width: 600px;
+  text-align: center; // Center all text within the container
 `;
 
 const ContainerTitle = styled.h2`
