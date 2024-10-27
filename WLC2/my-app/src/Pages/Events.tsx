@@ -106,6 +106,8 @@ interface OpportunityItem {
   description?: string;
   attachable_id?: number; // Change this line
   // Add other properties as needed
+  item_id?: number;
+  item_assets?: ItemAsset[];
 }
 
 interface Attachment {
@@ -155,6 +157,12 @@ interface Opportunity {
     };
   };
   attachments: Attachment[];
+}
+
+interface ItemAsset {
+  id: number;
+  stock_level_asset_number: string;
+  item_id: number;
 }
 
 const currentRMSApi = axios.create({
@@ -580,6 +588,28 @@ const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
   }
 };
 
+const fetchItemAssets = async (itemId: number): Promise<ItemAsset[]> => {
+  try {
+    const response = await currentRMSApi.get(`/items/${itemId}/item_assets`);
+    return response.data.item_assets;
+  } catch (error) {
+    console.error(`Error fetching item assets for item ${itemId}:`, error);
+    return [];
+  }
+};
+
+// Add these new styled components near your other styled components
+const ServiceAssetList = styled.div`
+  margin-left: 20px;
+  font-size: 0.9em;
+  color: #666;
+`;
+
+const AssetNumber = styled.div`
+  padding: 4px 0;
+  color: #4a5568;
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -646,6 +676,19 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       // Fetch attachments using the regarding_id
       const attachmentsData = await fetchAttachments(activity.regarding_id);
       setAttachments(attachmentsData);
+
+      // Fetch item assets for service items
+      const itemsWithAssets = await Promise.all(
+        itemsResponse.data.opportunity_items.map(async (item: OpportunityItem) => {
+          if (item.opportunity_item_type_name === "Service" && item.item_id) {
+            const assets = await fetchItemAssets(item.item_id);
+            return { ...item, item_assets: assets };
+          }
+          return item;
+        })
+      );
+
+      setOpportunityItems(itemsWithAssets);
 
     } catch (error) {
       console.error('Error fetching opportunity details:', error);
@@ -784,6 +827,27 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       if (item.opportunity_item_type_name === "Group") {
                         currentGroup = item.name;
                         return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
+                      } else if (item.opportunity_item_type_name === "Service") {
+                        return (
+                          <React.Fragment key={item.id}>
+                            <PrincipalItem>
+                              <PrincipalName>{item.name}</PrincipalName>
+                              {item.description && (
+                                <PrincipalDescription>{item.description}</PrincipalDescription>
+                              )}
+                              {item.item_assets && item.item_assets.length > 0 && (
+                                <ServiceAssetList>
+                                  <strong>Asset Numbers:</strong>
+                                  {item.item_assets.map((asset) => (
+                                    <AssetNumber key={asset.id}>
+                                      {asset.stock_level_asset_number}
+                                    </AssetNumber>
+                                  ))}
+                                </ServiceAssetList>
+                              )}
+                            </PrincipalItem>
+                          </React.Fragment>
+                        );
                       } else if (item.opportunity_item_type_name === "Principal") {
                         currentPrincipal = item;
                         const hasAccessories = principalsWithAccessories.has(item.id);
