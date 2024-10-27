@@ -8,6 +8,7 @@ import './App.css';
 import Events from './Pages/Events';
 import Timeclock from './Pages/Timeclock';
 import Profile from './Pages/Profile';
+import Training from './Pages/Training'; // Add this import
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
 import backgroundImage from './Background/86343.jpg';
@@ -109,6 +110,7 @@ function App() {
                     />
                   } 
                 />
+                <Route path="/training" element={<Training />} /> {/* Add this route */}
                 <Route path="*" element={<Navigate to="/events" replace />} />
               </Routes>
             ) : (

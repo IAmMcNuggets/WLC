@@ -1,8 +1,9 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { FaCalendarAlt, FaClock, FaUser, FaGraduationCap } from 'react-icons/fa';
 
-const FloatingNavBar = styled.nav`
+const NavBar = styled.nav`
   position: fixed;
   bottom: 20px;
   left: 50%;
@@ -32,34 +33,27 @@ const NavItem = styled(Link)`
   }
 `;
 
-const NavIcon = styled.span`
-  font-size: 1.5rem;
-  margin-bottom: 4px;
-`;
-
-function BottomNavBar() {
-  const location = useLocation();
-
-  const navItems = [
-    { path: '/events', label: 'Events', icon: '📅' },
-    { path: '/timeclock', label: 'Timeclock', icon: '⏱️' },
-    { path: '/profile', label: 'Profile', icon: '👤' },
-  ];
-
+const BottomNavBar: React.FC = () => {
   return (
-    <FloatingNavBar>
-      {navItems.map((item) => (
-        <NavItem
-          key={item.path}
-          to={item.path}
-          className={location.pathname === item.path ? 'active' : ''}
-        >
-          <NavIcon>{item.icon}</NavIcon>
-          {item.label}
-        </NavItem>
-      ))}
-    </FloatingNavBar>
+    <NavBar>
+      <NavItem to="/events">
+        <FaCalendarAlt />
+        Events
+      </NavItem>
+      <NavItem to="/timeclock">
+        <FaClock />
+        Timeclock
+      </NavItem>
+      <NavItem to="/training">
+        <FaGraduationCap />
+        Training
+      </NavItem>
+      <NavItem to="/profile">
+        <FaUser />
+        Profile
+      </NavItem>
+    </NavBar>
   );
-}
+};
 
 export default BottomNavBar;
