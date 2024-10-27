@@ -24,7 +24,7 @@ const TrainingTitle = styled.h1`
   font-size: 2.5rem;
 `;
 
-const TrainingContainer = styled.div`
+const TrainingContainer = styled.a`
   padding: 20px;
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 10px;
@@ -32,7 +32,16 @@ const TrainingContainer = styled.div`
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 90%;
   max-width: 600px;
-  text-align: center; // Center all text within the container
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
 `;
 
 const ContainerTitle = styled.h2`
@@ -46,22 +55,19 @@ const Training: React.FC = () => {
     <TrainingPage>
       <TrainingTitle>Training</TrainingTitle>
       
-      <TrainingContainer>
+      <TrainingContainer href="https://drive.google.com/drive/folders/1n880Sx9TwfN3lUWPUQpOTBsQsW28wEwF?usp=sharing" target="_blank" rel="noopener noreferrer">
         <ContainerTitle>Manuals</ContainerTitle>
         <p>Access our comprehensive collection of manuals and documentation.</p>
-        {/* Add content or links to manuals */}
       </TrainingContainer>
 
-      <TrainingContainer>
+      <TrainingContainer href="https://drive.google.com/drive/folders/1mUIROETA4DGH8XXhRui872cion9A801o?usp=sharing" target="_blank" rel="noopener noreferrer">
         <ContainerTitle>Training Videos</ContainerTitle>
         <p>Watch instructional videos to enhance your skills and knowledge.</p>
-        {/* Add content or links to training videos */}
       </TrainingContainer>
 
-      <TrainingContainer>
+      <TrainingContainer href="https://drive.google.com/drive/folders/1NXsFR1TRTqLCRA5FvlOrrkco8pmpE7Yy?usp=sharing" target="_blank" rel="noopener noreferrer">
         <ContainerTitle>How-to Guides</ContainerTitle>
         <p>Step-by-step guides for various processes and procedures.</p>
-        {/* Add content or links to how-to guides */}
       </TrainingContainer>
     </TrainingPage>
   );
