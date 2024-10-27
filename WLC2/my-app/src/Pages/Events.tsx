@@ -824,7 +824,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                               )}
                               {item.item_assets && item.item_assets.length > 0 && (
                                 <ServiceAssetList>
-                                  <strong>Asset Numbers:</strong>
                                   {item.item_assets.map((asset) => (
                                     <AssetNumber key={asset.id}>
                                       {asset.stock_level_asset_number}
