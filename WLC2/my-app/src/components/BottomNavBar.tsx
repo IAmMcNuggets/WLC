@@ -3,27 +3,20 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaCalendarAlt, FaClock, FaUserCircle, FaBook } from 'react-icons/fa';
 
-const NavBarContainer = styled.div`
+const NavBar = styled.nav`
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 95%;
+  max-width: 600px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  padding: 15px 10px;
+  z-index: 1002;
   display: flex;
-  justify-content: space-evenly;
-  align-items: center;
-  background-color: white;
-  padding: 0.5rem;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: auto;
-
-  /* Add responsive adjustments */
-  @media (max-width: 480px) {
-    padding: 0.5rem 0.25rem;
-    gap: 0.5rem;
-    justify-content: space-between;
-  }
+  justify-content: space-around;
 `;
 
 const NavItem = styled(Link)`
@@ -47,7 +40,7 @@ const NavItem = styled(Link)`
 
 const BottomNavBar: React.FC = () => {
   return (
-    <NavBarContainer>
+    <NavBar>
       <NavItem to="/events">
         <FaCalendarAlt />
         Events
@@ -64,7 +57,7 @@ const BottomNavBar: React.FC = () => {
         <FaUserCircle />
         Profile
       </NavItem>
-    </NavBarContainer>
+    </NavBar>
   );
 };
 
