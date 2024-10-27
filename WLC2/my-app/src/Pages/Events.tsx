@@ -104,10 +104,10 @@ interface OpportunityItem {
   opportunity_item_type_name: string;
   price: string;
   description?: string;
-  attachable_id?: number; // Change this line
-  // Add other properties as needed
+  attachable_id?: number;
   item_id?: number;
   item_assets?: ItemAsset[];
+  item_type?: string;  // Add this line
 }
 
 interface Attachment {
@@ -660,7 +660,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   }, [activities, user]);
 
   const fetchOpportunityDetails = useCallback(async (activity: Activity) => {
-    console.log(`Fetching opportunity details for ID: ${activity.regarding_id}`);
     try {
       const response = await currentRMSApi.get(`/opportunities/${activity.regarding_id}`);
       console.log('Opportunity response:', response.data);
@@ -668,27 +667,15 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       setSelectedOpportunity(opportunity);
       
       // Fetch opportunity items
-      console.log(`Fetching opportunity items for ID: ${activity.regarding_id}`);
       const itemsResponse = await currentRMSApi.get(`/opportunities/${activity.regarding_id}/opportunity_items`);
       console.log('Opportunity items response:', itemsResponse.data);
+      
+      // The item_assets are already included in the response
       setOpportunityItems(itemsResponse.data.opportunity_items);
 
-      // Fetch attachments using the regarding_id
+      // Fetch attachments
       const attachmentsData = await fetchAttachments(activity.regarding_id);
       setAttachments(attachmentsData);
-
-      // Fetch item assets for service items
-      const itemsWithAssets = await Promise.all(
-        itemsResponse.data.opportunity_items.map(async (item: OpportunityItem) => {
-          if (item.opportunity_item_type_name === "Service" && item.item_id) {
-            const assets = await fetchItemAssets(item.item_id);
-            return { ...item, item_assets: assets };
-          }
-          return item;
-        })
-      );
-
-      setOpportunityItems(itemsWithAssets);
 
     } catch (error) {
       console.error('Error fetching opportunity details:', error);
@@ -827,7 +814,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       if (item.opportunity_item_type_name === "Group") {
                         currentGroup = item.name;
                         return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
-                      } else if (item.opportunity_item_type_name === "Service") {
+                      } else if (item.item_type === "Service") { // Changed this condition
                         return (
                           <React.Fragment key={item.id}>
                             <PrincipalItem>
