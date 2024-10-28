@@ -28,43 +28,77 @@ const FileCard = styled.a`
   }
 `;
 
-const DRIVE_API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
 const CLIENT_ID = '1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com';
 const FOLDER_ID = '0AFSJxcbJ2fmyUk9PVA';
+const API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
+
+declare global {
+  interface Window {
+    google: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: any) => any;
+        };
+      };
+    };
+  }
+}
 
 const Training: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadGoogleAPI = () => {
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = initializeGoogleAPI;
-      document.body.appendChild(script);
-    };
+    const loadGoogleAPI = async () => {
+      try {
+        // Load the Google API client library
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        document.body.appendChild(script);
 
-    const initializeGoogleAPI = () => {
-      window.gapi.load('client:auth2', async () => {
-        try {
-          await window.gapi.client.init({
-            apiKey: DRIVE_API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-            scope: 'https://www.googleapis.com/auth/drive.readonly'
+        await new Promise((resolve) => {
+          script.onload = resolve;
+        });
+
+        // Load and initialize the client
+        await new Promise<void>((resolve) => {
+          window.gapi.load('client', async () => {
+            await window.gapi.client.init({
+              apiKey: API_KEY,
+              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            resolve();
           });
+        });
 
-          const isSignedIn = window.gapi.auth2.getAuthInstance().isSignedIn.get();
-          if (!isSignedIn) {
-            await window.gapi.auth2.getAuthInstance().signIn();
-          }
-          
-          fetchFiles();
-        } catch (error) {
-          console.error('Error initializing Google API:', error);
-          setLoading(false);
-        }
-      });
+        // Load Google Identity Services
+        const gisScript = document.createElement('script');
+        gisScript.src = 'https://accounts.google.com/gsi/client';
+        document.body.appendChild(gisScript);
+
+        await new Promise((resolve) => {
+          gisScript.onload = resolve;
+        });
+
+        // Initialize Google Identity Services
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/drive.readonly',
+          callback: async (response: any) => {
+            if (response.error) {
+              throw response;
+            }
+            await fetchFiles();
+          },
+        });
+
+        // Request access token
+        tokenClient.requestAccessToken();
+
+      } catch (error) {
+        console.error('Error initializing Google API:', error);
+        setLoading(false);
+      }
     };
 
     const fetchFiles = async () => {
