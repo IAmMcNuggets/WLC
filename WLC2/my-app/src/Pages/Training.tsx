@@ -1,75 +1,99 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { PageContainer } from '../components/CommonStyles';
 
-const TrainingPage = styled.div`
-  min-height: 100vh;
-  padding: 20px;
-  box-sizing: border-box;
-  background-image: url(${require('../Background/86343.jpg')});
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+interface FileItem {
+  id: string;
+  name: string;
+  webViewLink?: string;
+}
+
+const FileList = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
 `;
 
-const TrainingTitle = styled.h1`
-  text-align: center;
-  width: 100%;
-  margin-top: 20px;
-  margin-bottom: 30px;
-  color: black;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  font-size: 2.5rem;
-`;
-
-const TrainingContainer = styled.a`
-  padding: 20px;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
-  margin: 20px 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 90%;
-  max-width: 600px;
-  text-align: center;
+const FileCard = styled.a`
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   text-decoration: none;
   color: inherit;
-  cursor: pointer;
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-
+  
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    background: #f5f5f5;
   }
 `;
 
-const ContainerTitle = styled.h2`
-  font-size: 1.5rem;
-  color: #333;
-  margin-bottom: 15px;
-`;
+const DRIVE_API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
+const FOLDER_ID = '0AFSJxcbJ2fmyUk9PVA';
 
 const Training: React.FC = () => {
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadGoogleAPI = () => {
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = initializeGoogleAPI;
+      document.body.appendChild(script);
+    };
+
+    const initializeGoogleAPI = () => {
+      window.gapi.load('client', async () => {
+        await window.gapi.client.init({
+          apiKey: DRIVE_API_KEY,
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        fetchFiles();
+      });
+    };
+
+    const fetchFiles = async () => {
+      try {
+        const response = await window.gapi.client.drive.files.list({
+          q: `'${FOLDER_ID}' in parents and trashed = false`,
+          fields: 'files(id, name, webViewLink)',
+          orderBy: 'name',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        });
+
+        setFiles(response.result.files);
+      } catch (error) {
+        console.error('Error fetching files:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGoogleAPI();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <TrainingPage>
-      <TrainingTitle>Training</TrainingTitle>
-      
-      <TrainingContainer href="https://drive.google.com/drive/folders/1n880Sx9TwfN3lUWPUQpOTBsQsW28wEwF?usp=sharing" target="_blank" rel="noopener noreferrer">
-        <ContainerTitle>Manuals</ContainerTitle>
-        <p>Access our comprehensive collection of manuals and documentation.</p>
-      </TrainingContainer>
-
-      <TrainingContainer href="https://drive.google.com/drive/folders/1mUIROETA4DGH8XXhRui872cion9A801o?usp=sharing" target="_blank" rel="noopener noreferrer">
-        <ContainerTitle>Training Videos</ContainerTitle>
-        <p>Watch instructional videos to enhance your skills and knowledge.</p>
-      </TrainingContainer>
-
-      <TrainingContainer href="https://drive.google.com/drive/folders/1NXsFR1TRTqLCRA5FvlOrrkco8pmpE7Yy?usp=sharing" target="_blank" rel="noopener noreferrer">
-        <ContainerTitle>How-to Guides</ContainerTitle>
-        <p>Step-by-step guides for various processes and procedures.</p>
-      </TrainingContainer>
-    </TrainingPage>
+    <PageContainer>
+      <h1>Training Materials</h1>
+      <FileList>
+        {files.map((file) => (
+          <FileCard 
+            key={file.id} 
+            href={file.webViewLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            {file.name}
+          </FileCard>
+        ))}
+      </FileList>
+    </PageContainer>
   );
 };
 
