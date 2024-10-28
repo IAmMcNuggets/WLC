@@ -29,7 +29,7 @@ const FileCard = styled.a`
 `;
 
 const DRIVE_API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
-console.log('API Key loaded:', !!DRIVE_API_KEY);
+const CLIENT_ID = '1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com';
 const FOLDER_ID = '0AFSJxcbJ2fmyUk9PVA';
 
 const Training: React.FC = () => {
@@ -45,13 +45,20 @@ const Training: React.FC = () => {
     };
 
     const initializeGoogleAPI = () => {
-      window.gapi.load('client', async () => {
+      window.gapi.load('client:auth2', async () => {
         try {
           await window.gapi.client.init({
             apiKey: DRIVE_API_KEY,
+            clientId: CLIENT_ID,
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             scope: 'https://www.googleapis.com/auth/drive.readonly'
           });
+
+          const isSignedIn = window.gapi.auth2.getAuthInstance().isSignedIn.get();
+          if (!isSignedIn) {
+            await window.gapi.auth2.getAuthInstance().signIn();
+          }
+          
           fetchFiles();
         } catch (error) {
           console.error('Error initializing Google API:', error);
