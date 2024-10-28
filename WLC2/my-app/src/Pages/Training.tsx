@@ -29,6 +29,7 @@ const FileCard = styled.a`
 `;
 
 const DRIVE_API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
+console.log('API Key loaded:', !!DRIVE_API_KEY);
 const FOLDER_ID = '0AFSJxcbJ2fmyUk9PVA';
 
 const Training: React.FC = () => {
@@ -45,11 +46,17 @@ const Training: React.FC = () => {
 
     const initializeGoogleAPI = () => {
       window.gapi.load('client', async () => {
-        await window.gapi.client.init({
-          apiKey: DRIVE_API_KEY,
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-        fetchFiles();
+        try {
+          await window.gapi.client.init({
+            apiKey: DRIVE_API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            scope: 'https://www.googleapis.com/auth/drive.readonly'
+          });
+          fetchFiles();
+        } catch (error) {
+          console.error('Error initializing Google API:', error);
+          setLoading(false);
+        }
       });
     };
 
