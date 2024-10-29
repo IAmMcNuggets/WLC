@@ -114,13 +114,22 @@ const Training: React.FC<Props> = ({ user }) => {
               });
               
               const storedToken = localStorage.getItem('gapi_token');
+              console.log('Stored token:', storedToken);
+              
               if (storedToken) {
-                window.gapi.client.setToken(JSON.parse(storedToken));
+                console.log('Found stored token, attempting to use it');
+                const parsedToken = JSON.parse(storedToken);
+                window.gapi.client.setToken(parsedToken);
+                
+                const currentToken = window.gapi.client.getToken();
+                console.log('Current token after setting:', currentToken);
+                
                 await fetchFiles();
                 resolve();
                 return;
               }
               
+              console.log('No stored token, requesting new one');
               const tokenClient = window.google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
