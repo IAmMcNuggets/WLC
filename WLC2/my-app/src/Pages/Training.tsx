@@ -23,22 +23,29 @@ interface GoogleUser {
 }
 
 const FileList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  list-style-type: none;
+  padding: 0;
+  width: 90%;
+  max-width: 600px;
 `;
 
 const FileCard = styled.a`
-  padding: 1rem;
-  background: white;
+  background-color: rgba(255, 255, 255, 0.9);
+  margin: 15px 0;
+  padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   text-decoration: none;
-  color: inherit;
+  color: #444;
+  display: block;
+  text-align: center;
+  font-size: 16px;
+  transition: all 0.3s ease;
   
   &:hover {
-    background: #f5f5f5;
+    background-color: rgba(255, 255, 255, 0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px rgba(0,0,0,0.2);
   }
 `;
 
@@ -58,9 +65,16 @@ const ModalContent = styled.div`
   background: white;
   padding: 2rem;
   border-radius: 8px;
-  max-width: 80%;
-  max-height: 80%;
+  max-width: 90%;
+  max-height: 90%;
   overflow-y: auto;
+  text-align: center;
+
+  h2 {
+    margin-bottom: 20px;
+    color: #333;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  }
 `;
 
 const CLIENT_ID = '1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com';
@@ -239,7 +253,7 @@ const Training: React.FC<Props> = ({ user }) => {
       {selectedFolderId && (
         <Modal onClick={() => setSelectedFolderId(null)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <h2>Folder Contents</h2>
+            <h2>Files</h2>
             <FileList>
               {folderContents.map((file) => (
                 <FileCard
