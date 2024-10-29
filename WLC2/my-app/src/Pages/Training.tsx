@@ -115,12 +115,16 @@ const Training: React.FC = () => {
     document.body.appendChild(script);
 
     await new Promise((resolve) => {
-      script.onload = resolve;
-    });
-
-    await window.gapi.client.init({
-      apiKey: API_KEY,
-      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+      script.onload = () => {
+        // Initialize gapi.client after script loads
+        window.gapi.load('client', async () => {
+          await window.gapi.client.init({
+            apiKey: API_KEY,
+            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+          });
+          resolve(null);
+        });
+      };
     });
 
     await fetchFiles();
