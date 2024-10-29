@@ -84,25 +84,33 @@ interface Props {
 }
 
 const Training: React.FC<Props> = ({ user }) => {
+  console.log('Training component rendered, user:', user);
+  
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [folderContents, setFolderContents] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('useEffect triggered, user:', user);
+    
     const initializeGoogleAPI = async () => {
       try {
+        console.log('Initializing Google API...');
         const script = document.createElement('script');
         script.src = 'https://apis.google.com/js/api.js';
         document.body.appendChild(script);
 
         await new Promise((resolve) => {
           script.onload = () => {
+            console.log('Google API script loaded');
             window.gapi.load('client', async () => {
+              console.log('Initializing GAPI client');
               await window.gapi.client.init({
                 apiKey: API_KEY,
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
               });
+              console.log('GAPI client initialized');
               resolve(null);
             });
           };
@@ -117,11 +125,15 @@ const Training: React.FC<Props> = ({ user }) => {
 
     if (user) {
       initializeGoogleAPI();
+    } else {
+      console.log('No user, skipping API initialization');
+      setLoading(false);
     }
   }, [user]);
 
   const fetchFiles = async () => {
     try {
+      console.log('Fetching files...');
       const response = await window.gapi.client.drive.files.list({
         q: `'${FOLDER_ID}' in parents and trashed = false`,
         fields: 'files(id, name, webViewLink, mimeType)',
@@ -129,7 +141,7 @@ const Training: React.FC<Props> = ({ user }) => {
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
       });
-
+      console.log('Files fetched:', response.result.files);
       setFiles(response.result.files);
     } catch (error) {
       console.error('Error fetching files:', error);
