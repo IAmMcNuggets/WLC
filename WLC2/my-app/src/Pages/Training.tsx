@@ -129,6 +129,7 @@ const Training: React.FC<Props> = ({ user }) => {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [folderContents, setFolderContents] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<FileItem | null>(null);
 
   useEffect(() => {
     console.log('useEffect triggered, user:', user);
@@ -241,6 +242,7 @@ const Training: React.FC<Props> = ({ user }) => {
     e.preventDefault();
     if (file.mimeType === 'application/vnd.google-apps.folder') {
       setSelectedFolderId(file.id);
+      setSelectedFolder(file);
       await fetchFolderContents(file.id);
     } else {
       window.open(file.webViewLink, '_blank');
@@ -267,9 +269,12 @@ const Training: React.FC<Props> = ({ user }) => {
       </FileList>
 
       {selectedFolderId && (
-        <Modal onClick={() => setSelectedFolderId(null)}>
+        <Modal onClick={() => {
+          setSelectedFolderId(null);
+          setSelectedFolder(null);
+        }}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <h2>Files</h2>
+            <h2>{selectedFolder?.name || 'Files'}</h2>
             <FileList>
               {folderContents.map((file) => (
                 <FileCard
