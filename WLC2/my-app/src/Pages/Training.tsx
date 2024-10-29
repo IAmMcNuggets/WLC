@@ -85,6 +85,16 @@ interface Props {
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
+const TrainingTitle = styled.h1`
+  text-align: center;
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  color: black;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 2.5rem;
+`;
+
 const Training: React.FC<Props> = ({ user }) => {
   console.log('Training component rendered, user:', user);
   
@@ -218,39 +228,41 @@ const Training: React.FC<Props> = ({ user }) => {
   }
 
   return (
-    <PageContainer>
-      <h1>Training Materials</h1>
-      <FileList>
-        {files.map((file) => (
-          <FileCard 
-            key={file.id} 
-            href={file.webViewLink} 
-            onClick={(e) => handleFileClick(file, e)}
-          >
-            {file.name}
-          </FileCard>
-        ))}
-      </FileList>
+    <>
+      <TrainingTitle>Training Materials</TrainingTitle>
+      <PageContainer>
+        <FileList>
+          {files.map((file) => (
+            <FileCard 
+              key={file.id} 
+              href={file.webViewLink} 
+              onClick={(e) => handleFileClick(file, e)}
+            >
+              {file.name}
+            </FileCard>
+          ))}
+        </FileList>
 
-      {selectedFolderId && (
-        <Modal onClick={() => setSelectedFolderId(null)}>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <h2>Folder Contents</h2>
-            <FileList>
-              {folderContents.map((file) => (
-                <FileCard
-                  key={file.id}
-                  href={file.webViewLink}
-                  onClick={(e) => handleFileClick(file, e)}
-                >
-                  {file.name}
-                </FileCard>
-              ))}
-            </FileList>
-          </ModalContent>
-        </Modal>
-      )}
-    </PageContainer>
+        {selectedFolderId && (
+          <Modal onClick={() => setSelectedFolderId(null)}>
+            <ModalContent onClick={(e) => e.stopPropagation()}>
+              <h2>Folder Contents</h2>
+              <FileList>
+                {folderContents.map((file) => (
+                  <FileCard
+                    key={file.id}
+                    href={file.webViewLink}
+                    onClick={(e) => handleFileClick(file, e)}
+                  >
+                    {file.name}
+                  </FileCard>
+                ))}
+              </FileList>
+            </ModalContent>
+          </Modal>
+        )}
+      </PageContainer>
+    </>
   );
 };
 
