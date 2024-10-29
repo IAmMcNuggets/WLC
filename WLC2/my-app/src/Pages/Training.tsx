@@ -83,6 +83,8 @@ interface Props {
   user: GoogleUser | null;
 }
 
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
 const Training: React.FC<Props> = ({ user }) => {
   console.log('Training component rendered, user:', user);
   
@@ -104,12 +106,20 @@ const Training: React.FC<Props> = ({ user }) => {
         await new Promise((resolve) => {
           script.onload = () => {
             console.log('Google API script loaded');
-            window.gapi.load('client', async () => {
+            window.gapi.load('client:auth2', async () => {
               console.log('Initializing GAPI client');
               await window.gapi.client.init({
                 apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                scope: SCOPES,
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
               });
+              
+              const token = window.gapi.client.getToken();
+              if (!token) {
+                await window.gapi.auth2.getAuthInstance().signIn();
+              }
+              
               console.log('GAPI client initialized');
               resolve(null);
             });
@@ -140,6 +150,8 @@ const Training: React.FC<Props> = ({ user }) => {
         orderBy: 'name',
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
+        corpora: 'drive',
+        driveId: 'YOUR_SHARED_DRIVE_ID',
       });
       console.log('Files fetched:', response.result.files);
       setFiles(response.result.files);
