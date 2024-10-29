@@ -228,41 +228,39 @@ const Training: React.FC<Props> = ({ user }) => {
   }
 
   return (
-    <>
+    <PageContainer>
       <TrainingTitle>Training Materials</TrainingTitle>
-      <PageContainer>
-        <FileList>
-          {files.map((file) => (
-            <FileCard 
-              key={file.id} 
-              href={file.webViewLink} 
-              onClick={(e) => handleFileClick(file, e)}
-            >
-              {file.name}
-            </FileCard>
-          ))}
-        </FileList>
+      <FileList>
+        {files.map((file) => (
+          <FileCard 
+            key={file.id} 
+            href={file.webViewLink} 
+            onClick={(e) => handleFileClick(file, e)}
+          >
+            {file.name}
+          </FileCard>
+        ))}
+      </FileList>
 
-        {selectedFolderId && (
-          <Modal onClick={() => setSelectedFolderId(null)}>
-            <ModalContent onClick={(e) => e.stopPropagation()}>
-              <h2>Folder Contents</h2>
-              <FileList>
-                {folderContents.map((file) => (
-                  <FileCard
-                    key={file.id}
-                    href={file.webViewLink}
-                    onClick={(e) => handleFileClick(file, e)}
-                  >
-                    {file.name}
-                  </FileCard>
-                ))}
-              </FileList>
-            </ModalContent>
-          </Modal>
-        )}
-      </PageContainer>
-    </>
+      {selectedFolderId && (
+        <Modal onClick={() => setSelectedFolderId(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <h2>Folder Contents</h2>
+            <FileList>
+              {folderContents.map((file) => (
+                <FileCard
+                  key={file.id}
+                  href={file.webViewLink}
+                  onClick={(e) => handleFileClick(file, e)}
+                >
+                  {file.name}
+                </FileCard>
+              ))}
+            </FileList>
+          </ModalContent>
+        </Modal>
+      )}
+    </PageContainer>
   );
 };
 
