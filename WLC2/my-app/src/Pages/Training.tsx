@@ -150,15 +150,27 @@ const Training: React.FC<Props> = ({ user }) => {
 
       await new Promise<void>((resolve) => {
         script.onload = () => {
-          console.log('Google API script loaded');
           window.gapi.load('client', async () => {
-            console.log('Initializing GAPI client');
             await window.gapi.client.init({
               apiKey: API_KEY,
               discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
             
-            // Use the existing OAuth token from the login
+            // Check for stored token
+            const storedToken = localStorage.getItem('google_drive_token');
+            if (storedToken) {
+              try {
+                window.gapi.client.setToken(JSON.parse(storedToken));
+                await fetchFiles();
+                resolve();
+                return;
+              } catch (error) {
+                console.error('Error using stored token:', error);
+                localStorage.removeItem('google_drive_token');
+              }
+            }
+
+            // If no stored token or token failed, request new one
             const tokenClient = window.google.accounts.oauth2.initTokenClient({
               client_id: CLIENT_ID,
               scope: SCOPES,
@@ -166,11 +178,13 @@ const Training: React.FC<Props> = ({ user }) => {
                 if (response.error !== undefined) {
                   throw response;
                 }
+                // Store the new token
+                localStorage.setItem('google_drive_token', JSON.stringify(response));
                 await fetchFiles();
               },
             });
 
-            tokenClient.requestAccessToken({ prompt: '' }); // Add prompt: '' to prevent re-authentication
+            tokenClient.requestAccessToken({ prompt: '' });
             resolve();
           });
         };
@@ -197,9 +211,11 @@ const Training: React.FC<Props> = ({ user }) => {
       setFiles(response.result.files);
     } catch (error) {
       console.error('Error fetching files:', error);
-      if (typeof error === 'object' && error !== null && 'status' in error && error.status === 401) {
-        localStorage.removeItem('gapi_token');
-        window.location.reload();
+      // If token is expired or invalid
+      if ((error as any)?.status === 401) {
+        localStorage.removeItem('google_drive_token');
+        // Reinitialize the API to get a new token
+        await initializeGoogleAPI();
       }
     } finally {
       setLoading(false);
