@@ -155,7 +155,7 @@ const Training: React.FC<Props> = ({ user }) => {
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
         corpora: 'drive',
-        driveId: 'YOUR_SHARED_DRIVE_ID',
+        driveId: '0AFSJxcbJ2fmyUk9PVA',
       });
       console.log('Files fetched:', response.result.files);
       setFiles(response.result.files);
