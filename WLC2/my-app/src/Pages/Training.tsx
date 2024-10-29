@@ -27,9 +27,10 @@ const FileList = styled.div`
   padding: 0;
   width: 90%;
   max-width: 600px;
+  margin: 0 auto;
 `;
 
-const FileCard = styled.a`
+const FileCard = styled.a<{ isfolder?: boolean }>`
   background-color: rgba(255, 255, 255, 0.9);
   margin: 15px 0;
   padding: 20px;
@@ -41,6 +42,7 @@ const FileCard = styled.a`
   text-align: center;
   font-size: 16px;
   transition: all 0.3s ease;
+  font-weight: ${props => props.isfolder ? 'bold' : 'normal'};
   
   &:hover {
     background-color: rgba(255, 255, 255, 0.95);
@@ -262,6 +264,7 @@ const Training: React.FC<Props> = ({ user }) => {
             key={file.id} 
             href={file.webViewLink} 
             onClick={(e) => handleFileClick(file, e)}
+            isfolder={file.mimeType === 'application/vnd.google-apps.folder'}
           >
             {file.name}
           </FileCard>
@@ -281,6 +284,7 @@ const Training: React.FC<Props> = ({ user }) => {
                   key={file.id}
                   href={file.webViewLink}
                   onClick={(e) => handleFileClick(file, e)}
+                  isfolder={file.mimeType === 'application/vnd.google-apps.folder'}
                 >
                   {file.name}
                 </FileCard>
