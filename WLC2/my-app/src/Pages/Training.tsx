@@ -6,6 +6,7 @@ interface FileItem {
   id: string;
   name: string;
   webViewLink?: string;
+  mimeType?: string;
 }
 
 const FileList = styled.div`
@@ -28,6 +29,27 @@ const FileCard = styled.a`
   }
 `;
 
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 80%;
+  max-height: 80%;
+  overflow-y: auto;
+`;
+
 const CLIENT_ID = '1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com';
 const FOLDER_ID = '0AFSJxcbJ2fmyUk9PVA';
 const API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
@@ -46,6 +68,8 @@ declare global {
 
 const Training: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [folderContents, setFolderContents] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -105,7 +129,7 @@ const Training: React.FC = () => {
       try {
         const response = await window.gapi.client.drive.files.list({
           q: `'${FOLDER_ID}' in parents and trashed = false`,
-          fields: 'files(id, name, webViewLink)',
+          fields: 'files(id, name, webViewLink, mimeType)',
           orderBy: 'name',
           supportsAllDrives: true,
           includeItemsFromAllDrives: true,
@@ -122,6 +146,31 @@ const Training: React.FC = () => {
     loadGoogleAPI();
   }, []);
 
+  const fetchFolderContents = async (folderId: string) => {
+    try {
+      const response = await window.gapi.client.drive.files.list({
+        q: `'${folderId}' in parents and trashed = false`,
+        fields: 'files(id, name, webViewLink, mimeType)',
+        orderBy: 'name',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+      });
+      setFolderContents(response.result.files);
+    } catch (error) {
+      console.error('Error fetching folder contents:', error);
+    }
+  };
+
+  const handleFileClick = async (file: FileItem, e: React.MouseEvent) => {
+    e.preventDefault();
+    if (file.mimeType === 'application/vnd.google-apps.folder') {
+      setSelectedFolderId(file.id);
+      await fetchFolderContents(file.id);
+    } else {
+      window.open(file.webViewLink, '_blank');
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -134,13 +183,31 @@ const Training: React.FC = () => {
           <FileCard 
             key={file.id} 
             href={file.webViewLink} 
-            target="_blank" 
-            rel="noopener noreferrer"
+            onClick={(e) => handleFileClick(file, e)}
           >
             {file.name}
           </FileCard>
         ))}
       </FileList>
+
+      {selectedFolderId && (
+        <Modal onClick={() => setSelectedFolderId(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <h2>Folder Contents</h2>
+            <FileList>
+              {folderContents.map((file) => (
+                <FileCard
+                  key={file.id}
+                  href={file.webViewLink}
+                  onClick={(e) => handleFileClick(file, e)}
+                >
+                  {file.name}
+                </FileCard>
+              ))}
+            </FileList>
+          </ModalContent>
+        </Modal>
+      )}
     </PageContainer>
   );
 };
