@@ -103,30 +103,34 @@ const Training: React.FC<Props> = ({ user }) => {
         script.src = 'https://apis.google.com/js/api.js';
         document.body.appendChild(script);
 
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
           script.onload = () => {
             console.log('Google API script loaded');
-            window.gapi.load('client:auth2', async () => {
+            window.gapi.load('client', async () => {
               console.log('Initializing GAPI client');
               await window.gapi.client.init({
                 apiKey: API_KEY,
-                clientId: CLIENT_ID,
-                scope: SCOPES,
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
               });
               
-              const token = window.gapi.client.getToken();
-              if (!token) {
-                await window.gapi.auth2.getAuthInstance().signIn();
-              }
+              const tokenClient = window.google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: async (response: any) => {
+                  if (response.error !== undefined) {
+                    throw response;
+                  }
+                  await fetchFiles();
+                },
+              });
+
+              tokenClient.requestAccessToken();
               
               console.log('GAPI client initialized');
-              resolve(null);
+              resolve();
             });
           };
         });
-
-        await fetchFiles();
       } catch (error) {
         console.error('Error initializing Google API:', error);
         setLoading(false);
