@@ -113,6 +113,14 @@ const Training: React.FC<Props> = ({ user }) => {
                 discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
               });
               
+              const storedToken = localStorage.getItem('gapi_token');
+              if (storedToken) {
+                window.gapi.client.setToken(JSON.parse(storedToken));
+                await fetchFiles();
+                resolve();
+                return;
+              }
+              
               const tokenClient = window.google.accounts.oauth2.initTokenClient({
                 client_id: CLIENT_ID,
                 scope: SCOPES,
@@ -120,6 +128,7 @@ const Training: React.FC<Props> = ({ user }) => {
                   if (response.error !== undefined) {
                     throw response;
                   }
+                  localStorage.setItem('gapi_token', JSON.stringify(response));
                   await fetchFiles();
                 },
               });
@@ -161,6 +170,10 @@ const Training: React.FC<Props> = ({ user }) => {
       setFiles(response.result.files);
     } catch (error) {
       console.error('Error fetching files:', error);
+      if (typeof error === 'object' && error !== null && 'status' in error && error.status === 401) {
+        localStorage.removeItem('gapi_token');
+        window.location.reload();
+      }
     } finally {
       setLoading(false);
     }
