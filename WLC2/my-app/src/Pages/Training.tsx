@@ -23,10 +23,12 @@ interface GoogleUser {
 }
 
 const FileList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 20px;
 `;
 
 const FileCard = styled.a`
@@ -93,6 +95,7 @@ const TrainingTitle = styled.h1`
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   font-size: 2.5rem;
+  padding: 0 20px;
 `;
 
 const Training: React.FC<Props> = ({ user }) => {
