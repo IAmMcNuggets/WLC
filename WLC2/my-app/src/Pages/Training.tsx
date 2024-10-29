@@ -16,6 +16,12 @@ interface TokenResponse {
   error?: string;
 }
 
+interface GoogleUser {
+  email: string;
+  name?: string;
+  // Add other properties you need from the Google user object
+}
+
 const FileList = styled.div`
   display: flex;
   flex-direction: column;
@@ -73,102 +79,46 @@ declare global {
   }
 }
 
-const Training: React.FC = () => {
+interface Props {
+  user: GoogleUser | null;
+}
+
+const Training: React.FC<Props> = ({ user }) => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [folderContents, setFolderContents] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadGoogleAPI = async () => {
+    const initializeGoogleAPI = async () => {
       try {
-        // Check for existing token in localStorage
-        const storedToken = localStorage.getItem('googleDriveToken');
-        if (storedToken) {
-          const tokenData: TokenResponse = JSON.parse(storedToken);
-          const now = Date.now();
-          
-          // Check if token is still valid (with 5-minute buffer)
-          if (tokenData.timestamp && tokenData.expires_in && 
-              (now - tokenData.timestamp) / 1000 < tokenData.expires_in - 300) {
-            setAccessToken(tokenData.access_token);
-            await initializeGoogleAPI();
-            return;
-          }
-        }
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        document.body.appendChild(script);
 
-        // If no valid token exists, proceed with normal authentication
-        await initializeGoogleAPIWithAuth();
+        await new Promise((resolve) => {
+          script.onload = () => {
+            window.gapi.load('client', async () => {
+              await window.gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+              });
+              resolve(null);
+            });
+          };
+        });
+
+        await fetchFiles();
       } catch (error) {
         console.error('Error initializing Google API:', error);
         setLoading(false);
       }
     };
 
-    loadGoogleAPI();
-  }, []);
-
-  const initializeGoogleAPI = async () => {
-    const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
-    document.body.appendChild(script);
-
-    await new Promise((resolve) => {
-      script.onload = () => {
-        // Initialize gapi.client after script loads
-        window.gapi.load('client', async () => {
-          await window.gapi.client.init({
-            apiKey: API_KEY,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-          });
-          resolve(null);
-        });
-      };
-    });
-
-    await fetchFiles();
-  };
-
-  const initializeGoogleAPIWithAuth = async () => {
-    const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
-    document.body.appendChild(script);
-
-    await new Promise((resolve) => {
-      script.onload = resolve;
-    });
-
-    const gisScript = document.createElement('script');
-    gisScript.src = 'https://accounts.google.com/gsi/client';
-    document.body.appendChild(gisScript);
-
-    await new Promise((resolve) => {
-      gisScript.onload = resolve;
-    });
-
-    const tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/drive.readonly',
-      callback: async (response: TokenResponse) => {
-        if (response.error) {
-          throw response;
-        }
-        
-        // Store token with timestamp
-        const tokenData = {
-          ...response,
-          timestamp: Date.now()
-        };
-        localStorage.setItem('googleDriveToken', JSON.stringify(tokenData));
-        setAccessToken(response.access_token);
-        
-        await initializeGoogleAPI();
-      },
-    });
-
-    tokenClient.requestAccessToken();
-  };
+    if (user) {
+      initializeGoogleAPI();
+    }
+  }, [user]);
 
   const fetchFiles = async () => {
     try {

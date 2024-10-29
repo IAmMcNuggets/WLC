@@ -110,7 +110,7 @@ function App() {
                     />
                   } 
                 />
-                <Route path="/training" element={<Training />} /> {/* Add this route */}
+                <Route path="/training" element={<Training user={user} />} />
                 <Route path="*" element={<Navigate to="/events" replace />} />
               </Routes>
             ) : (
