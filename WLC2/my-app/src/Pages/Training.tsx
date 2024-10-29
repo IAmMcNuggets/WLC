@@ -23,12 +23,10 @@ interface GoogleUser {
 }
 
 const FileList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  width: 100%;
-  max-width: 1200px;
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
 `;
 
 const FileCard = styled.a`
@@ -87,6 +85,19 @@ interface Props {
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
 
+const TrainingContainer = styled.div`
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  background-image: url(${require('../Background/86343.jpg')});
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
 const TrainingTitle = styled.h1`
   text-align: center;
   width: 100%;
@@ -95,7 +106,6 @@ const TrainingTitle = styled.h1`
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   font-size: 2.5rem;
-  padding: 0 20px;
 `;
 
 const Training: React.FC<Props> = ({ user }) => {
@@ -212,7 +222,7 @@ const Training: React.FC<Props> = ({ user }) => {
   }
 
   return (
-    <PageContainer>
+    <TrainingContainer>
       <TrainingTitle>Training Materials</TrainingTitle>
       <FileList>
         {files.map((file) => (
@@ -244,7 +254,7 @@ const Training: React.FC<Props> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-    </PageContainer>
+    </TrainingContainer>
   );
 };
 
