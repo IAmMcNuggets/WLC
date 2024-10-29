@@ -106,65 +106,6 @@ const Training: React.FC<Props> = ({ user }) => {
   useEffect(() => {
     console.log('useEffect triggered, user:', user);
     
-    const initializeGoogleAPI = async () => {
-      try {
-        console.log('Initializing Google API...');
-        const script = document.createElement('script');
-        script.src = 'https://apis.google.com/js/api.js';
-        document.body.appendChild(script);
-
-        await new Promise<void>((resolve) => {
-          script.onload = () => {
-            console.log('Google API script loaded');
-            window.gapi.load('client', async () => {
-              console.log('Initializing GAPI client');
-              await window.gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-              });
-              
-              const storedToken = localStorage.getItem('gapi_token');
-              console.log('Stored token:', storedToken);
-              
-              if (storedToken) {
-                console.log('Found stored token, attempting to use it');
-                const parsedToken = JSON.parse(storedToken);
-                window.gapi.client.setToken(parsedToken);
-                
-                const currentToken = window.gapi.client.getToken();
-                console.log('Current token after setting:', currentToken);
-                
-                await fetchFiles();
-                resolve();
-                return;
-              }
-              
-              console.log('No stored token, requesting new one');
-              const tokenClient = window.google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: async (response: any) => {
-                  if (response.error !== undefined) {
-                    throw response;
-                  }
-                  localStorage.setItem('gapi_token', JSON.stringify(response));
-                  await fetchFiles();
-                },
-              });
-
-              tokenClient.requestAccessToken();
-              
-              console.log('GAPI client initialized');
-              resolve();
-            });
-          };
-        });
-      } catch (error) {
-        console.error('Error initializing Google API:', error);
-        setLoading(false);
-      }
-    };
-
     if (user) {
       initializeGoogleAPI();
     } else {
@@ -172,6 +113,46 @@ const Training: React.FC<Props> = ({ user }) => {
       setLoading(false);
     }
   }, [user]);
+
+  const initializeGoogleAPI = async () => {
+    try {
+      console.log('Initializing Google API...');
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      document.body.appendChild(script);
+
+      await new Promise<void>((resolve) => {
+        script.onload = () => {
+          console.log('Google API script loaded');
+          window.gapi.load('client', async () => {
+            console.log('Initializing GAPI client');
+            await window.gapi.client.init({
+              apiKey: API_KEY,
+              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+            });
+            
+            // Use the existing OAuth token from the login
+            const tokenClient = window.google.accounts.oauth2.initTokenClient({
+              client_id: CLIENT_ID,
+              scope: SCOPES,
+              callback: async (response: any) => {
+                if (response.error !== undefined) {
+                  throw response;
+                }
+                await fetchFiles();
+              },
+            });
+
+            tokenClient.requestAccessToken({ prompt: '' }); // Add prompt: '' to prevent re-authentication
+            resolve();
+          });
+        };
+      });
+    } catch (error) {
+      console.error('Error initializing Google API:', error);
+      setLoading(false);
+    }
+  };
 
   const fetchFiles = async () => {
     try {
