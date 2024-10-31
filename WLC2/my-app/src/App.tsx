@@ -94,8 +94,6 @@ function App() {
     }
   };
 
-  const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.readonly';
-
   return (
     <QueryClientProvider client={queryClient}>
       <GoogleOAuthProvider 
@@ -132,7 +130,7 @@ function App() {
                     text="signin_with"
                     shape="rectangular"
                     logo_alignment="left"
-                    scope={SCOPES}
+                    useOneTap={false}
                   />
                 </LoginButton>
               </LoginContainer>
