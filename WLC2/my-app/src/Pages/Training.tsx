@@ -183,35 +183,26 @@ const Training: React.FC<Props> = ({ user }) => {
               discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
             });
             
-            // Check for stored token
             const storedToken = localStorage.getItem('google_drive_token');
             if (storedToken) {
-              try {
-                window.gapi.client.setToken(JSON.parse(storedToken));
-                await fetchFiles();
-                resolve();
-                return;
-              } catch (error) {
-                console.error('Error using stored token:', error);
-                localStorage.removeItem('google_drive_token');
-              }
+              window.gapi.client.setToken(JSON.parse(storedToken));
+              await fetchFiles();
+            } else {
+              // If no stored token or token failed, request new one
+              const tokenClient = window.google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: async (response: any) => {
+                  if (response.error !== undefined) {
+                    throw response;
+                  }
+                  // Store the new token
+                  localStorage.setItem('google_drive_token', JSON.stringify(response));
+                  await fetchFiles();
+                },
+              });
+              tokenClient.requestAccessToken({ prompt: '' });
             }
-
-            // If no stored token or token failed, request new one
-            const tokenClient = window.google.accounts.oauth2.initTokenClient({
-              client_id: CLIENT_ID,
-              scope: SCOPES,
-              callback: async (response: any) => {
-                if (response.error !== undefined) {
-                  throw response;
-                }
-                // Store the new token
-                localStorage.setItem('google_drive_token', JSON.stringify(response));
-                await fetchFiles();
-              },
-            });
-
-            tokenClient.requestAccessToken({ prompt: '' });
             resolve();
           });
         };
