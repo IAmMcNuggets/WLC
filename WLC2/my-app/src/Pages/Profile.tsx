@@ -114,6 +114,7 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('google_drive_token');
     setIsLoggedIn(false);
     navigate('/');
   };

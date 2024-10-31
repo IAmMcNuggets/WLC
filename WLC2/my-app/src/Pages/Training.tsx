@@ -171,42 +171,33 @@ const Training: React.FC<Props> = ({ user }) => {
   const initializeGoogleAPI = async () => {
     try {
       console.log('Initializing Google API...');
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      document.body.appendChild(script);
+      const storedToken = localStorage.getItem('google_drive_token');
+      
+      if (!storedToken) {
+        console.error('No stored token found');
+        setLoading(false);
+        return;
+      }
 
-      await new Promise<void>((resolve) => {
-        script.onload = () => {
-          window.gapi.load('client', async () => {
-            await window.gapi.client.init({
-              apiKey: API_KEY,
-              discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-            });
-            
-            const storedToken = localStorage.getItem('google_drive_token');
-            if (storedToken) {
-              window.gapi.client.setToken(JSON.parse(storedToken));
-              await fetchFiles();
-            } else {
-              // If no stored token or token failed, request new one
-              const tokenClient = window.google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: async (response: any) => {
-                  if (response.error !== undefined) {
-                    throw response;
-                  }
-                  // Store the new token
-                  localStorage.setItem('google_drive_token', JSON.stringify(response));
-                  await fetchFiles();
-                },
-              });
-              tokenClient.requestAccessToken({ prompt: '' });
-            }
-            resolve();
-          });
-        };
+      const { access_token, expires_at } = JSON.parse(storedToken);
+      
+      // Check if token is expired
+      if (expires_at && Date.now() > expires_at) {
+        console.log('Token expired, redirecting to login');
+        localStorage.removeItem('google_drive_token');
+        localStorage.removeItem('user');
+        window.location.href = '/'; // Redirect to login
+        return;
+      }
+
+      await window.gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       });
+      
+      window.gapi.client.setToken({ access_token });
+      await fetchFiles();
+      
     } catch (error) {
       console.error('Error initializing Google API:', error);
       setLoading(false);

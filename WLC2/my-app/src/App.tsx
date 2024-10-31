@@ -65,8 +65,6 @@ const LoginButton = styled.div`
 
 const queryClient = new QueryClient()
 
-const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.readonly';
-
 function App() {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -85,22 +83,24 @@ function App() {
       setUser(credentialResponseDecoded);
       setIsLoggedIn(true);
       localStorage.setItem('user', JSON.stringify(credentialResponseDecoded));
+      
+      // Store the credential for Drive access
       localStorage.setItem('google_drive_token', JSON.stringify({
         access_token: credentialResponse.credential,
-        expires_in: 3600 // Token typically expires in 1 hour
+        expires_at: Date.now() + 3600 * 1000, // 1 hour from now
       }));
     } else {
       console.error('Credential is undefined');
-      // Handle the error case
     }
   };
+
+  const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.readonly';
 
   return (
     <QueryClientProvider client={queryClient}>
       <GoogleOAuthProvider 
         clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com"
         onScriptLoadError={() => console.log('Failed to load Google OAuth script')}
-        scope={SCOPES}
       >
         <Router>
           <AppContainer>
@@ -132,6 +132,7 @@ function App() {
                     text="signin_with"
                     shape="rectangular"
                     logo_alignment="left"
+                    scope={SCOPES}
                   />
                 </LoginButton>
               </LoginContainer>
