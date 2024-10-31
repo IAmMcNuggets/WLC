@@ -31,15 +31,17 @@ const FileList = styled.div`
 `;
 
 const FileCard = styled.a<{ isfolder?: boolean }>`
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   margin: 15px 0;
-  padding: 20px;
+  padding: 20px 44px;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   text-decoration: none;
-  color: #444;
-  display: block;
-  text-align: center;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   font-size: 16px;
   transition: all 0.3s ease;
   font-weight: ${props => props.isfolder ? 'bold' : 'normal'};
@@ -61,6 +63,23 @@ const Modal = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  backdrop-filter: blur(5px);
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #333;
 `;
 
 const ModalContent = styled.div`
@@ -72,8 +91,13 @@ const ModalContent = styled.div`
   overflow-y: auto;
   text-align: center;
 
+  > * {
+    margin-bottom: 16px;
+  }
+
   h2 {
-    margin-bottom: 20px;
+    font-size: 20px;
+    margin-bottom: 24px;
     color: #333;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
   }
@@ -276,6 +300,10 @@ const Training: React.FC<Props> = ({ user }) => {
           setSelectedFolderId(null);
           setSelectedFolder(null);
         }}>
+          <CloseButton onClick={() => {
+            setSelectedFolderId(null);
+            setSelectedFolder(null);
+          }}>X</CloseButton>
           <ModalContent onClick={(e) => e.stopPropagation()}>
             <h2>{selectedFolder?.name || 'Files'}</h2>
             <FileList>
