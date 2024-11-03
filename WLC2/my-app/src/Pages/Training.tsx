@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { PageContainer } from '../components/CommonStyles';
+import { GoogleUser } from '../App';
 
 // Define the structure for training materials with public links
 const TRAINING_MATERIALS: FileItem[] = [
@@ -139,7 +140,11 @@ const TrainingTitle = styled.h1`
   font-size: 2.5rem;
 `;
 
-const Training: React.FC = () => {
+interface TrainingProps {
+  user: GoogleUser | null;
+}
+
+const Training: React.FC<TrainingProps> = ({ user }) => {
   const [selectedFolder, setSelectedFolder] = useState<FileItem | null>(null);
 
   const handleFileClick = (file: FileItem, e: React.MouseEvent) => {
