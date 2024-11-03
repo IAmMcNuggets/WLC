@@ -1,25 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { PageContainer } from '../components/CommonStyles';
+
+// Define the structure for training materials with public links
+const TRAINING_MATERIALS: FileItem[] = [
+  {
+    id: '1',
+    name: 'How-to Guides',
+    type: 'folder' as const,
+    link: 'https://drive.google.com/drive/folders/1NXsFR1TRTqLCRA5FvlOrrkco8pmpE7Yy?usp=drive_link',
+    contents: []
+  },
+  {
+    id: '2',
+    name: 'Manuals',
+    type: 'folder' as const,
+    link: 'https://drive.google.com/drive/folders/1n880Sx9TwfN3lUWPUQpOTBsQsW28wEwF?usp=drive_link',
+    contents: []
+  },
+  {
+    id: '3',
+    name: 'Training Videos',
+    type: 'folder' as const,
+    link: 'https://drive.google.com/drive/folders/1mUIROETA4DGH8XXhRui872cion9A801o?usp=drive_link',
+    contents: []
+  }
+];
 
 interface FileItem {
   id: string;
   name: string;
-  webViewLink?: string;
-  mimeType?: string;
-}
-
-interface TokenResponse {
-  access_token: string;
-  expires_in: number;
-  timestamp?: number;
-  error?: string;
-}
-
-interface GoogleUser {
-  email: string;
-  name?: string;
-  // Add other properties you need from the Google user object
+  type: 'folder' | 'file';
+  link: string;
+  contents?: FileItem[];
 }
 
 const FileList = styled.div`
@@ -103,28 +116,6 @@ const ModalContent = styled.div`
   }
 `;
 
-const CLIENT_ID = '1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com';
-const FOLDER_ID = '0AFSJxcbJ2fmyUk9PVA';
-const API_KEY = process.env.REACT_APP_GOOGLE_DRIVE_API_KEY;
-
-declare global {
-  interface Window {
-    google: {
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: any) => any;
-        };
-      };
-    };
-  }
-}
-
-interface Props {
-  user: GoogleUser | null;
-}
-
-const SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
 const TrainingContainer = styled.div`
   min-height: 100vh;
   padding: 20px;
@@ -148,161 +139,29 @@ const TrainingTitle = styled.h1`
   font-size: 2.5rem;
 `;
 
-const Training: React.FC<Props> = ({ user }) => {
-  console.log('Training component rendered, user:', user);
-  
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [folderContents, setFolderContents] = useState<FileItem[]>([]);
-  const [loading, setLoading] = useState(true);
+const Training: React.FC = () => {
   const [selectedFolder, setSelectedFolder] = useState<FileItem | null>(null);
 
-  useEffect(() => {
-    console.log('useEffect triggered, user:', user);
-    
-    if (user) {
-      initializeGoogleAPI();
-    } else {
-      console.log('No user, skipping API initialization');
-      setLoading(false);
-    }
-  }, [user]);
-
-  const initializeGoogleAPI = async () => {
-    try {
-      console.log('Initializing Google API...');
-      const storedToken = localStorage.getItem('google_drive_token');
-      
-      if (!storedToken) {
-        console.error('No stored token found');
-        setLoading(false);
-        return;
-      }
-
-      const { access_token, expires_at } = JSON.parse(storedToken);
-      
-      // Check if token is expired
-      if (expires_at && Date.now() > expires_at) {
-        console.log('Token expired, redirecting to login');
-        localStorage.removeItem('google_drive_token');
-        localStorage.removeItem('user');
-        window.location.href = '/'; // Redirect to login
-        return;
-      }
-
-      await window.gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-      });
-      
-      window.gapi.client.setToken({ access_token });
-      await fetchFiles();
-      
-    } catch (error) {
-      console.error('Error initializing Google API:', error);
-      setLoading(false);
-    }
-  };
-
-  const fetchFiles = async () => {
-    try {
-      console.log('Fetching files...');
-      const response = await window.gapi.client.drive.files.list({
-        q: `'${FOLDER_ID}' in parents and trashed = false`,
-        fields: 'files(id, name, webViewLink, mimeType)',
-        orderBy: 'name',
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-        corpora: 'drive',
-        driveId: '0AFSJxcbJ2fmyUk9PVA',
-      });
-      console.log('Files fetched:', response.result.files);
-      setFiles(response.result.files);
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      // If token is expired or invalid
-      if ((error as any)?.status === 401) {
-        localStorage.removeItem('google_drive_token');
-        // Reinitialize the API to get a new token
-        await initializeGoogleAPI();
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFolderContents = async (folderId: string) => {
-    try {
-      const response = await window.gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and trashed = false`,
-        fields: 'files(id, name, webViewLink, mimeType)',
-        orderBy: 'name',
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-      });
-      setFolderContents(response.result.files);
-    } catch (error) {
-      console.error('Error fetching folder contents:', error);
-    }
-  };
-
-  const handleFileClick = async (file: FileItem, e: React.MouseEvent) => {
+  const handleFileClick = (file: FileItem, e: React.MouseEvent) => {
     e.preventDefault();
-    if (file.mimeType === 'application/vnd.google-apps.folder') {
-      setSelectedFolderId(file.id);
-      setSelectedFolder(file);
-      await fetchFolderContents(file.id);
-    } else {
-      window.open(file.webViewLink, '_blank');
-    }
+    window.open(file.link, '_blank');
   };
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <TrainingContainer>
       <TrainingTitle>Training Materials</TrainingTitle>
       <FileList>
-        {files.map((file) => (
+        {TRAINING_MATERIALS.map((file) => (
           <FileCard 
             key={file.id} 
-            href={file.webViewLink} 
+            href={file.link}
             onClick={(e) => handleFileClick(file, e)}
-            isfolder={file.mimeType === 'application/vnd.google-apps.folder'}
+            isfolder={file.type === 'folder'}
           >
             {file.name}
           </FileCard>
         ))}
       </FileList>
-
-      {selectedFolderId && (
-        <Modal onClick={() => {
-          setSelectedFolderId(null);
-          setSelectedFolder(null);
-        }}>
-          <CloseButton onClick={() => {
-            setSelectedFolderId(null);
-            setSelectedFolder(null);
-          }}>X</CloseButton>
-          <ModalContent onClick={(e) => e.stopPropagation()}>
-            <h2>{selectedFolder?.name || 'Files'}</h2>
-            <FileList>
-              {folderContents.map((file) => (
-                <FileCard
-                  key={file.id}
-                  href={file.webViewLink}
-                  onClick={(e) => handleFileClick(file, e)}
-                  isfolder={file.mimeType === 'application/vnd.google-apps.folder'}
-                >
-                  {file.name}
-                </FileCard>
-              ))}
-            </FileList>
-          </ModalContent>
-        </Modal>
-      )}
     </TrainingContainer>
   );
 };
