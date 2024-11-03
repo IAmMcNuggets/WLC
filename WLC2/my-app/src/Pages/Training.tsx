@@ -9,21 +9,21 @@ const TRAINING_MATERIALS: FileItem[] = [
     id: '1',
     name: 'How-to Guides',
     type: 'folder' as const,
-    link: 'https://drive.google.com/drive/folders/1NXsFR1TRTqLCRA5FvlOrrkco8pmpE7Yy?usp=drive_link',
+    link: 'https://drive.google.com/drive/folders/1NXsFR1TRTqLCRA5FvlOrrkco8pmpE7Yy?usp=sharing',
     contents: []
   },
   {
     id: '2',
     name: 'Manuals',
     type: 'folder' as const,
-    link: 'https://drive.google.com/drive/folders/1n880Sx9TwfN3lUWPUQpOTBsQsW28wEwF?usp=drive_link',
+    link: 'https://drive.google.com/drive/folders/1n880Sx9TwfN3lUWPUQpOTBsQsW28wEwF?usp=sharing',
     contents: []
   },
   {
     id: '3',
     name: 'Training Videos',
     type: 'folder' as const,
-    link: 'https://drive.google.com/drive/folders/1mUIROETA4DGH8XXhRui872cion9A801o?usp=drive_link',
+    link: 'https://drive.google.com/drive/folders/1mUIROETA4DGH8XXhRui872cion9A801o?usp=sharing',
     contents: []
   }
 ];
