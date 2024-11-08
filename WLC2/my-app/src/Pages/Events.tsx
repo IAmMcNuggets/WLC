@@ -231,7 +231,23 @@ const CloseModalButton = styled.button`
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 20px;
+  gap: 10px;
+  margin-bottom: 20px;
+`;
+
+const ViewToggleButton = styled.button<{ active: boolean }>`
+  background-color: ${props => props.active ? '#4CAF50' : '#808080'};
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: ${props => props.active ? '#45a049' : '#666666'};
+  }
 `;
 
 const ModalGrid = styled.div`
@@ -619,9 +635,12 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isHistoricalView, setIsHistoricalView] = useState(false);
 
   const today = new Date();
+  const twelveHoursAgo = new Date(today.getTime() - (12 * 60 * 60 * 1000)); // 12 hours ago
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
@@ -645,9 +664,10 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   useEffect(() => {
     if (user) {
-      fetchActivities(today.toISOString(), nextMonth.toISOString());
+      const startDate = isHistoricalView ? threeMonthsAgo.toISOString() : twelveHoursAgo.toISOString();
+      fetchActivities(startDate, nextMonth.toISOString());
     }
-  }, [user]); // This effect will run only when the user changes
+  }, [user, isHistoricalView]);
 
   const filteredActivities = useMemo(() => {
     if (!activities || !user) return [];
@@ -741,9 +761,23 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   return (
     <EventsContainer>
-      <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
+      <EventsTitle>Your Activities</EventsTitle>
+      <ButtonContainer>
+        <ViewToggleButton 
+          active={!isHistoricalView} 
+          onClick={() => setIsHistoricalView(false)}
+        >
+          Upcoming Events
+        </ViewToggleButton>
+        <ViewToggleButton 
+          active={isHistoricalView} 
+          onClick={() => setIsHistoricalView(true)}
+        >
+          Past 3 Months
+        </ViewToggleButton>
+      </ButtonContainer>
       {filteredActivities.length === 0 ? (
-        <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
+        <p>No {isHistoricalView ? 'past' : 'upcoming'} activities found for {user.name || 'you'}.</p>
       ) : (
         <ActivityList>
           {filteredActivities.map((activity) => (
@@ -889,7 +923,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
+      <RefreshButton onClick={() => fetchActivities(twelveHoursAgo.toISOString(), nextMonth.toISOString())}>
         <FaSync /> Refresh Activities
       </RefreshButton>
     </EventsContainer>
