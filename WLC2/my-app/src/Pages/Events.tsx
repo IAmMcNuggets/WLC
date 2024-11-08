@@ -643,16 +643,29 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
-    console.log('Fetching activities:', startDate, endDate);
     setIsLoading(true);
     try {
-      const response = await currentRMSApi.get('/activities', {
-        params: {
-          'q[starts_at_between][]': [startDate, endDate],
-          'per_page': 100,
-          'sort': isHistoricalView ? '-starts_at' : 'starts_at'
-        }
+      console.log('Fetching activities for date range:', {
+        start: new Date(startDate).toLocaleString(),
+        end: new Date(endDate).toLocaleString(),
+        isHistoricalView
       });
+
+      const params = isHistoricalView ? {
+        'q[ends_at_lt]': today.toISOString(),
+        'q[ends_at_gt]': threeMonthsAgo.toISOString(),
+        'per_page': 100,
+        'sort': '-starts_at'
+      } : {
+        'q[starts_at_gteq]': twelveHoursAgo.toISOString(),
+        'q[starts_at_lt]': nextMonth.toISOString(),
+        'per_page': 100,
+        'sort': 'starts_at'
+      };
+
+      console.log('API params:', params);
+
+      const response = await currentRMSApi.get('/activities', { params });
       console.log('Activities response:', response.data);
       setActivities(response.data.activities);
     } catch (error) {
