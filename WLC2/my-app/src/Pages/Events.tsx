@@ -638,34 +638,38 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [isHistoricalView, setIsHistoricalView] = useState(false);
 
   const today = new Date();
-  const twelveHoursAgo = new Date(today.getTime() - (12 * 60 * 60 * 1000)); // 12 hours ago
+  const twelveHoursAgo = new Date(today.getTime() - (12 * 60 * 60 * 1000));
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
   const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
+    setIsLoading(true);
     try {
       const response = await currentRMSApi.get('/activities', {
         params: {
-          'q[starts_at_gteq]': startDate,
-          'q[starts_at_lt]': endDate,
-          'per_page': 100
+          'q[starts_at_between][]': [startDate, endDate],
+          'per_page': 100,
+          'sort': isHistoricalView ? '-starts_at' : 'starts_at'
         }
       });
       console.log('Activities response:', response.data);
       setActivities(response.data.activities);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching activities:', error);
       setError(error as Error);
+    } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
     if (user) {
-      const startDate = isHistoricalView ? threeMonthsAgo.toISOString() : twelveHoursAgo.toISOString();
-      fetchActivities(startDate, nextMonth.toISOString());
+      if (isHistoricalView) {
+        fetchActivities(threeMonthsAgo.toISOString(), today.toISOString());
+      } else {
+        fetchActivities(twelveHoursAgo.toISOString(), nextMonth.toISOString());
+      }
     }
   }, [user, isHistoricalView]);
 
@@ -755,7 +759,14 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
-  if (isLoading) return <div>Loading activities...</div>;
+  if (isLoading) {
+    return (
+      <EventsContainer>
+        <EventsTitle>Your Activities</EventsTitle>
+        <p>Loading activities...</p>
+      </EventsContainer>
+    );
+  }
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
 
