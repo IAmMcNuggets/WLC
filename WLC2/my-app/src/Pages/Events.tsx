@@ -621,6 +621,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const today = new Date();
+  const fourHoursAgo = new Date(today.getTime() - (4 * 60 * 60 * 1000));
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
@@ -628,13 +629,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     try {
       const response = await currentRMSApi.get('/activities', {
         params: {
-          'q[starts_at_gteq]': startDate,
+          'q[ends_at_gteq]': fourHoursAgo.toISOString(),
           'q[starts_at_lt]': endDate,
           'per_page': 100
         }
       });
       console.log('Activities response:', response.data);
-      setActivities(response.data.activities);
+      setActivities(response.data.data);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching activities:', error);
@@ -645,9 +646,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   useEffect(() => {
     if (user) {
-      fetchActivities(today.toISOString(), nextMonth.toISOString());
+      fetchActivities(fourHoursAgo.toISOString(), nextMonth.toISOString());
     }
-  }, [user]); // This effect will run only when the user changes
+  }, [user]);
 
   const filteredActivities = useMemo(() => {
     if (!activities || !user) return [];
@@ -889,7 +890,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
+      <RefreshButton onClick={() => fetchActivities(fourHoursAgo.toISOString(), nextMonth.toISOString())}>
         <FaSync /> Refresh Activities
       </RefreshButton>
     </EventsContainer>
