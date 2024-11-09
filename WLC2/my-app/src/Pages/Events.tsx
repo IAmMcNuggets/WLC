@@ -6,8 +6,6 @@ import { GoogleUser } from '../App';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync, FaFile } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
-import { Switch, FormControlLabel } from '@mui/material';
-import { subMonths, addDays } from 'date-fns';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -621,7 +619,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [showHistorical, setShowHistorical] = useState(false);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -738,31 +735,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
-  const filteredEvents = useMemo(() => {
-    if (!activities) return [];
-    
-    // First filter by user
-    const userEvents = activities.filter(activity => 
-      activity.participants.some(participant => 
-        participant.member_name?.toLowerCase().includes(user?.name?.toLowerCase() || '') ||
-        participant.member_email?.toLowerCase() === user?.email?.toLowerCase()
-      )
-    );
-    
-    // Then filter by date
-    const now = new Date();
-    const filterDate = showHistorical
-      ? subMonths(now, 3)
-      : now;
-
-    return userEvents.filter(event => {
-      const eventDate = new Date(event.starts_at);
-      return showHistorical 
-        ? eventDate >= filterDate && eventDate <= now
-        : eventDate >= now && eventDate <= addDays(now, 30);
-    });
-  }, [activities, showHistorical, user]);
-
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -770,20 +742,11 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   return (
     <EventsContainer>
       <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
-      <FormControlLabel
-        control={
-          <Switch
-            checked={showHistorical}
-            onChange={(e) => setShowHistorical(e.target.checked)}
-          />
-        }
-        label={showHistorical ? "Showing Past 3 Months" : "Showing Next 30 Days"}
-      />
-      {filteredEvents.length === 0 ? (
+      {filteredActivities.length === 0 ? (
         <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
       ) : (
         <ActivityList>
-          {filteredEvents.map((activity) => (
+          {filteredActivities.map((activity) => (
             <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
               <ActivityTitle>{activity.subject}</ActivityTitle>
               <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
