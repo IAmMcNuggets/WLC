@@ -741,18 +741,27 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const filteredEvents = useMemo(() => {
     if (!activities) return [];
     
+    // First filter by user
+    const userEvents = activities.filter(activity => 
+      activity.participants.some(participant => 
+        participant.member_name?.toLowerCase().includes(user?.name?.toLowerCase() || '') ||
+        participant.member_email?.toLowerCase() === user?.email?.toLowerCase()
+      )
+    );
+    
+    // Then filter by date
     const now = new Date();
     const filterDate = showHistorical
-      ? subMonths(now, 3) // 3 months ago
+      ? subMonths(now, 3)
       : now;
 
-    return activities.filter(event => {
+    return userEvents.filter(event => {
       const eventDate = new Date(event.starts_at);
       return showHistorical 
-        ? eventDate >= filterDate && eventDate <= now  // historical events
-        : eventDate >= now && eventDate <= addDays(now, 30);  // upcoming events
+        ? eventDate >= filterDate && eventDate <= now
+        : eventDate >= now && eventDate <= addDays(now, 30);
     });
-  }, [activities, showHistorical]);
+  }, [activities, showHistorical, user]);
 
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
