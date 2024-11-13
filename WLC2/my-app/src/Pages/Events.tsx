@@ -611,18 +611,35 @@ const AssetNumber = styled.div`
   color: #4a5568;
 `;
 
-const HistorySelect = styled.select`
-  padding: 8px;
-  margin: 20px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
-`;
-
 const FilterContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  margin: 10px 20px 20px;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const HistoryButton = styled.button<{ active: boolean }>`
+  padding: 10px 15px;
+  border-radius: 20px;
+  border: none;
+  background-color: ${props => props.active ? '#4CAF50' : '#f0f0f0'};
+  color: ${props => props.active ? 'white' : '#333'};
+  font-weight: ${props => props.active ? 'bold' : 'normal'};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  
+  &:hover {
+    background-color: ${props => props.active ? '#45a049' : '#e0e0e0'};
+  }
+
+  @media (max-width: 480px) {
+    flex: 1;
+    min-width: calc(50% - 10px);
+    font-size: 14px;
+  }
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -768,13 +785,36 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     <EventsContainer>
       <EventsTitle>Your Activities</EventsTitle>
       <FilterContainer>
-        <HistorySelect value={historicalMonths} onChange={handleHistoricalChange}>
-          <option value={0}>Current Activities</option>
-          <option value={3}>Last 3 Months</option>
-          <option value={6}>Last 6 Months</option>
-          <option value={9}>Last 9 Months</option>
-          <option value={12}>Last 12 Months</option>
-        </HistorySelect>
+        <HistoryButton 
+          active={historicalMonths === 0} 
+          onClick={() => setHistoricalMonths(0)}
+        >
+          Current
+        </HistoryButton>
+        <HistoryButton 
+          active={historicalMonths === 3} 
+          onClick={() => setHistoricalMonths(3)}
+        >
+          3 Months
+        </HistoryButton>
+        <HistoryButton 
+          active={historicalMonths === 6} 
+          onClick={() => setHistoricalMonths(6)}
+        >
+          6 Months
+        </HistoryButton>
+        <HistoryButton 
+          active={historicalMonths === 9} 
+          onClick={() => setHistoricalMonths(9)}
+        >
+          9 Months
+        </HistoryButton>
+        <HistoryButton 
+          active={historicalMonths === 12} 
+          onClick={() => setHistoricalMonths(12)}
+        >
+          12 Months
+        </HistoryButton>
       </FilterContainer>
       {filteredActivities.length === 0 ? (
         <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
