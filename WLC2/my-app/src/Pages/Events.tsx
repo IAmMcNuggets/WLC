@@ -6,6 +6,7 @@ import { GoogleUser } from '../App';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync, FaFile } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
+import { subMonths } from 'date-fns';
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -610,6 +611,20 @@ const AssetNumber = styled.div`
   color: #4a5568;
 `;
 
+const HistorySelect = styled.select`
+  padding: 8px;
+  margin: 20px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -619,6 +634,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [historicalMonths, setHistoricalMonths] = useState<number>(0);
 
   const today = new Date();
   const fourHoursAgo = new Date(today.getTime() - (4 * 60 * 60 * 1000));
@@ -627,9 +643,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
     try {
+      const historicalStartDate = historicalMonths > 0 
+        ? subMonths(new Date(), historicalMonths).toISOString() 
+        : startDate;
+      
       const response = await currentRMSApi.get('/activities', {
         params: {
-          'q[ends_at_gteq]': fourHoursAgo.toISOString(),
+          'q[ends_at_gteq]': historicalStartDate,
           'q[starts_at_lt]': endDate,
           'per_page': 100
         }
@@ -648,7 +668,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     if (user) {
       fetchActivities(fourHoursAgo.toISOString(), nextMonth.toISOString());
     }
-  }, [user]);
+  }, [user, historicalMonths]);
 
   const filteredActivities = useMemo(() => {
     if (!activities || !user) return [];
@@ -736,13 +756,26 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
+  const handleHistoricalChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setHistoricalMonths(Number(event.target.value));
+  };
+
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
 
   return (
     <EventsContainer>
-      <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
+      <EventsTitle>Your Activities</EventsTitle>
+      <FilterContainer>
+        <HistorySelect value={historicalMonths} onChange={handleHistoricalChange}>
+          <option value={0}>Current Activities</option>
+          <option value={3}>Last 3 Months</option>
+          <option value={6}>Last 6 Months</option>
+          <option value={9}>Last 9 Months</option>
+          <option value={12}>Last 12 Months</option>
+        </HistorySelect>
+      </FilterContainer>
       {filteredActivities.length === 0 ? (
         <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
       ) : (
