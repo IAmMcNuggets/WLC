@@ -596,10 +596,18 @@ const AssetNumber = styled.div`
 `;
 
 const HistorySelect = styled.select`
-  padding: 8px;
+  padding: 8px 12px;
   margin: 20px;
   border-radius: 4px;
   border: 1px solid #ddd;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+  
+  &:focus {
+    outline: none;
+    border-color: #4CAF50;
+  }
 `;
 
 const FilterContainer = styled.div`
@@ -754,10 +762,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       <FilterContainer>
         <HistorySelect value={historicalMonths} onChange={handleHistoricalChange}>
           <option value={0}>Current Activities</option>
-          <option value={3}>Last 3 Months</option>
-          <option value={6}>Last 6 Months</option>
-          <option value={9}>Last 9 Months</option>
-          <option value={12}>Last 12 Months</option>
+          <option value={1}>Include Last Month</option>
         </HistorySelect>
       </FilterContainer>
       {filteredActivities.length === 0 ? (
