@@ -595,37 +595,37 @@ const AssetNumber = styled.div`
   color: #4a5568;
 `;
 
-const HistorySelect = styled.select`
-  padding: 12px 24px;
-  margin: 20px;
-  border-radius: 8px;
-  border: 2px solid #ddd;
-  background-color: white;
-  font-size: 16px;
-  cursor: pointer;
-  width: 80%;
-  max-width: 300px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1em;
-  
-  &:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-  }
-`;
-
 const FilterContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 0 20px;
   width: 100%;
+`;
+
+const FilterButton = styled.button<{ isActive: boolean }>`
+  padding: 12px 20px;
+  border-radius: 20px;
+  border: none;
+  background-color: ${props => props.isActive ? '#4CAF50' : 'rgba(255, 255, 255, 0.9)'};
+  color: ${props => props.isActive ? 'white' : '#333'};
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  max-width: 200px;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -735,8 +735,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
-  const handleHistoricalChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setHistoricalMonths(Number(event.target.value));
+  const handleHistoricalChange = (months: number) => {
+    setHistoricalMonths(months);
   };
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
@@ -771,10 +771,18 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     <EventsContainer>
       <EventsTitle>Your Activities</EventsTitle>
       <FilterContainer>
-        <HistorySelect value={historicalMonths} onChange={handleHistoricalChange}>
-          <option value={0}>Current Activities</option>
-          <option value={1}>Include Last Month</option>
-        </HistorySelect>
+        <FilterButton 
+          isActive={historicalMonths === 0}
+          onClick={() => handleHistoricalChange(0)}
+        >
+          Current
+        </FilterButton>
+        <FilterButton 
+          isActive={historicalMonths === 1}
+          onClick={() => handleHistoricalChange(1)}
+        >
+          Past Month
+        </FilterButton>
       </FilterContainer>
       {filteredActivities.length === 0 ? (
         <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
