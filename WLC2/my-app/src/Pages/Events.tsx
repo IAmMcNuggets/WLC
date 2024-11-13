@@ -596,17 +596,27 @@ const AssetNumber = styled.div`
 `;
 
 const HistorySelect = styled.select`
-  padding: 8px 12px;
+  padding: 12px 24px;
   margin: 20px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
+  border-radius: 8px;
+  border: 2px solid #ddd;
   background-color: white;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
+  width: 80%;
+  max-width: 300px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
   
   &:focus {
     outline: none;
     border-color: #4CAF50;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
   }
 `;
 
@@ -615,6 +625,7 @@ const FilterContainer = styled.div`
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
+  width: 100%;
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
