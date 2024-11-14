@@ -746,7 +746,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       let queryStartDate;
       
       if (historicalMonths > 0) {
-        // Calculate one month ago from today
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
         queryStartDate = oneMonthAgo.toISOString();
@@ -764,15 +763,17 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         }
       });
       
-      console.log('Activities response:', response.data);
-      console.log('Number of activities fetched:', response.data.data.length);
-      console.log('Date range:', {
-        start: new Date(queryStartDate).toLocaleString(),
-        end: new Date(endDate).toLocaleString()
-      });
-      
-      setActivities(response.data.data);
-      setIsLoading(false);
+      if (response && response.data) {
+        console.log('Activities response:', response.data);
+        console.log('Number of activities fetched:', response.data.data ? response.data.data.length : 0);
+        console.log('Date range:', {
+          start: new Date(queryStartDate).toLocaleString(),
+          end: new Date(endDate).toLocaleString()
+        });
+        
+        setActivities(response.data.data);
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('Error fetching activities:', error);
       setError(error as Error);
