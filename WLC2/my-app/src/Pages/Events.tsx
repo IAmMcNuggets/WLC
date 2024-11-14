@@ -742,21 +742,28 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
-    console.log('Fetching activities:', startDate, endDate);
     try {
-      // Calculate the correct start date based on historicalMonths
-      const historicalStartDate = historicalMonths > 0 
-        ? subMonths(new Date(), historicalMonths).toISOString() // This gets date from 1 month ago
-        : startDate;
+      let queryStartDate;
+      
+      if (historicalMonths > 0) {
+        // Calculate one month ago from today
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        queryStartDate = oneMonthAgo.toISOString();
+      } else {
+        queryStartDate = fourHoursAgo.toISOString();
+      }
+
+      console.log('Fetching activities from:', queryStartDate, 'to:', endDate);
       
       const response = await currentRMSApi.get('/activities', {
         params: {
-          'q[starts_at_gteq]': historicalStartDate,
+          'q[starts_at_gteq]': queryStartDate,
           'q[starts_at_lt]': endDate,
           'per_page': 500
         }
       });
-      console.log('Activities response:', response.data);
+      
       setActivities(response.data.data);
       setIsLoading(false);
     } catch (error) {
