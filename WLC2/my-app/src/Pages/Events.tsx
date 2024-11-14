@@ -764,6 +764,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         }
       });
       
+      console.log('Activities response:', response.data);
+      console.log('Number of activities fetched:', response.data.data.length);
+      console.log('Date range:', {
+        start: new Date(queryStartDate).toLocaleString(),
+        end: new Date(endDate).toLocaleString()
+      });
+      
       setActivities(response.data.data);
       setIsLoading(false);
     } catch (error) {
