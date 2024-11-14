@@ -600,9 +600,10 @@ const FilterContainer = styled.div`
   justify-content: center;
   align-items: center;
   gap: 10px;
-  margin: 20px 0;
+  margin: 20px auto;
   padding: 0 20px;
-  width: 100%;
+  width: 90%;
+  max-width: 400px;
 `;
 
 const FilterButton = styled.button<{ isActive: boolean }>`
@@ -616,7 +617,8 @@ const FilterButton = styled.button<{ isActive: boolean }>`
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   flex: 1;
-  max-width: 200px;
+  min-width: 120px;
+  max-width: 160px;
 
   &:hover {
     transform: translateY(-1px);
