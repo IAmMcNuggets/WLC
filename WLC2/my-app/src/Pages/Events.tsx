@@ -744,36 +744,46 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     try {
       let queryStartDate;
+      const today = new Date(); // Get current date
       
       if (historicalMonths > 0) {
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        // Calculate one month ago from today
+        const oneMonthAgo = new Date(today);
+        oneMonthAgo.setMonth(today.getMonth() - historicalMonths);
         queryStartDate = oneMonthAgo.toISOString();
       } else {
         queryStartDate = fourHoursAgo.toISOString();
       }
 
-      console.log('Fetching activities from:', queryStartDate, 'to:', endDate);
+      // Use current date as end date instead of future date
+      const queryEndDate = today.toISOString();
+
+      console.log('Fetching activities from:', queryStartDate, 'to:', queryEndDate);
       
       const response = await currentRMSApi.get('/activities', {
         params: {
           'q[starts_at_gteq]': queryStartDate,
-          'q[starts_at_lt]': endDate,
+          'q[starts_at_lt]': queryEndDate,
           'per_page': 500
         }
       });
       
       if (response && response.data) {
         console.log('Activities response:', response.data);
-        console.log('Number of activities fetched:', response.data.data ? response.data.data.length : 0);
+        console.log('Number of activities fetched:', 
+          response.data.data ? response.data.data.length : 0);
         console.log('Date range:', {
           start: new Date(queryStartDate).toLocaleString(),
-          end: new Date(endDate).toLocaleString()
+          end: new Date(queryEndDate).toLocaleString()
         });
         
-        setActivities(response.data.data);
-        setIsLoading(false);
+        setActivities(response.data.data || []);
+      } else {
+        console.log('No response data received');
+        setActivities([]);
       }
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error fetching activities:', error);
       setError(error as Error);
