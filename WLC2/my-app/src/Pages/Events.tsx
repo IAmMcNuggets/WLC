@@ -744,8 +744,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
     try {
+      // Calculate the correct start date based on historicalMonths
       const historicalStartDate = historicalMonths > 0 
-        ? subMonths(new Date(), historicalMonths).toISOString() 
+        ? subMonths(new Date(), historicalMonths).toISOString() // This gets date from 1 month ago
         : startDate;
       
       const response = await currentRMSApi.get('/activities', {
