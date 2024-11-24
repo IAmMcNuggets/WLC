@@ -644,7 +644,23 @@ const PhotoUploadButton = styled.a`
   }
 `;
 
-const FOLDER_ID = 'YOUR_GOOGLE_DRIVE_FOLDER_ID'; // The public folder ID where photos will be uploaded
+const FOLDER_ID = '0ABp5SabsWrAmUk9PVA';
+
+const PhotoUploadInput = styled.input`
+  display: none;
+`;
+
+const PhotoUploadSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const UploadStatus = styled.div`
+  margin-top: 10px;
+  color: #666;
+  font-size: 0.9em;
+`;
 
 const initializeGoogleDrive = async () => {
   try {
@@ -654,15 +670,47 @@ const initializeGoogleDrive = async () => {
       discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
       scope: 'https://www.googleapis.com/auth/drive.file'
     });
-    await gapi.client.load('drive', 'v3');
   } catch (error) {
     console.error('Error initializing Google Drive:', error);
   }
 };
 
-const PhotoUploadInput = styled.input`
-  // Styles are optional since this input is hidden
-`;
+const handlePhotoUpload = async (
+  event: React.ChangeEvent<HTMLInputElement>,
+  activity: Activity | null
+) => {
+  const files = event.target.files;
+  if (!files || !activity) return;
+
+  try {
+    await initializeGoogleDrive();
+    
+    for (const file of Array.from(files)) {
+      const metadata = {
+        name: `${activity.subject}_${new Date().toISOString()}_${file.name}`,
+        parents: [FOLDER_ID],
+        mimeType: file.type
+      };
+
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', file);
+
+      await gapi.client.drive.files.create({
+        resource: metadata,
+        media: {
+          body: form
+        },
+        fields: 'id'
+      });
+    }
+
+    // Show success message or update UI
+    console.log('Photos uploaded successfully');
+  } catch (error) {
+    console.error('Error uploading photos:', error);
+  }
+};
 
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -789,35 +837,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    try {
-      await initializeGoogleDrive();
-      
-      for (const file of Array.from(files)) {
-        const metadata = {
-          name: `${selectedActivity?.subject}_${new Date().toISOString()}_${file.name}`,
-          parents: [FOLDER_ID]
-        };
-
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', file);
-
-        await gapi.client.drive.files.create({
-          resource: metadata,
-          media: {
-            body: form
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading photos:', error);
-    }
-  };
-
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -870,19 +889,21 @@ const Events: React.FC<EventsProps> = ({ user }) => {
             {selectedActivity && (
               <ModalSection>
                 <h3>Event Photos</h3>
-                <PhotoUploadInput 
-                  type="file"
-                  id="photo-upload"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  style={{ display: 'none' }}
-                />
-                <PhotoUploadButton 
-                  onClick={() => document.getElementById('photo-upload')?.click()}
-                >
-                  <FaFile /> Upload Event Photos
-                </PhotoUploadButton>
+                <PhotoUploadSection>
+                  <PhotoUploadInput 
+                    type="file"
+                    id="photo-upload"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                    onChange={(e) => handlePhotoUpload(e, selectedActivity)}
+                  />
+                  <PhotoUploadButton 
+                    onClick={() => document.getElementById('photo-upload')?.click()}
+                  >
+                    <FaFile /> Upload Event Photos
+                  </PhotoUploadButton>
+                </PhotoUploadSection>
               </ModalSection>
             )}
             {selectedOpportunity && (
