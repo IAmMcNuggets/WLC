@@ -7,6 +7,7 @@ import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuil
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 import { gapi } from 'gapi-script';
+import { useGoogleLogin } from '@react-oauth/google';
 
 // Add this type declaration at the top of the file
 // declare namespace gapi.client {
@@ -624,7 +625,7 @@ const AssetNumber = styled.div`
 `;
 
 // Add this styled component with the other styled components
-const PhotoUploadButton = styled.a`
+const PhotoUploadButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -633,15 +634,24 @@ const PhotoUploadButton = styled.a`
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
+  border: none;
   text-decoration: none;
   font-weight: bold;
   transition: all 0.3s ease;
   margin: 20px 0;
+  cursor: pointer;
   
   &:hover {
     background-color: #45a049;
     transform: translateY(-2px);
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -680,12 +690,14 @@ const loadGoogleApi = async () => {
   }
 };
 
+const [isUploading, setIsUploading] = useState(false);
+
 const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
   const files = event.target.files;
   if (!files || !activity) return;
 
   try {
-    await loadGoogleApi(); // Initialize Google API first
+    setIsUploading(true);
     
     for (const file of Array.from(files)) {
       const metadata = {
@@ -698,11 +710,10 @@ const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, act
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
       form.append('file', file);
 
-      const accessToken = gapi.auth.getToken().access_token;
       const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${gapi.client.getToken().access_token}`,
         },
         body: form
       });
@@ -715,8 +726,19 @@ const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, act
     }
   } catch (error) {
     console.error('Error uploading photos:', error);
+  } finally {
+    setIsUploading(false);
   }
 };
+
+const login = useGoogleLogin({
+  scope: 'https://www.googleapis.com/auth/drive.file',
+  onSuccess: (tokenResponse) => {
+    console.log('Login Success');
+    document.getElementById('photo-upload')?.click();
+  },
+  onError: (error) => console.log('Login Failed:', error)
+});
 
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -905,10 +927,19 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     onChange={(e) => handlePhotoUpload(e, selectedActivity)}
                   />
                   <PhotoUploadButton 
-                    onClick={() => document.getElementById('photo-upload')?.click()}
+                    onClick={() => {
+                      if (!gapi.client.getToken()) {
+                        login();
+                      } else {
+                        document.getElementById('photo-upload')?.click();
+                      }
+                    }}
+                    disabled={isUploading}
+                    type="button"
                   >
-                    <FaFile /> Upload Event Photos
+                    <FaFile /> {isUploading ? 'Uploading...' : 'Upload Event Photos'}
                   </PhotoUploadButton>
+                  {isUploading && <UploadStatus>Uploading photos...</UploadStatus>}
                 </PhotoUploadSection>
               </ModalSection>
             )}
