@@ -690,56 +690,6 @@ const loadGoogleApi = async () => {
   }
 };
 
-const [isUploading, setIsUploading] = useState(false);
-
-const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
-  const files = event.target.files;
-  if (!files || !activity) return;
-
-  try {
-    setIsUploading(true);
-    
-    for (const file of Array.from(files)) {
-      const metadata = {
-        name: `${activity.subject}_${new Date().toISOString()}_${file.name}`,
-        parents: [FOLDER_ID],
-        mimeType: file.type
-      };
-
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', file);
-
-      const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${gapi.client.getToken().access_token}`,
-        },
-        body: form
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-
-      console.log('Photo uploaded successfully');
-    }
-  } catch (error) {
-    console.error('Error uploading photos:', error);
-  } finally {
-    setIsUploading(false);
-  }
-};
-
-const login = useGoogleLogin({
-  scope: 'https://www.googleapis.com/auth/drive.file',
-  onSuccess: (tokenResponse) => {
-    console.log('Login Success');
-    document.getElementById('photo-upload')?.click();
-  },
-  onError: (error) => console.log('Login Failed:', error)
-});
-
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -749,9 +699,56 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [opportunityItems, setOpportunityItems] = useState<OpportunityItem[]>([]);
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+  const login = useGoogleLogin({
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    onSuccess: (tokenResponse) => {
+      console.log('Login Success');
+      document.getElementById('photo-upload')?.click();
+    },
+    onError: (error) => console.log('Login Failed:', error)
+  });
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
+    const files = event.target.files;
+    if (!files || !activity) return;
+
+    try {
+      setIsUploading(true);
+      
+      for (const file of Array.from(files)) {
+        const metadata = {
+          name: `${activity.subject}_${new Date().toISOString()}_${file.name}`,
+          parents: [FOLDER_ID],
+          mimeType: file.type
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${gapi.client.getToken().access_token}`,
+          },
+          body: form
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
