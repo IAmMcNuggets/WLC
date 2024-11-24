@@ -621,6 +621,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const today = new Date();
+  const threeDaysAgo = new Date(today);
+  threeDaysAgo.setDate(today.getDate() - 3);
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
@@ -628,7 +630,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     try {
       const response = await currentRMSApi.get('/activities', {
         params: {
-          'q[starts_at_gteq]': startDate,
+          'q[ends_at_gteq]': threeDaysAgo.toISOString(),
           'q[starts_at_lt]': endDate,
           'per_page': 100
         }
@@ -645,9 +647,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   useEffect(() => {
     if (user) {
-      fetchActivities(today.toISOString(), nextMonth.toISOString());
+      fetchActivities(threeDaysAgo.toISOString(), nextMonth.toISOString());
     }
-  }, [user]); // This effect will run only when the user changes
+  }, [user]);
 
   const filteredActivities = useMemo(() => {
     if (!activities || !user) return [];
@@ -741,7 +743,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   return (
     <EventsContainer>
-      <EventsTitle>Your Upcoming Activities (Next 30 Days)</EventsTitle>
+      <EventsTitle>Your Current & Upcoming Activities</EventsTitle>
       {filteredActivities.length === 0 ? (
         <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
       ) : (
@@ -889,7 +891,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
+      <RefreshButton onClick={() => fetchActivities(threeDaysAgo.toISOString(), nextMonth.toISOString())}>
         <FaSync /> Refresh Activities
       </RefreshButton>
     </EventsContainer>
