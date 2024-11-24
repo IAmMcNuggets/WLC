@@ -6,18 +6,19 @@ import { GoogleUser } from '../App';
 import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync, FaFile } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
+import { gapi } from 'gapi-script';
 
 // Add this type declaration at the top of the file
-declare namespace gapi.client {
-  var drive: any;
-  function init(config: {
-    apiKey: string | undefined;
-    clientId: string | undefined;
-    discoveryDocs: string[];
-    scope: string;
-  }): Promise<void>;
-  function load(apiName: string, version: string): Promise<void>;
-}
+// declare namespace gapi.client {
+//   var drive: any;
+//   function init(config: {
+//     apiKey: string | undefined;
+//     clientId: string | undefined;
+//     discoveryDocs: string[];
+//     scope: string;
+//   }): Promise<void>;
+//   function load(apiName: string, version: string): Promise<void>;
+// }
 
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -662,8 +663,11 @@ const UploadStatus = styled.div`
   font-size: 0.9em;
 `;
 
-const initializeGoogleDrive = async () => {
+const loadGoogleApi = async () => {
   try {
+    await new Promise((resolve, reject) => {
+      gapi.load('client', { callback: resolve, onerror: reject });
+    });
     await gapi.client.init({
       apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
       clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
@@ -671,19 +675,17 @@ const initializeGoogleDrive = async () => {
       scope: 'https://www.googleapis.com/auth/drive.file'
     });
   } catch (error) {
-    console.error('Error initializing Google Drive:', error);
+    console.error('Error loading Google API:', error);
+    throw error;
   }
 };
 
-const handlePhotoUpload = async (
-  event: React.ChangeEvent<HTMLInputElement>,
-  activity: Activity | null
-) => {
+const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
   const files = event.target.files;
   if (!files || !activity) return;
 
   try {
-    await initializeGoogleDrive();
+    await loadGoogleApi(); // Initialize Google API first
     
     for (const file of Array.from(files)) {
       const metadata = {
@@ -696,17 +698,21 @@ const handlePhotoUpload = async (
       form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
       form.append('file', file);
 
-      await gapi.client.drive.files.create({
-        resource: metadata,
-        media: {
-          body: form
+      const accessToken = gapi.auth.getToken().access_token;
+      const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
         },
-        fields: 'id'
+        body: form
       });
-    }
 
-    // Show success message or update UI
-    console.log('Photos uploaded successfully');
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      console.log('Photo uploaded successfully');
+    }
   } catch (error) {
     console.error('Error uploading photos:', error);
   }
