@@ -1,5 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
+import { GoogleUser } from '../App'; // Import the GoogleUser type
+
+// Define the Props interface
+interface Props {
+  user: GoogleUser | null;
+}
 
 const TrainingContainer = styled.div`
   min-height: 100vh;
@@ -52,7 +58,8 @@ const TrainingButton = styled.a`
   }
 `;
 
-const Training: React.FC = () => {
+// Update the component declaration to use the Props interface
+const Training: React.FC<Props> = ({ user }) => {
   return (
     <TrainingContainer>
       <TrainingTitle>Training Materials</TrainingTitle>
