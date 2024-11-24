@@ -956,29 +956,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
               <ModalContent>
                 <CloseButton onClick={closeModal}>X</CloseButton>
                 <ModalHeader>{selectedActivity.subject}</ModalHeader>
-                <ModalGrid>
-                  <ModalSection>
-                    <InfoSection>
-                      <Icon><FaClock /></Icon>
-                      <div>
-                        <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
-                        <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
-                      </div>
-                    </InfoSection>
-                    {selectedActivity.location && (
-                      <InfoSection>
-                        <Icon><FaMapMarkerAlt /></Icon>
-                        <p><strong>Location:</strong> {selectedActivity.location}</p>
-                      </InfoSection>
-                    )}
-                  </ModalSection>
-                </ModalGrid>
-                {selectedActivity.description && (
-                  <ModalSection>
-                    <h3>Description:</h3>
-                    <p>{selectedActivity.description}</p>
-                  </ModalSection>
-                )}
+                
                 {selectedActivity && (
                   <ModalSection>
                     <h3>Event Photos</h3>
@@ -1000,6 +978,30 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       </PhotoUploadButton>
                       {isUploading && <UploadStatus>Uploading photos...</UploadStatus>}
                     </PhotoUploadSection>
+                  </ModalSection>
+                )}
+
+                <ModalGrid>
+                  <ModalSection>
+                    <InfoSection>
+                      <Icon><FaClock /></Icon>
+                      <div>
+                        <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
+                        <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
+                      </div>
+                    </InfoSection>
+                    {selectedActivity.location && (
+                      <InfoSection>
+                        <Icon><FaMapMarkerAlt /></Icon>
+                        <p><strong>Location:</strong> {selectedActivity.location}</p>
+                      </InfoSection>
+                    )}
+                  </ModalSection>
+                </ModalGrid>
+                {selectedActivity.description && (
+                  <ModalSection>
+                    <h3>Description:</h3>
+                    <p>{selectedActivity.description}</p>
                   </ModalSection>
                 )}
                 {selectedOpportunity && (
