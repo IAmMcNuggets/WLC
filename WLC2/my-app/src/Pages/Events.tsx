@@ -610,6 +610,28 @@ const AssetNumber = styled.div`
   color: #4a5568;
 `;
 
+// Add this styled component with the other styled components
+const PhotoUploadButton = styled.a`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  margin: 20px 0;
+  
+  &:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  }
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -782,6 +804,18 @@ const Events: React.FC<EventsProps> = ({ user }) => {
               <ModalSection>
                 <h3>Description:</h3>
                 <p>{selectedActivity.description}</p>
+              </ModalSection>
+            )}
+            {selectedActivity && (
+              <ModalSection>
+                <h3>Event Photos</h3>
+                <PhotoUploadButton 
+                  href="https://forms.gle/re76mELQRbk1bKVSA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FaFile /> Upload Event Photos
+                </PhotoUploadButton>
               </ModalSection>
             )}
             {selectedOpportunity && (
