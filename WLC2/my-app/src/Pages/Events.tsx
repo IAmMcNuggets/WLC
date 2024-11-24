@@ -625,7 +625,7 @@ const PhotoUploadButton = styled.button`
   gap: 10px;
   background-color: #4CAF50;
   color: white;
-  padding: 8px 16px;
+  padding: 12px 24px;
   border-radius: 8px;
   border: none;
   text-decoration: none;
@@ -655,7 +655,7 @@ const PhotoUploadInput = styled.input`
 `;
 
 const PhotoUploadSection = styled.div`
-  margin: 10px 0;
+  margin: 5px 0;
 `;
 
 const UploadStatus = styled.div`
@@ -751,7 +751,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       
       for (const file of Array.from(files)) {
         const metadata = {
-          name: `${activity.subject}_${new Date().toISOString()}_${file.name}`,
+          name: `${activity.subject}_${file.name}`,
           parents: [FOLDER_ID],
           mimeType: file.type,
           supportsAllDrives: true,
