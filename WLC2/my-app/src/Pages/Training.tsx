@@ -47,6 +47,7 @@ const TrainingButton = styled.a`
   color: #444;
   text-align: center;
   font-size: 18px;
+  font-weight: bold;
   transition: all 0.3s ease;
   border: none;
   cursor: pointer;
