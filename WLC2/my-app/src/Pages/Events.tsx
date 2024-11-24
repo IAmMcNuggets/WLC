@@ -655,7 +655,7 @@ const PhotoUploadButton = styled.button`
   }
 `;
 
-const FOLDER_ID = '0ABp5SabsWrAmUk9PVA';
+const FOLDER_ID = '1msII_15zUBa-LwTg44LRzpyotrOUXoth';
 
 const PhotoUploadInput = styled.input`
   display: none;
@@ -726,36 +726,38 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
     try {
       setIsUploading(true);
+      console.log('Starting upload to folder:', FOLDER_ID);
       
       for (const file of Array.from(files)) {
         const metadata = {
           name: `${activity.subject}_${new Date().toISOString()}_${file.name}`,
           parents: [FOLDER_ID],
-          mimeType: file.type
+          mimeType: file.type,
+          // Add shared drive support
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true
         };
+
+        console.log('File metadata:', metadata);
 
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', file);
 
-        // Check if we have a valid token
-        const token = gapi.client.getToken();
-        if (!token) {
-          console.log('No token found, triggering login');
-          login();
-          return;
-        }
-
-        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        const response = await fetch(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${token.access_token}`,
+            'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
           },
           body: form
         });
 
+        const responseData = await response.text();
+        console.log('Upload response:', responseData);
+
         if (!response.ok) {
-          throw new Error(`Upload failed: ${response.statusText}`);
+          throw new Error(`Upload failed: ${response.statusText} - ${responseData}`);
         }
 
         console.log('Upload successful');
