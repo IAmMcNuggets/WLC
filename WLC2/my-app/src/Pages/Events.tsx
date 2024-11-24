@@ -673,23 +673,6 @@ const UploadStatus = styled.div`
   font-size: 0.9em;
 `;
 
-const loadGoogleApi = async () => {
-  try {
-    await new Promise((resolve, reject) => {
-      gapi.load('client', { callback: resolve, onerror: reject });
-    });
-    await gapi.client.init({
-      apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-      clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-      scope: 'https://www.googleapis.com/auth/drive.file'
-    });
-  } catch (error) {
-    console.error('Error loading Google API:', error);
-    throw error;
-  }
-};
-
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -700,14 +683,38 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGapiInitialized, setIsGapiInitialized] = useState(false);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
+  // Add useEffect to initialize Google API
+  useEffect(() => {
+    const initializeGapi = async () => {
+      try {
+        await new Promise((resolve) => gapi.load('client', resolve));
+        await gapi.client.init({
+          apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
+          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+        });
+        setIsGapiInitialized(true);
+        console.log('GAPI initialized successfully');
+      } catch (error) {
+        console.error('Error initializing GAPI:', error);
+      }
+    };
+
+    initializeGapi();
+  }, []);
+
   const login = useGoogleLogin({
     scope: 'https://www.googleapis.com/auth/drive.file',
-    onSuccess: (tokenResponse) => {
-      console.log('Login Success');
+    onSuccess: async (tokenResponse) => {
+      console.log('Login Success:', tokenResponse);
+      // Set the access token for GAPI
+      gapi.client.setToken({
+        access_token: tokenResponse.access_token
+      });
       document.getElementById('photo-upload')?.click();
     },
     onError: (error) => console.log('Login Failed:', error)
@@ -731,10 +738,18 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', file);
 
+        // Check if we have a valid token
+        const token = gapi.client.getToken();
+        if (!token) {
+          console.log('No token found, triggering login');
+          login();
+          return;
+        }
+
         const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${gapi.client.getToken().access_token}`,
+            Authorization: `Bearer ${token.access_token}`,
           },
           body: form
         });
@@ -742,11 +757,30 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         if (!response.ok) {
           throw new Error(`Upload failed: ${response.statusText}`);
         }
+
+        console.log('Upload successful');
       }
     } catch (error) {
       console.error('Error uploading photos:', error);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Update the button click handler
+  const handleUploadClick = () => {
+    console.log('Upload button clicked');
+    if (!isGapiInitialized) {
+      console.log('GAPI not initialized yet');
+      return;
+    }
+
+    const token = gapi.client.getToken();
+    if (!token) {
+      console.log('No token, starting login flow');
+      login();
+    } else {
+      document.getElementById('photo-upload')?.click();
     }
   };
 
@@ -924,15 +958,9 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                     onChange={(e) => handlePhotoUpload(e, selectedActivity)}
                   />
                   <PhotoUploadButton 
-                    onClick={() => {
-                      if (!gapi.client.getToken()) {
-                        login();
-                      } else {
-                        document.getElementById('photo-upload')?.click();
-                      }
-                    }}
-                    disabled={isUploading}
                     type="button"
+                    onClick={handleUploadClick}
+                    disabled={isUploading || !isGapiInitialized}
                   >
                     <FaFile /> {isUploading ? 'Uploading...' : 'Upload Event Photos'}
                   </PhotoUploadButton>
