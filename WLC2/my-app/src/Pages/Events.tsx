@@ -7,6 +7,18 @@ import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuil
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 
+// Add this type declaration at the top of the file
+declare namespace gapi.client {
+  var drive: any;
+  function init(config: {
+    apiKey: string | undefined;
+    clientId: string | undefined;
+    discoveryDocs: string[];
+    scope: string;
+  }): Promise<void>;
+  function load(apiName: string, version: string): Promise<void>;
+}
+
 const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
   background-size: cover;
@@ -632,6 +644,26 @@ const PhotoUploadButton = styled.a`
   }
 `;
 
+const FOLDER_ID = 'YOUR_GOOGLE_DRIVE_FOLDER_ID'; // The public folder ID where photos will be uploaded
+
+const initializeGoogleDrive = async () => {
+  try {
+    await gapi.client.init({
+      apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
+      clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+      scope: 'https://www.googleapis.com/auth/drive.file'
+    });
+    await gapi.client.load('drive', 'v3');
+  } catch (error) {
+    console.error('Error initializing Google Drive:', error);
+  }
+};
+
+const PhotoUploadInput = styled.input`
+  // Styles are optional since this input is hidden
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -757,6 +789,35 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    try {
+      await initializeGoogleDrive();
+      
+      for (const file of Array.from(files)) {
+        const metadata = {
+          name: `${selectedActivity?.subject}_${new Date().toISOString()}_${file.name}`,
+          parents: [FOLDER_ID]
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        await gapi.client.drive.files.create({
+          resource: metadata,
+          media: {
+            body: form
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+    }
+  };
+
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -809,10 +870,16 @@ const Events: React.FC<EventsProps> = ({ user }) => {
             {selectedActivity && (
               <ModalSection>
                 <h3>Event Photos</h3>
+                <PhotoUploadInput 
+                  type="file"
+                  id="photo-upload"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoUpload}
+                  style={{ display: 'none' }}
+                />
                 <PhotoUploadButton 
-                  href="https://forms.gle/re76mELQRbk1bKVSA"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={() => document.getElementById('photo-upload')?.click()}
                 >
                   <FaFile /> Upload Event Photos
                 </PhotoUploadButton>
