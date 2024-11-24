@@ -244,7 +244,11 @@ const ModalGrid = styled.div`
 `;
 
 const ModalSection = styled.div`
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+  
+  h3 {
+    margin-bottom: 8px;
+  }
 `;
 
 const ItemTable = styled.table`
@@ -621,13 +625,13 @@ const PhotoUploadButton = styled.button`
   gap: 10px;
   background-color: #4CAF50;
   color: white;
-  padding: 12px 24px;
+  padding: 8px 16px;
   border-radius: 8px;
   border: none;
   text-decoration: none;
   font-weight: bold;
   transition: all 0.3s ease;
-  margin: 20px 0;
+  margin: 5px 0;
   cursor: pointer;
   
   &:hover {
@@ -651,9 +655,7 @@ const PhotoUploadInput = styled.input`
 `;
 
 const PhotoUploadSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  margin: 10px 0;
 `;
 
 const UploadStatus = styled.div`
@@ -974,7 +976,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                         onClick={handleUploadClick}
                         disabled={isUploading || !isGapiInitialized}
                       >
-                        <FaFile /> {isUploading ? 'Uploading...' : 'Upload Event Photos'}
+                        <FaFile /> {isUploading ? 'Uploading...' : 'Take Event Photos'}
                       </PhotoUploadButton>
                       {isUploading && <UploadStatus>Uploading photos...</UploadStatus>}
                     </PhotoUploadSection>
