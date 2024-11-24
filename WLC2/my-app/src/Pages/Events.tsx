@@ -625,14 +625,16 @@ const PhotoUploadButton = styled.button`
   gap: 10px;
   background-color: #4CAF50;
   color: white;
-  padding: 12px 24px;
+  padding: 15px 24px;
   border-radius: 8px;
   border: none;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 800;
+  font-size: 1.1em;
   transition: all 0.3s ease;
   margin: 5px 0;
   cursor: pointer;
+  width: 90%;
   
   &:hover {
     background-color: #45a049;
@@ -656,6 +658,8 @@ const PhotoUploadInput = styled.input`
 
 const PhotoUploadSection = styled.div`
   margin: 5px 0;
+  display: flex;
+  justify-content: center;
 `;
 
 const UploadStatus = styled.div`
