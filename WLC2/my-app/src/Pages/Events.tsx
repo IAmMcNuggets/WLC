@@ -662,7 +662,7 @@ const UploadStatus = styled.div`
   font-size: 0.9em;
 `;
 
-// Add these styled components
+// Update the NotificationContainer styled component
 const NotificationContainer = styled.div<{ type: 'success' | 'error' }>`
   position: fixed;
   bottom: 20px;
@@ -672,8 +672,9 @@ const NotificationContainer = styled.div<{ type: 'success' | 'error' }>`
   background-color: ${props => props.type === 'success' ? '#4CAF50' : '#f44336'};
   color: white;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  z-index: 1000;
+  z-index: 9999; // Increased z-index to appear above modal
   animation: slideIn 0.3s ease-out;
+  font-weight: bold;
 
   @keyframes slideIn {
     from {
@@ -933,188 +934,193 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   return (
     <>
-      <EventsContainer>
-        <EventsTitle>Your Current & Upcoming Activities</EventsTitle>
-        {filteredActivities.length === 0 ? (
-          <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
-        ) : (
-          <ActivityList>
-            {filteredActivities.map((activity) => (
-              <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
-                <ActivityTitle>{activity.subject}</ActivityTitle>
-                <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
-                <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
-                {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
-              </ActivityItem>
-            ))}
-          </ActivityList>
-        )}
-        {selectedActivity && (
-          <Modal>
-            <ModalContent>
-              <CloseButton onClick={closeModal}>X</CloseButton>
-              <ModalHeader>{selectedActivity.subject}</ModalHeader>
-              <ModalGrid>
-                <ModalSection>
-                  <InfoSection>
-                    <Icon><FaClock /></Icon>
-                    <div>
-                      <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
-                      <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
-                    </div>
-                  </InfoSection>
-                  {selectedActivity.location && (
+      <div>
+        <EventsContainer>
+          <EventsTitle>Your Current & Upcoming Activities</EventsTitle>
+          {filteredActivities.length === 0 ? (
+            <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
+          ) : (
+            <ActivityList>
+              {filteredActivities.map((activity) => (
+                <ActivityItem key={activity.id} onClick={() => handleActivityClick(activity)}>
+                  <ActivityTitle>{activity.subject}</ActivityTitle>
+                  <ActivityDetail><strong>Starts:</strong> {new Date(activity.starts_at).toLocaleString()}</ActivityDetail>
+                  <ActivityDetail><strong>Ends:</strong> {new Date(activity.ends_at).toLocaleString()}</ActivityDetail>
+                  {activity.location && <ActivityDetail><strong>Location:</strong> {activity.location}</ActivityDetail>}
+                </ActivityItem>
+              ))}
+            </ActivityList>
+          )}
+          {selectedActivity && (
+            <Modal>
+              <ModalContent>
+                <CloseButton onClick={closeModal}>X</CloseButton>
+                <ModalHeader>{selectedActivity.subject}</ModalHeader>
+                <ModalGrid>
+                  <ModalSection>
                     <InfoSection>
-                      <Icon><FaMapMarkerAlt /></Icon>
-                      <p><strong>Location:</strong> {selectedActivity.location}</p>
+                      <Icon><FaClock /></Icon>
+                      <div>
+                        <p><strong>Starts:</strong> {new Date(selectedActivity.starts_at).toLocaleString()}</p>
+                        <p><strong>Ends:</strong> {new Date(selectedActivity.ends_at).toLocaleString()}</p>
+                      </div>
                     </InfoSection>
-                  )}
-                </ModalSection>
-              </ModalGrid>
-              {selectedActivity.description && (
-                <ModalSection>
-                  <h3>Description:</h3>
-                  <p>{selectedActivity.description}</p>
-                </ModalSection>
-              )}
-              {selectedActivity && (
-                <ModalSection>
-                  <h3>Event Photos</h3>
-                  <PhotoUploadSection>
-                    <PhotoUploadInput 
-                      type="file"
-                      id="photo-upload"
-                      accept="image/*"
-                      capture="environment"
-                      multiple
-                      onChange={(e) => handlePhotoUpload(e, selectedActivity)}
-                    />
-                    <PhotoUploadButton 
-                      type="button"
-                      onClick={handleUploadClick}
-                      disabled={isUploading || !isGapiInitialized}
-                    >
-                      <FaFile /> {isUploading ? 'Uploading...' : 'Upload Event Photos'}
-                    </PhotoUploadButton>
-                    {isUploading && <UploadStatus>Uploading photos...</UploadStatus>}
-                  </PhotoUploadSection>
-                </ModalSection>
-              )}
-              {selectedOpportunity && (
-                <ModalSection>
-                  {selectedOpportunity.venue && (
-                    <InfoSection>
-                      <Icon><FaBuilding /></Icon>
-                      <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
-                    </InfoSection>
-                  )}
-                  {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
-                    <InfoSection>
-                      <Icon><FaPhone /></Icon>
-                      <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
-                    </InfoSection>
-                  )}
-                  <h4>Items:</h4>
-                  <ItemList>
-                    {(() => {
-                      let currentGroup: string | null = null;
-                      let currentPrincipal: OpportunityItem | null = null;
+                    {selectedActivity.location && (
+                      <InfoSection>
+                        <Icon><FaMapMarkerAlt /></Icon>
+                        <p><strong>Location:</strong> {selectedActivity.location}</p>
+                      </InfoSection>
+                    )}
+                  </ModalSection>
+                </ModalGrid>
+                {selectedActivity.description && (
+                  <ModalSection>
+                    <h3>Description:</h3>
+                    <p>{selectedActivity.description}</p>
+                  </ModalSection>
+                )}
+                {selectedActivity && (
+                  <ModalSection>
+                    <h3>Event Photos</h3>
+                    <PhotoUploadSection>
+                      <PhotoUploadInput 
+                        type="file"
+                        id="photo-upload"
+                        accept="image/*"
+                        capture="environment"
+                        multiple
+                        onChange={(e) => handlePhotoUpload(e, selectedActivity)}
+                      />
+                      <PhotoUploadButton 
+                        type="button"
+                        onClick={handleUploadClick}
+                        disabled={isUploading || !isGapiInitialized}
+                      >
+                        <FaFile /> {isUploading ? 'Uploading...' : 'Upload Event Photos'}
+                      </PhotoUploadButton>
+                      {isUploading && <UploadStatus>Uploading photos...</UploadStatus>}
+                    </PhotoUploadSection>
+                  </ModalSection>
+                )}
+                {selectedOpportunity && (
+                  <ModalSection>
+                    {selectedOpportunity.venue && (
+                      <InfoSection>
+                        <Icon><FaBuilding /></Icon>
+                        <p><strong>Venue:</strong> {selectedOpportunity.venue.name}</p>
+                      </InfoSection>
+                    )}
+                    {selectedOpportunity.custom_fields && selectedOpportunity.custom_fields['on-site_contact_phone'] && (
+                      <InfoSection>
+                        <Icon><FaPhone /></Icon>
+                        <p><strong>On-site Contact:</strong> {selectedOpportunity.custom_fields['on-site_contact_phone']}</p>
+                      </InfoSection>
+                    )}
+                    <h4>Items:</h4>
+                    <ItemList>
+                      {(() => {
+                        let currentGroup: string | null = null;
+                        let currentPrincipal: OpportunityItem | null = null;
 
-                      const principalsWithAccessories = new Set(
-                        opportunityItems
-                          .filter(item => item.opportunity_item_type_name === "Accessory")
-                          .map(item => item.id - 1)
-                      );
+                        const principalsWithAccessories = new Set(
+                          opportunityItems
+                            .filter(item => item.opportunity_item_type_name === "Accessory")
+                            .map(item => item.id - 1)
+                        );
 
-                      return opportunityItems.map((item, index) => {
-                        if (item.opportunity_item_type_name === "Group") {
-                          currentGroup = item.name;
-                          return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
-                        } else if (item.item_type === "Service") { // Changed this condition
-                          return (
-                            <React.Fragment key={item.id}>
-                              <PrincipalItem>
+                        return opportunityItems.map((item, index) => {
+                          if (item.opportunity_item_type_name === "Group") {
+                            currentGroup = item.name;
+                            return <GroupHeader key={item.id}>{item.name}</GroupHeader>;
+                          } else if (item.item_type === "Service") { // Changed this condition
+                            return (
+                              <React.Fragment key={item.id}>
+                                <PrincipalItem>
+                                  <PrincipalName>{item.name}</PrincipalName>
+                                  {item.description && (
+                                    <PrincipalDescription>{item.description}</PrincipalDescription>
+                                  )}
+                                  {item.item_assets && item.item_assets.length > 0 && (
+                                    <ServiceAssetList>
+                                      {item.item_assets.map((asset) => (
+                                        <AssetNumber key={asset.id}>
+                                          {asset.stock_level_asset_number}
+                                        </AssetNumber>
+                                      ))}
+                                    </ServiceAssetList>
+                                  )}
+                                </PrincipalItem>
+                              </React.Fragment>
+                            );
+                          } else if (item.opportunity_item_type_name === "Principal") {
+                            currentPrincipal = item;
+                            const hasAccessories = principalsWithAccessories.has(item.id);
+                            return (
+                              <PrincipalItem key={item.id} onClick={() => hasAccessories && togglePrincipal(item.id)}>
                                 <PrincipalName>{item.name}</PrincipalName>
+                                {hasAccessories && (
+                                  <ExpandIcon style={{ transform: expandedPrincipals[item.id] ? 'rotate(180deg)' : 'none' }}>
+                                    ▼
+                                  </ExpandIcon>
+                                )}
                                 {item.description && (
                                   <PrincipalDescription>{item.description}</PrincipalDescription>
                                 )}
-                                {item.item_assets && item.item_assets.length > 0 && (
-                                  <ServiceAssetList>
-                                    {item.item_assets.map((asset) => (
-                                      <AssetNumber key={asset.id}>
-                                        {asset.stock_level_asset_number}
-                                      </AssetNumber>
-                                    ))}
-                                  </ServiceAssetList>
-                                )}
                               </PrincipalItem>
-                            </React.Fragment>
-                          );
-                        } else if (item.opportunity_item_type_name === "Principal") {
-                          currentPrincipal = item;
-                          const hasAccessories = principalsWithAccessories.has(item.id);
-                          return (
-                            <PrincipalItem key={item.id} onClick={() => hasAccessories && togglePrincipal(item.id)}>
-                              <PrincipalName>{item.name}</PrincipalName>
-                              {hasAccessories && (
-                                <ExpandIcon style={{ transform: expandedPrincipals[item.id] ? 'rotate(180deg)' : 'none' }}>
-                                  ▼
-                                </ExpandIcon>
-                              )}
-                              {item.description && (
-                                <PrincipalDescription>{item.description}</PrincipalDescription>
-                              )}
-                            </PrincipalItem>
-                          );
-                        } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
-                          const isExpanded = expandedPrincipals[currentPrincipal.id];
-                          return isExpanded ? (
-                            <AccessoryItemDiv key={item.id}>
-                              {item.name} (Qty: {item.quantity})
-                            </AccessoryItemDiv>
-                          ) : null;
-                        }
-                        return null;
-                      });
-                    })()}
-                  </ItemList>
-                  <AttachmentSection>
-                    <h3>Attachments</h3>
-                    {isLoading ? (
-                      <p>Loading attachments...</p>
-                    ) : attachments.length > 0 ? (
-                      <AttachmentList>
-                        {attachments.map((attachment) => (
-                          <AttachmentItem key={attachment.id}>
-                            <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
-                              {attachment.name || attachment.attachment_file_name}
-                            </AttachmentLink>
-                            {attachment.description && <p>{attachment.description}</p>}
-                          </AttachmentItem>
-                        ))}
-                      </AttachmentList>
-                    ) : (
-                      <p>No attachments available</p>
-                    )}
-                  </AttachmentSection>
-                  <ButtonContainer>
-                    <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
-                  </ButtonContainer>
-                </ModalSection>
-              )}
-            </ModalContent>
-          </Modal>
-        )}
-        <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
-          <FaSync /> Refresh Activities
-        </RefreshButton>
-      </EventsContainer>
+                            );
+                          } else if (item.opportunity_item_type_name === "Accessory" && currentPrincipal) {
+                            const isExpanded = expandedPrincipals[currentPrincipal.id];
+                            return isExpanded ? (
+                              <AccessoryItemDiv key={item.id}>
+                                {item.name} (Qty: {item.quantity})
+                              </AccessoryItemDiv>
+                            ) : null;
+                          }
+                          return null;
+                        });
+                      })()}
+                    </ItemList>
+                    <AttachmentSection>
+                      <h3>Attachments</h3>
+                      {isLoading ? (
+                        <p>Loading attachments...</p>
+                      ) : attachments.length > 0 ? (
+                        <AttachmentList>
+                          {attachments.map((attachment) => (
+                            <AttachmentItem key={attachment.id}>
+                              <AttachmentLink href={attachment.attachment_url} target="_blank" rel="noopener noreferrer">
+                                {attachment.name || attachment.attachment_file_name}
+                              </AttachmentLink>
+                              {attachment.description && <p>{attachment.description}</p>}
+                            </AttachmentItem>
+                          ))}
+                        </AttachmentList>
+                      ) : (
+                        <p>No attachments available</p>
+                      )}
+                    </AttachmentSection>
+                    <ButtonContainer>
+                      <CloseModalButton onClick={closeModal}>Close</CloseModalButton>
+                    </ButtonContainer>
+                  </ModalSection>
+                )}
+              </ModalContent>
+            </Modal>
+          )}
+          <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
+            <FaSync /> Refresh Activities
+          </RefreshButton>
+        </EventsContainer>
+      </div>
       
-      {notification && (
-        <NotificationContainer type={notification.type}>
-          {notification.message}
-        </NotificationContainer>
-      )}
+      {/* Place notifications outside the main component structure */}
+      <div style={{ position: 'fixed', zIndex: 9999 }}>
+        {notification && (
+          <NotificationContainer type={notification.type}>
+            {notification.message}
+          </NotificationContainer>
+        )}
+      </div>
     </>
   );
 };
