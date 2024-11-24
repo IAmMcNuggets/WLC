@@ -621,8 +621,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const today = new Date();
-  const threeDaysAgo = new Date(today);
-  threeDaysAgo.setDate(today.getDate() - 3);
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
@@ -630,7 +628,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     try {
       const response = await currentRMSApi.get('/activities', {
         params: {
-          'q[ends_at_gteq]': threeDaysAgo.toISOString(),
+          'q[ends_at_gteq]': today.toISOString(),
           'q[starts_at_lt]': endDate,
           'per_page': 100
         }
@@ -647,7 +645,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   useEffect(() => {
     if (user) {
-      fetchActivities(threeDaysAgo.toISOString(), nextMonth.toISOString());
+      fetchActivities(today.toISOString(), nextMonth.toISOString());
     }
   }, [user]);
 
@@ -891,7 +889,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </ModalContent>
         </Modal>
       )}
-      <RefreshButton onClick={() => fetchActivities(threeDaysAgo.toISOString(), nextMonth.toISOString())}>
+      <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
         <FaSync /> Refresh Activities
       </RefreshButton>
     </EventsContainer>
