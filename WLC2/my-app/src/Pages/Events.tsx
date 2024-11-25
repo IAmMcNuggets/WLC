@@ -754,8 +754,17 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       let uploadedCount = 0;
       
       for (const file of Array.from(files)) {
+        // Format current time
+        const currentTime = new Date().toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+
         const metadata = {
-          name: `${activity.subject}_${file.name}`,
+          // Include activity subject, user name, time, and original filename
+          name: `${activity.subject}_${user?.name || 'Unknown'}_${currentTime}_${file.name}`,
           parents: [FOLDER_ID],
           mimeType: file.type,
           supportsAllDrives: true,
