@@ -764,7 +764,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
         const metadata = {
           // Include activity subject, user name, time, and original filename
-          name: `${activity.subject}_${user?.name || 'Unknown'}_${currentTime}_${file.name}`,
+          name: `${activity.regarding?.subject || 'Unknown'}_${activity.regarding?.number || 'No-Number'}_${user?.name || 'Unknown'}_${currentTime}_${file.name}`,
           parents: [FOLDER_ID],
           mimeType: file.type,
           supportsAllDrives: true,
