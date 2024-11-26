@@ -639,6 +639,9 @@ const PhotoUploadButton = styled.button`
   margin: 5px 0;
   cursor: pointer;
   width: 90%;
+  min-height: 52px;
+  overflow: hidden;
+  white-space: nowrap;
   
   &:hover {
     background-color: #45a049;
