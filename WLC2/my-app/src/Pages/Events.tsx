@@ -998,7 +998,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       >
                         <FaFile /> {isUploading ? 'Uploading...' : 'Take Event Photos'}
                       </PhotoUploadButton>
-                      {isUploading && <UploadStatus>Uploading photos...</UploadStatus>}
                     </PhotoUploadSection>
                   </ModalSection>
                 )}
