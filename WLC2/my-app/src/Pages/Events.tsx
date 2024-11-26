@@ -86,6 +86,10 @@ interface Activity {
   activity_type_name: string;
   completed: boolean;
   participants: Participant[];
+  regarding?: {
+    subject: string;
+    number: string;
+  };
 }
 
 interface OpportunityDocument {
