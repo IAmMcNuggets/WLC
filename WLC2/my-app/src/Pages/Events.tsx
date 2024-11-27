@@ -8,6 +8,7 @@ import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 import { gapi } from 'gapi-script';
 import { useGoogleLogin } from '@react-oauth/google';
+import EventChat from '../components/EventChat';
 
 
 const EventsContainer = styled.div`
@@ -716,6 +717,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -950,6 +952,10 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
+  const handleEventClick = (eventId: string) => {
+    setSelectedEvent(eventId);
+  };
+
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -1144,6 +1150,13 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           </NotificationContainer>
         )}
       </div>
+
+      {selectedEvent && (
+        <div>
+          <h2>Chat for {selectedEvent}</h2>
+          <EventChat groupId={`event_${selectedEvent}`} />
+        </div>
+      )}
     </>
   );
 };
