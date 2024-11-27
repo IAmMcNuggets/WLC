@@ -54,3 +54,30 @@ export const loginWithCometChat = async (user: { email: string; name: string }) 
     }
   }
 };
+
+export const createEventGroup = async (eventId: string, eventName: string) => {
+  try {
+    const groupId = `event_${eventId}`;
+    const group = new CometChat.Group(
+      groupId,
+      eventName,
+      CometChat.GROUP_TYPE.PUBLIC
+    );
+
+    try {
+      const createdGroup = await CometChat.createGroup(group);
+      console.log('Group created:', createdGroup);
+      return createdGroup;
+    } catch (error: any) {
+      if (error.code === 'ERR_GUID_ALREADY_EXISTS') {
+        console.log('Group already exists, joining it');
+        const password = "";
+        return await CometChat.joinGroup(groupId, undefined, password);
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error creating/joining group:', error);
+    throw error;
+  }
+};

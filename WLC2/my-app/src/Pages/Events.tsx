@@ -9,6 +9,7 @@ import { useQuery, UseQueryResult } from 'react-query';
 import { gapi } from 'gapi-script';
 import { useGoogleLogin } from '@react-oauth/google';
 import EventChat from '../components/EventChat';
+import { createEventGroup } from '../Utils/chatUtils'; // Adjust the path as needed
 
 
 const EventsContainer = styled.div`
@@ -940,16 +941,23 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   }, []);
 
-  const handleActivityClick = useCallback((activity: Activity) => {
+  const handleActivityClick = useCallback(async (activity: Activity) => {
     console.log('Activity clicked:', activity);
     setSelectedActivity(activity);
+    
     if (activity.regarding_id) {
       console.log(`Activity has regarding_id: ${activity.regarding_id}`);
-      fetchOpportunityDetails(activity);
+      try {
+        await createEventGroup(
+          activity.regarding_id.toString(),
+          activity.subject
+        );
+        fetchOpportunityDetails(activity);
+      } catch (error) {
+        console.error('Error creating chat group:', error);
+      }
     } else {
       console.log('Activity has no regarding_id');
-      setSelectedOpportunity(null);
-      setOpportunityItems([]);
       setAttachments([]);
     }
   }, [fetchOpportunityDetails]);
