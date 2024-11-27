@@ -1178,18 +1178,22 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                   </ModalSection>
                 )}
                 <ChatSection>
-                  {!showChat ? (
-                    <ChatToggleButton onClick={() => setShowChat(true)}>
-                      Open Event Chat
-                    </ChatToggleButton>
-                  ) : (
+                  {selectedActivity && (
                     <>
-                      <ChatToggleButton onClick={() => setShowChat(false)}>
-                        Close Chat
-                      </ChatToggleButton>
-                      <EventChat 
-                        groupId={`event_${selectedActivity?.regarding_id}`} 
-                      />
+                      {!showChat ? (
+                        <ChatToggleButton onClick={() => setShowChat(true)}>
+                          Open Event Chat
+                        </ChatToggleButton>
+                      ) : (
+                        <>
+                          <ChatToggleButton onClick={() => setShowChat(false)}>
+                            Close Chat
+                          </ChatToggleButton>
+                          <EventChat 
+                            groupId={`event_${selectedActivity.regarding_id}`} 
+                          />
+                        </>
+                      )}
                     </>
                   )}
                 </ChatSection>

@@ -53,19 +53,39 @@ interface EventChatProps {
 const EventChat: React.FC<EventChatProps> = ({ groupId }) => {
   const [messages, setMessages] = useState<CometChat.TextMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      const messagesRequest = new CometChat.MessagesRequestBuilder()
-        .setGUID(groupId)
-        .setLimit(50)
-        .build();
+    const checkInitialization = async () => {
+      try {
+        if (typeof CometChat !== 'undefined') {
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Error checking CometChat initialization:', error);
+      }
+    };
+    checkInitialization();
+  }, []);
 
-      const fetchedMessages = await messagesRequest.fetchPrevious();
-      const textMessages = fetchedMessages.filter(
-        (msg): msg is CometChat.TextMessage => msg instanceof CometChat.TextMessage
-      ) as CometChat.TextMessage[];
-      setMessages(textMessages);
+  useEffect(() => {
+    if (!isInitialized || !groupId) return;
+
+    const fetchMessages = async () => {
+      try {
+        const messagesRequest = new CometChat.MessagesRequestBuilder()
+          .setGUID(groupId)
+          .setLimit(50)
+          .build();
+
+        const fetchedMessages = await messagesRequest.fetchPrevious();
+        const textMessages = fetchedMessages.filter(
+          (msg): msg is CometChat.TextMessage => msg instanceof CometChat.TextMessage
+        ) as CometChat.TextMessage[];
+        setMessages(textMessages);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
     };
 
     fetchMessages();
@@ -83,7 +103,7 @@ const EventChat: React.FC<EventChatProps> = ({ groupId }) => {
     return () => {
       CometChat.removeMessageListener(listenerID);
     };
-  }, [groupId]);
+  }, [groupId, isInitialized]);
 
   const sendMessage = async () => {
     if (newMessage.trim() === '') return;
@@ -102,6 +122,10 @@ const EventChat: React.FC<EventChatProps> = ({ groupId }) => {
       console.error('Message sending failed:', error);
     }
   };
+
+  if (!isInitialized) {
+    return <div>Initializing chat...</div>;
+  }
 
   return (
     <ChatContainer>

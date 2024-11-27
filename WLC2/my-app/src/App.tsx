@@ -12,6 +12,7 @@ import Training from './Pages/Training'; // Add this import
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
 import backgroundImage from './Background/86343.jpg';
+import { initCometChat, loginWithCometChat } from './services/cometchatService';
 // Define and export the GoogleUser interface
 export interface GoogleUser {
   name: string;
@@ -88,6 +89,24 @@ function App() {
       // Handle the error case
     }
   };
+
+  useEffect(() => {
+    const initChat = async () => {
+      if (user) {
+        try {
+          await initCometChat();
+          await loginWithCometChat({
+            email: user.email,
+            name: user.name || ''
+          });
+          console.log('CometChat initialized and logged in');
+        } catch (error) {
+          console.error('CometChat initialization failed:', error);
+        }
+      }
+    };
+    initChat();
+  }, [user]);
 
   return (
     <QueryClientProvider client={queryClient}>
