@@ -702,6 +702,34 @@ const NotificationContainer = styled.div<{ type: 'success' | 'error' }>`
   }
 `;
 
+const EventChatContainer = styled.div`
+  position: fixed;
+  right: 20px;
+  bottom: 80px; // Position above the bottom nav bar
+  width: 300px;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+`;
+
+const ChatToggleButton = styled.button`
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  z-index: 999;
+
+  &:hover {
+    background: #0056b3;
+  }
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -718,6 +746,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     type: 'success' | 'error';
   } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
@@ -953,7 +983,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const handleEventClick = (eventId: string) => {
-    setSelectedEvent(eventId);
+    setSelectedEventId(eventId);
+    setShowChat(true);
   };
 
   if (isLoading) return <div>Loading activities...</div>;
@@ -1151,11 +1182,25 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         )}
       </div>
 
-      {selectedEvent && (
-        <div>
-          <h2>Chat for {selectedEvent}</h2>
-          <EventChat groupId={`event_${selectedEvent}`} />
-        </div>
+      {selectedEventId && !showChat && (
+        <ChatToggleButton onClick={() => setShowChat(true)}>
+          Open Chat
+        </ChatToggleButton>
+      )}
+
+      {selectedEventId && showChat && (
+        <EventChatContainer>
+          <div style={{ padding: '10px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
+            <h3 style={{ margin: 0 }}>Event Chat</h3>
+            <button 
+              onClick={() => setShowChat(false)}
+              style={{ border: 'none', background: 'none', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+          <EventChat groupId={`event_${selectedEventId}`} />
+        </EventChatContainer>
       )}
     </>
   );
