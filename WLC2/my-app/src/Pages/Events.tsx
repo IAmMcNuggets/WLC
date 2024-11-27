@@ -702,17 +702,6 @@ const NotificationContainer = styled.div<{ type: 'success' | 'error' }>`
   }
 `;
 
-const EventChatContainer = styled.div`
-  position: fixed;
-  right: 20px;
-  bottom: 80px; // Position above the bottom nav bar
-  width: 300px;
-  z-index: 1000;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-`;
-
 const ChatToggleButton = styled.button`
   position: fixed;
   right: 20px;
@@ -724,10 +713,17 @@ const ChatToggleButton = styled.button`
   border-radius: 20px;
   cursor: pointer;
   z-index: 999;
+`;
 
-  &:hover {
-    background: #0056b3;
-  }
+const EventChatContainer = styled.div`
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  width: 300px;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
@@ -932,19 +928,18 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   }, []);
 
-  const handleActivityClick = useCallback((activity: Activity) => {
+  const handleActivityClick = useCallback(async (activity: any) => {
     console.log('Activity clicked:', activity);
     setSelectedActivity(activity);
+    
     if (activity.regarding_id) {
-      console.log(`Activity has regarding_id: ${activity.regarding_id}`);
-      fetchOpportunityDetails(activity);
-    } else {
-      console.log('Activity has no regarding_id');
-      setSelectedOpportunity(null);
-      setOpportunityItems([]);
-      setAttachments([]);
+      console.log('Activity has regarding_id:', activity.regarding_id);
+      // Your existing opportunity fetching logic...
+      
+      // After setting the opportunity, we can show the chat option
+      setShowChat(false); // Reset chat visibility when selecting new activity
     }
-  }, [fetchOpportunityDetails]);
+  }, []);
 
   const closeModal = () => {
     setSelectedActivity(null);
