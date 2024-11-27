@@ -983,9 +983,14 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const handleEventClick = (eventId: string) => {
+    console.log('Event clicked:', eventId);
     setSelectedEventId(eventId);
     setShowChat(true);
   };
+
+  useEffect(() => {
+    console.log('Selected Event ID:', selectedEventId);
+  }, [selectedEventId]);
 
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
