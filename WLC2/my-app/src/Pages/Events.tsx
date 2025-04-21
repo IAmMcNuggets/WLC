@@ -182,6 +182,13 @@ const currentRMSApi = axios.create({
   }
 });
 
+// Add this code to help debug the Current RMS API configuration
+console.log('Current RMS API Configuration:', {
+  subdomain: process.env.REACT_APP_CURRENT_RMS_SUBDOMAIN,
+  // Log partial API key for security
+  apiKeyDefined: process.env.REACT_APP_CURRENT_RMS_API_KEY ? 'Yes (defined)' : 'No (undefined)',
+});
+
 const Modal = styled.div`
   position: fixed;
   top: 0;
