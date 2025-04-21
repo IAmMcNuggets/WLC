@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { jwtDecode } from "jwt-decode";
 import styled from 'styled-components';
 import logo from './Logos/Logo Color.png';
 import './App.css';
 import Events from './Pages/Events';
 import Timeclock from './Pages/Timeclock';
 import Profile from './Pages/Profile';
-import Training from './Pages/Training'; // Add this import
+import Training from './Pages/Training';
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
 import backgroundImage from './Background/86343.jpg';
-// Define and export the GoogleUser interface
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+// Define the GoogleUser interface to maintain compatibility with existing components
 export interface GoogleUser {
   name: string;
   email: string;
-  picture?: string;  // Make it optional in case it's not always provided
-  // ... any other properties
+  picture?: string;
 }
 
 const AppContainer = styled.div`
@@ -56,84 +55,107 @@ const AppTitle = styled.h1`
   font-weight: 600;
 `;
 
-const LoginButton = styled.div`
-  margin-top: 1.5rem;
-  width: 100%;
+const LoginButton = styled.button`
+  background-color: #4285F4;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  
+  &:hover {
+    background-color: #3367D6;
+  }
+`;
+
+const GoogleLogo = styled.div`
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
   justify-content: center;
 `;
 
 const queryClient = new QueryClient()
 
+// Main App Component
 function App() {
-  const [user, setUser] = useState<GoogleUser | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
+// Separate component to use auth context
+function AppContent() {
+  const { currentUser, signInWithGoogle } = useAuth();
+  const [googleUser, setGoogleUser] = useState<GoogleUser | null>(null);
+
+  // Convert Firebase user to GoogleUser format for compatibility
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsLoggedIn(true);
-    }
-  }, []);
-
-  const handleLogin = (credentialResponse: CredentialResponse) => {
-    if (credentialResponse.credential) {
-      const credentialResponseDecoded = jwtDecode(credentialResponse.credential) as GoogleUser;
-      setUser(credentialResponseDecoded);
-      setIsLoggedIn(true);
-      localStorage.setItem('user', JSON.stringify(credentialResponseDecoded));
+    if (currentUser) {
+      const user: GoogleUser = {
+        name: currentUser.displayName || '',
+        email: currentUser.email || '',
+        picture: currentUser.photoURL || undefined
+      };
+      setGoogleUser(user);
     } else {
-      console.error('Credential is undefined');
-      // Handle the error case
+      setGoogleUser(null);
+    }
+  }, [currentUser]);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Login failed:', error);
     }
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GoogleOAuthProvider 
-        clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com"
-        onScriptLoadError={() => console.log('Failed to load Google OAuth script')}
-      >
-        <Router>
-          <AppContainer>
-            {isLoggedIn ? (
-              <Routes>
-                <Route path="/events" element={<Events user={user} />} />
-                <Route path="/timeclock" element={<Timeclock />} />
-                <Route 
-                  path="/profile" 
-                  element={
-                    <Profile 
-                      user={user} 
-                      setIsLoggedIn={setIsLoggedIn} 
-                    />
-                  } 
+    <Router>
+      <AppContainer>
+        {currentUser ? (
+          <Routes>
+            <Route path="/events" element={<Events user={googleUser} />} />
+            <Route path="/timeclock" element={<Timeclock />} />
+            <Route 
+              path="/profile" 
+              element={
+                <Profile 
+                  user={googleUser} 
+                  setIsLoggedIn={() => {}} // This will be updated
                 />
-                <Route path="/training" element={<Training user={user} />} />
-                <Route path="*" element={<Navigate to="/events" replace />} />
-              </Routes>
-            ) : (
-              <LoginContainer>
-                <Logo src={logo} alt="Gigfriend Logo" />
-                <AppTitle>Gigfriend</AppTitle>
-                <LoginButton>
-                  <GoogleLogin
-                    onSuccess={handleLogin}
-                    onError={() => console.log('Login Failed')}
-                    size="large"
-                    text="signin_with"
-                    shape="rectangular"
-                    logo_alignment="left"
-                  />
-                </LoginButton>
-              </LoginContainer>
-            )}
-            {isLoggedIn && <BottomNavBar />}
-          </AppContainer>
-        </Router>
-      </GoogleOAuthProvider>
-    </QueryClientProvider>
+              } 
+            />
+            <Route path="/training" element={<Training user={googleUser} />} />
+            <Route path="*" element={<Navigate to="/events" replace />} />
+          </Routes>
+        ) : (
+          <LoginContainer>
+            <Logo src={logo} alt="Gigfriend Logo" />
+            <AppTitle>Gigfriend</AppTitle>
+            <LoginButton onClick={handleLogin}>
+              <GoogleLogo>G</GoogleLogo>
+              Sign in with Google
+            </LoginButton>
+          </LoginContainer>
+        )}
+        {currentUser && <BottomNavBar />}
+      </AppContainer>
+    </Router>
   );
 }
 

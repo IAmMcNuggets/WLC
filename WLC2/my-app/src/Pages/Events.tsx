@@ -7,7 +7,8 @@ import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuil
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 import { gapi } from 'gapi-script';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../contexts/AuthContext';
+import { getIdToken } from 'firebase/auth';
 
 
 const EventsContainer = styled.div`
@@ -711,132 +712,15 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const [expandedPrincipals, setExpandedPrincipals] = useState<{ [key: number]: boolean }>({});
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isGapiInitialized, setIsGapiInitialized] = useState(false);
   const [notification, setNotification] = useState<{
     message: string;
     type: 'success' | 'error';
   } | null>(null);
 
+  const { currentUser } = useAuth();
+
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-
-  // Add useEffect to initialize Google API
-  useEffect(() => {
-    const initializeGapi = async () => {
-      try {
-        await new Promise((resolve) => gapi.load('client', resolve));
-        await gapi.client.init({
-          apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-        });
-        setIsGapiInitialized(true);
-        console.log('GAPI initialized successfully');
-      } catch (error) {
-        console.error('Error initializing GAPI:', error);
-      }
-    };
-
-    initializeGapi();
-  }, []);
-
-  const login = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    onSuccess: async (tokenResponse) => {
-      console.log('Login Success:', tokenResponse);
-      // Set the access token for GAPI
-      gapi.client.setToken({
-        access_token: tokenResponse.access_token
-      });
-      document.getElementById('photo-upload')?.click();
-    },
-    onError: (error) => console.log('Login Failed:', error)
-  });
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
-    const files = event.target.files;
-    if (!files || !activity) return;
-
-    try {
-      setIsUploading(true);
-      let uploadedCount = 0;
-      
-      for (const file of Array.from(files)) {
-        // Format current time
-        const currentTime = new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-
-        const metadata = {
-          // Include activity subject, user name, time, and original filename
-          name: `${activity.regarding?.subject || 'Unknown'}_${activity.regarding?.number || 'No-Number'}_${user?.name || 'Unknown'}_${currentTime}_${file.name}`,
-          parents: [FOLDER_ID],
-          mimeType: file.type,
-          supportsAllDrives: true,
-          includeItemsFromAllDrives: true
-        };
-
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-        form.append('file', file);
-
-        const response = await fetch(
-          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${gapi.client.getToken().access_token}`,
-          },
-          body: form
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Upload failed: ${response.statusText} - ${errorText}`);
-        }
-
-        uploadedCount++;
-      }
-
-      // Show success notification
-      setNotification({
-        message: `Successfully uploaded ${uploadedCount} photo${uploadedCount !== 1 ? 's' : ''}`,
-        type: 'success'
-      });
-
-    } catch (error) {
-      console.error('Error uploading photos:', error);
-      // Show error notification
-      setNotification({
-        message: error instanceof Error ? error.message : 'Failed to upload photos',
-        type: 'error'
-      });
-    } finally {
-      setIsUploading(false);
-      // Clear notification after 5 seconds
-      setTimeout(() => {
-        setNotification(null);
-      }, 5000);
-    }
-  };
-
-  // Update the button click handler
-  const handleUploadClick = () => {
-    console.log('Upload button clicked');
-    if (!isGapiInitialized) {
-      console.log('GAPI not initialized yet');
-      return;
-    }
-
-    const token = gapi.client.getToken();
-    if (!token) {
-      console.log('No token, starting login flow');
-      login();
-    } else {
-      document.getElementById('photo-upload')?.click();
-    }
-  };
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
     console.log('Fetching activities:', startDate, endDate);
@@ -950,6 +834,108 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
+  // Replace the useGoogleLogin hook with a function that uses Firebase auth
+  const initiatePhotoUpload = () => {
+    if (!currentUser) {
+      console.error('User not authenticated');
+      setNotification({
+        message: 'You must be logged in to upload photos',
+        type: 'error'
+      });
+      return;
+    }
+
+    // Directly open the file picker since we're already authenticated with Firebase
+    document.getElementById('photo-upload')?.click();
+  };
+
+  // Update the handlePhotoUpload function to use Firebase auth token
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
+    const files = event.target.files;
+    if (!files || !activity || !currentUser) return;
+
+    try {
+      setIsUploading(true);
+      
+      // Get the current Firebase ID token
+      const idToken = await currentUser.getIdToken();
+      
+      let uploadedCount = 0;
+      
+      for (const file of Array.from(files)) {
+        // Format current time
+        const currentTime = new Date().toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+
+        const metadata = {
+          // Include activity subject, user name, time, and original filename
+          name: `${activity.regarding?.subject || 'Unknown'}_${activity.regarding?.number || 'No-Number'}_${user?.name || 'Unknown'}_${currentTime}_${file.name}`,
+          parents: [FOLDER_ID],
+          mimeType: file.type,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true
+        };
+
+        const form = new FormData();
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+        form.append('file', file);
+
+        // Use Firebase ID token for authorization
+        const response = await fetch(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: form
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Upload failed: ${response.statusText} - ${errorText}`);
+        }
+
+        uploadedCount++;
+      }
+
+      // Show success notification
+      setNotification({
+        message: `Successfully uploaded ${uploadedCount} photo${uploadedCount !== 1 ? 's' : ''}`,
+        type: 'success'
+      });
+
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+      // Show error notification
+      setNotification({
+        message: error instanceof Error ? error.message : 'Failed to upload photos',
+        type: 'error'
+      });
+    } finally {
+      setIsUploading(false);
+      // Clear notification after 5 seconds
+      setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+    }
+  };
+
+  // Update the button click handler
+  const handleUploadClick = () => {
+    console.log('Upload button clicked');
+    if (!currentUser) {
+      console.log('User not authenticated');
+      return;
+    }
+
+    // Directly initiate photo upload since we're already authenticated with Firebase
+    initiatePhotoUpload();
+  };
+
   if (isLoading) return <div>Loading activities...</div>;
   if (error) return <div>Error loading activities: {error.message}</div>;
   if (!user) return <div>Please log in to view your activities.</div>;
@@ -994,7 +980,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
                       <PhotoUploadButton 
                         type="button"
                         onClick={handleUploadClick}
-                        disabled={isUploading || !isGapiInitialized}
+                        disabled={isUploading}
                       >
                         <FaFile /> {isUploading ? 'Uploading...' : 'Take Event Photos'}
                       </PhotoUploadButton>
