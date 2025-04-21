@@ -1,0 +1,33 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+  functions = "functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Handle CORS preflight requests
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept"
+
+# Add environment variables detection plugin
+[[plugins]]
+  package = "./netlify-env-plugin.js"
+
+# Hard-coded environment variables as fallback
+[build.environment]
+  REACT_APP_FIREBASE_API_KEY = "AIzaSyBZt7OLIQO-DtLJSDMP8ZERRpIyHfCESkw"
+  REACT_APP_FIREBASE_AUTH_DOMAIN = "gigfriend-9b3ea.firebaseapp.com"
+  REACT_APP_FIREBASE_PROJECT_ID = "gigfriend-9b3ea"
+  REACT_APP_FIREBASE_STORAGE_BUCKET = "gigfriend-9b3ea.firebasestorage.app"
+  REACT_APP_FIREBASE_MESSAGING_SENDER_ID = "457762949335"
+  REACT_APP_FIREBASE_APP_ID = "1:457762949335:web:b7023fd07a527bb6774892"
+  REACT_APP_FIREBASE_MEASUREMENT_ID = "G-47QE5FT56P"
+  REACT_APP_CURRENT_RMS_SUBDOMAIN = "translucentdesigngroup"
+  REACT_APP_CURRENT_RMS_API_KEY = "b93fz-Y-JbkGiyxNbScu" 
