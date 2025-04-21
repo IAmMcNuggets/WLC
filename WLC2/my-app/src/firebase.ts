@@ -1,6 +1,6 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getAnalytics, isSupported } from 'firebase/analytics';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
+import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 
 // For development, use environment variables
 // For production build on Netlify, use hardcoded values
@@ -22,10 +22,10 @@ console.log('Firebase Configuration:', {
   configSource: process.env.REACT_APP_FIREBASE_API_KEY ? 'Environment Variables' : 'Hardcoded Fallback'
 });
 
-let app;
-let auth;
-let analytics;
-let googleProvider;
+let app: FirebaseApp;
+let auth: Auth;
+let analytics: Analytics | null = null;
+let googleProvider: GoogleAuthProvider;
 
 // Initialize Firebase
 try {

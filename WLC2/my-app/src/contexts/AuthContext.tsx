@@ -4,9 +4,10 @@ import {
   onAuthStateChanged, 
   signInWithPopup, 
   signOut as firebaseSignOut,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  Auth
 } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth as firebaseAuth, googleProvider as firebaseGoogleProvider } from '../firebase';
 
 // Define the shape of our AuthContext
 interface AuthContextType {
@@ -35,8 +36,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Sign in with Google using popup
   const signInWithGoogle = async (): Promise<User | null> => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(firebaseAuth, firebaseGoogleProvider);
       // This gives you a Google Access Token
+      // We're ignoring the credential in this code, but keeping for reference
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const credential = GoogleAuthProvider.credentialFromResult(result);
       return result.user;
     } catch (error) {
@@ -48,7 +51,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Sign out
   const signOut = async (): Promise<void> => {
     try {
-      await firebaseSignOut(auth);
+      await firebaseSignOut(firebaseAuth);
       localStorage.removeItem('user');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -57,7 +60,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
   // Subscribe to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
       setCurrentUser(user);
       setLoading(false);
       
