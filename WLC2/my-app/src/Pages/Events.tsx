@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import backgroundImage from '../Background/86343.jpg';
 import { GoogleUser } from '../App';
-import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync, FaFile } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuilding, FaSync, FaFile, FaCalendarTimes } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 import { gapi } from 'gapi-script';
@@ -702,6 +702,15 @@ const NotificationContainer = styled.div<{ type: 'success' | 'error' }>`
   }
 `;
 
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+`;
+
 const Events: React.FC<EventsProps> = ({ user }) => {
   const { currentUser } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -720,7 +729,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   } | null>(null);
 
   const today = new Date();
-  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  const ninetyDaysLater = new Date(today.getFullYear(), today.getMonth() + 3, today.getDate());
 
   // Initialize Google API
   useEffect(() => {
@@ -877,7 +886,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
 
   useEffect(() => {
     if (user) {
-      fetchActivities(today.toISOString(), nextMonth.toISOString());
+      fetchActivities(today.toISOString(), ninetyDaysLater.toISOString());
     }
   }, [user]);
 
@@ -1001,8 +1010,11 @@ const Events: React.FC<EventsProps> = ({ user }) => {
       <div>
         <EventsContainer>
           <EventsTitle>Your Current & Upcoming Activities</EventsTitle>
-          {filteredActivities.length === 0 ? (
-            <p>No upcoming activities found for {user.name || 'you'} in the next 30 days.</p>
+          {filteredActivities.length === 0 && !isLoading ? (
+            <EmptyState>
+              <FaCalendarTimes size={48} />
+              <p>No upcoming activities found for {user.name || 'you'} in the next 90 days.</p>
+            </EmptyState>
           ) : (
             <ActivityList>
               {filteredActivities.map((activity) => (
@@ -1172,7 +1184,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
               </ModalContent>
             </Modal>
           )}
-          <RefreshButton onClick={() => fetchActivities(today.toISOString(), nextMonth.toISOString())}>
+          <RefreshButton onClick={() => fetchActivities(today.toISOString(), ninetyDaysLater.toISOString())}>
             <FaSync /> Refresh Activities
           </RefreshButton>
         </EventsContainer>

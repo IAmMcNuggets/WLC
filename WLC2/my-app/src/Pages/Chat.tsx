@@ -299,7 +299,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     setIsLoading(true);
     try {
       await addDoc(collection(firestore, 'messages'), {
-        text: inputValue,
+        text: inputValue.trim(),
         createdAt: serverTimestamp(),
         user: {
           uid: currentUser.uid,
