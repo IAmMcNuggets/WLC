@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaCalendarAlt, FaClock, FaUserCircle, FaBook } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUserCircle, FaBook, FaComments } from 'react-icons/fa';
 
 const NavBar = styled.nav`
   position: fixed;
@@ -48,6 +48,10 @@ const BottomNavBar: React.FC = () => {
       <NavItem to="/timeclock">
         <FaClock />
         Timeclock
+      </NavItem>
+      <NavItem to="/chat">
+        <FaComments />
+        Chat
       </NavItem>
       <NavItem to="/training">
         <FaBook />

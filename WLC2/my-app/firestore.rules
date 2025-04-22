@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default rule - deny all access unless explicitly allowed
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Messages collection rules
+    match /messages/{messageId} {
+      // Allow reading messages if user is authenticated
+      allow read: if request.auth != null;
+      
+      // Allow creating messages if:
+      // 1. User is authenticated
+      // 2. The message's user.uid matches the authenticated user's ID
+      // 3. The createdAt field is a valid timestamp
+      allow create: if request.auth != null &&
+                    request.resource.data.user.uid == request.auth.uid &&
+                    request.resource.data.createdAt is timestamp;
+      
+      // Prevent updates and deletes entirely
+      allow update, delete: if false;
+    }
+  }
+} 
