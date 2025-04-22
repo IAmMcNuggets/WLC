@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { collection, addDoc, onSnapshot, query, orderBy, limit as firestoreLimit, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, where, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { GoogleUser } from '../App';
 import { firestore } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import backgroundImage from '../Background/86343.jpg';
+import { format } from 'date-fns';
+import { FaPaperPlane, FaUser } from 'react-icons/fa';
 
 // Types for our messages
 interface ChatMessage {
@@ -45,15 +47,16 @@ const ChatTitle = styled.h1`
 `;
 
 const ChatBox = styled.div`
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.95); // Slightly more opaque
+  border-radius: 15px;
   padding: 20px;
-  width: 90%;
+  width: 95%;
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  height: 70vh;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  height: 75vh;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); // Enhanced shadow
+  border: 1px solid rgba(0, 0, 0, 0.05);
 `;
 
 const MessageList = styled.div`
@@ -62,70 +65,177 @@ const MessageList = styled.div`
   padding: 10px;
   display: flex;
   flex-direction: column;
+  scrollbar-width: thin;
+  
+  /* Customize scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+`;
+
+const MessageGroup = styled.div`
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 `;
 
 const MessageItem = styled.div<{ isCurrentUser: boolean }>`
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 18px;
-  margin-bottom: 10px;
-  background-color: ${props => props.isCurrentUser ? '#007bff' : '#f1f1f1'};
-  color: ${props => props.isCurrentUser ? 'white' : 'black'};
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: ${props => props.isCurrentUser ? '18px 18px 0 18px' : '18px 18px 18px 0'};
+  margin-bottom: 4px;
+  background-color: ${props => props.isCurrentUser ? '#0084ff' : '#f0f0f0'};
+  color: ${props => props.isCurrentUser ? 'white' : '#333'};
   align-self: ${props => props.isCurrentUser ? 'flex-end' : 'flex-start'};
   word-break: break-word;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: relative;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const MessageForm = styled.form`
   display: flex;
   margin-top: 20px;
+  position: relative;
 `;
 
 const MessageInput = styled.input`
   flex: 1;
-  padding: 12px;
+  padding: 14px 20px;
   border: 1px solid #ddd;
-  border-radius: 25px;
+  border-radius: 30px;
   font-size: 16px;
   outline: none;
+  transition: all 0.3s ease;
   
   &:focus {
-    border-color: #007bff;
+    border-color: #0084ff;
+    box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
   }
 `;
 
 const SendButton = styled.button`
-  background-color: #007bff;
+  background-color: #0084ff;
   color: white;
   border: none;
-  border-radius: 25px;
-  padding: 0 20px;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
   margin-left: 10px;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   
   &:hover {
-    background-color: #0056b3;
+    background-color: #0073e6;
+    transform: scale(1.05);
   }
   
   &:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
+    transform: none;
   }
 `;
 
 const UserInfo = styled.div<{ isCurrentUser: boolean }>`
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 5px;
   color: #666;
   align-self: ${props => props.isCurrentUser ? 'flex-end' : 'flex-start'};
+  display: flex;
+  align-items: center;
+  gap: 6px;
 `;
 
-const MessageTime = styled.span`
+const UserAvatar = styled.div<{ photoURL: string | null; isCurrentUser: boolean }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  background-color: ${props => props.isCurrentUser ? '#0084ff' : '#e1e1e1'};
+  color: ${props => props.isCurrentUser ? 'white' : '#666'};
+  background-image: ${props => props.photoURL ? `url(${props.photoURL})` : 'none'};
+  background-size: cover;
+  background-position: center;
+  font-size: 14px;
+  font-weight: bold;
+  order: ${props => props.isCurrentUser ? 1 : 0};
+`;
+
+const MessageTime = styled.span<{ isCurrentUser: boolean }>`
   font-size: 11px;
-  color: #999;
+  color: ${props => props.isCurrentUser ? 'rgba(255, 255, 255, 0.7)' : '#999'};
   margin-top: 5px;
   display: block;
+  text-align: ${props => props.isCurrentUser ? 'right' : 'left'};
+`;
+
+const DateDivider = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 15px 0;
+  
+  &::before, &::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  span {
+    margin: 0 10px;
+    font-size: 12px;
+    color: #888;
+    background-color: white;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+`;
+
+const EmptyStateMessage = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #888;
+  text-align: center;
+  padding: 20px;
+  
+  p {
+    margin: 10px 0;
+  }
+  
+  svg {
+    font-size: 40px;
+    color: #ccc;
+    margin-bottom: 10px;
+  }
 `;
 
 interface ChatProps {
@@ -139,16 +249,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   const { currentUser } = useAuth();
   const messageListRef = useRef<HTMLDivElement>(null);
 
-  // Debug authentication state
-  useEffect(() => {
-    console.log('Auth Debug Info:');
-    console.log('- currentUser from useAuth():', currentUser);
-    console.log('- currentUser UID:', currentUser?.uid);
-    console.log('- currentUser email:', currentUser?.email);
-    console.log('- Is authenticated:', !!currentUser);
-    console.log('- Google user prop:', user);
-  }, [currentUser, user]);
-
   // Scroll to bottom when messages update
   useEffect(() => {
     if (messageListRef.current) {
@@ -156,32 +256,24 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     }
   }, [messages]);
 
-  // Subscribe to Firestore for real-time updates
+  // Subscribe to Firestore for real-time updates - limited to last 7 days
   useEffect(() => {
-    if (!user) {
-      console.log('Not fetching messages: No user prop provided');
-      return;
-    }
-
-    if (!currentUser) {
-      console.log('Not fetching messages: No Firebase authenticated user');
-      return;
-    }
-
-    console.log('Attempting to connect to Firestore with auth:', !!currentUser);
+    if (!user || !currentUser) return;
 
     try {
+      // Calculate date 7 days ago
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
       const messagesRef = collection(firestore, 'messages');
       const messagesQuery = query(
         messagesRef,
-        orderBy('createdAt', 'asc'),
-        firestoreLimit(100)
+        where('createdAt', '>=', Timestamp.fromDate(sevenDaysAgo)),
+        orderBy('createdAt', 'asc')
       );
 
-      console.log('Setting up Firestore listener...');
       const unsubscribe = onSnapshot(messagesQuery, 
         (snapshot) => {
-          console.log('Received Firestore snapshot with', snapshot.size, 'messages');
           const newMessages: ChatMessage[] = [];
           snapshot.forEach((doc) => {
             newMessages.push({ id: doc.id, ...doc.data() } as ChatMessage);
@@ -190,15 +282,10 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
         },
         (error) => {
           console.error('Firestore snapshot error:', error);
-          console.log('Error code:', error.code);
-          console.log('Error message:', error.message);
         }
       );
 
-      return () => {
-        console.log('Cleaning up Firestore listener');
-        unsubscribe();
-      };
+      return () => unsubscribe();
     } catch (error) {
       console.error('Error setting up Firestore listener:', error);
     }
@@ -210,7 +297,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
 
     setIsLoading(true);
     try {
-      console.log('Attempting to add document to Firestore');
       await addDoc(collection(firestore, 'messages'), {
         text: inputValue,
         createdAt: serverTimestamp(),
@@ -220,7 +306,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           photoURL: user.picture || null
         }
       });
-      console.log('Document added successfully');
       setInputValue('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -233,38 +318,131 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     return <div>Please log in to access the chat.</div>;
   }
 
-  const formatDate = (timestamp: Timestamp | null) => {
+  const formatMessageDate = (timestamp: Timestamp | null) => {
     if (!timestamp) return '';
+    
     const date = timestamp.toDate();
-    return new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
+    const now = new Date();
+    
+    // Same day
+    if (date.toDateString() === now.toDateString()) {
+      return `Today at ${format(date, 'h:mm a')}`;
+    }
+    
+    // Yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${format(date, 'h:mm a')}`;
+    }
+    
+    // Within the last 7 days
+    return format(date, 'EEE, MMM d, h:mm a');
   };
+  
+  // Group messages by date and sender
+  const groupedMessages: { [key: string]: ChatMessage[][] } = {};
+  let currentDay = '';
+  let currentSender = '';
+  let currentGroup: ChatMessage[] = [];
+
+  messages.forEach((message) => {
+    if (!message.createdAt) return;
+    
+    const messageDate = message.createdAt.toDate();
+    const messageDayKey = messageDate.toDateString();
+    const senderId = message.user.uid;
+    
+    // If new day, start new day entry
+    if (messageDayKey !== currentDay) {
+      currentDay = messageDayKey;
+      if (!groupedMessages[currentDay]) {
+        groupedMessages[currentDay] = [];
+      }
+      currentSender = senderId;
+      currentGroup = [message];
+      groupedMessages[currentDay].push(currentGroup);
+    } 
+    // If new sender, start new group
+    else if (senderId !== currentSender) {
+      currentSender = senderId;
+      currentGroup = [message];
+      groupedMessages[currentDay].push(currentGroup);
+    } 
+    // Same sender, same day, add to current group
+    else {
+      currentGroup.push(message);
+    }
+  });
 
   return (
     <ChatContainer>
       <ChatTitle>Team Chat</ChatTitle>
       <ChatBox>
         <MessageList ref={messageListRef}>
-          {messages.map((message) => {
-            const isCurrentUser = currentUser?.uid === message.user.uid;
-            return (
-              <div key={message.id}>
-                <UserInfo isCurrentUser={isCurrentUser}>
-                  {!isCurrentUser && <b>{message.user.name}</b>}
-                </UserInfo>
-                <MessageItem isCurrentUser={isCurrentUser}>
-                  {message.text}
-                  <MessageTime>{formatDate(message.createdAt)}</MessageTime>
-                </MessageItem>
-              </div>
-            );
-          })}
+          {Object.keys(groupedMessages).length > 0 ? (
+            Object.entries(groupedMessages).map(([day, messageGroups]) => (
+              <React.Fragment key={day}>
+                <DateDivider>
+                  <span>{new Date(day).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+                </DateDivider>
+                
+                {messageGroups.map((group, groupIndex) => {
+                  const isCurrentUser = currentUser?.uid === group[0].user.uid;
+                  const firstMessage = group[0];
+                  const initial = firstMessage.user.name.charAt(0).toUpperCase();
+                  
+                  return (
+                    <MessageGroup key={`${day}-${groupIndex}`}>
+                      <UserInfo isCurrentUser={isCurrentUser}>
+                        {!isCurrentUser && (
+                          <>
+                            <UserAvatar 
+                              photoURL={firstMessage.user.photoURL} 
+                              isCurrentUser={isCurrentUser}
+                            >
+                              {!firstMessage.user.photoURL && initial}
+                            </UserAvatar>
+                            <span>{firstMessage.user.name}</span>
+                          </>
+                        )}
+                        {isCurrentUser && (
+                          <>
+                            <span>You</span>
+                            <UserAvatar 
+                              photoURL={firstMessage.user.photoURL} 
+                              isCurrentUser={isCurrentUser}
+                            >
+                              {!firstMessage.user.photoURL && initial}
+                            </UserAvatar>
+                          </>
+                        )}
+                      </UserInfo>
+                      
+                      {group.map((message, messageIndex) => (
+                        <MessageItem key={message.id} isCurrentUser={isCurrentUser}>
+                          {message.text}
+                          {messageIndex === group.length - 1 && (
+                            <MessageTime isCurrentUser={isCurrentUser}>
+                              {formatMessageDate(message.createdAt)}
+                            </MessageTime>
+                          )}
+                        </MessageItem>
+                      ))}
+                    </MessageGroup>
+                  );
+                })}
+              </React.Fragment>
+            ))
+          ) : (
+            <EmptyStateMessage>
+              <FaUser />
+              <p>No messages in the last 7 days</p>
+              <p>Start a conversation with your team!</p>
+            </EmptyStateMessage>
+          )}
         </MessageList>
+        
         <MessageForm onSubmit={handleSubmit}>
           <MessageInput
             value={inputValue}
@@ -272,7 +450,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             placeholder="Type a message..."
           />
           <SendButton type="submit" disabled={isLoading || !inputValue.trim()}>
-            Send
+            <FaPaperPlane />
           </SendButton>
         </MessageForm>
       </ChatBox>
