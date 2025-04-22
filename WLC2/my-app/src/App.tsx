@@ -11,7 +11,6 @@ import Chat from './Pages/Chat';
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import FirebaseDebug from './firebase-debug';
 import { signInWithGooglePopup } from './firebase';
 import backgroundImage from './Background/86343.jpg';
 
@@ -153,7 +152,6 @@ function App() {
                 <Route path="/chat" element={<Chat user={user} />} />
                 <Route path="*" element={<Navigate to="/events" replace />} />
               </Routes>
-              <FirebaseDebug />
             </>
           ) : (
             <LoginContainer>
@@ -164,7 +162,6 @@ function App() {
                   Sign in with Google
                 </GoogleLoginButton>
               </LoginButton>
-              <FirebaseDebug />
             </LoginContainer>
           )}
           {isLoggedIn && <BottomNavBar />}
