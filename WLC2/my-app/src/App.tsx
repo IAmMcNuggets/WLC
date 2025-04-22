@@ -138,7 +138,7 @@ function App() {
             <>
               <Routes>
                 <Route path="/events" element={<Events user={user} />} />
-                <Route path="/timeclock" element={<Timeclock />} />
+                <Route path="/timeclock" element={<Timeclock user={user} />} />
                 <Route 
                   path="/profile" 
                   element={

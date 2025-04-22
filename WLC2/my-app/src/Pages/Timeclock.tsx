@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { saveAs } from 'file-saver';
+import { collection, addDoc, updateDoc, doc, query, where, orderBy, onSnapshot, deleteDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { firestore } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { GoogleUser } from '../App';
 
 const TimeclockContainer = styled.div`
   min-height: 100vh;
@@ -13,6 +17,7 @@ const TimeclockContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-bottom: 100px; // Added for bottom navigation bar
 `;
 
 const TimeclockTitle = styled.h1`
@@ -123,91 +128,133 @@ const ExportButton = styled(Button)`
 `;
 
 interface TimeEntryData {
-  id: number;
-  clockIn: string;
-  clockOut: string | null;
+  id: string;
+  userId: string;
+  userName: string;
+  clockIn: Timestamp;
+  clockOut: Timestamp | null;
+  createdAt: Timestamp;
 }
 
-function Timeclock() {
+interface TimeclockProps {
+  user: GoogleUser | null;
+}
+
+function Timeclock({ user }: TimeclockProps) {
   const [timeEntries, setTimeEntries] = useState<TimeEntryData[]>([]);
   const [isClockedIn, setIsClockedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    // Load time entries from local storage when component mounts
-    const storedEntries = localStorage.getItem('timeEntries');
-    console.log('Loaded entries from localStorage:', storedEntries);
-    if (storedEntries) {
-      try {
-        const parsedEntries = JSON.parse(storedEntries);
-        setTimeEntries(parsedEntries);
-        
-        // Check if user is currently clocked in
-        const lastEntry = parsedEntries[0];
-        if (lastEntry && !lastEntry.clockOut) {
-          setIsClockedIn(true);
-        }
-      } catch (error) {
-        console.error('Error parsing stored entries:', error);
-        // Handle the error, maybe clear the invalid data
-        localStorage.removeItem('timeEntries');
-      }
-    }
-  }, []);
+    if (!currentUser || !user) return;
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log('Saving entries to localStorage:', timeEntries);
-      localStorage.setItem('timeEntries', JSON.stringify(timeEntries));
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [timeEntries]);
-
-  const handleClockIn = () => {
-    const newEntry: TimeEntryData = {
-      id: Date.now(),
-      clockIn: new Date().toISOString(),
-      clockOut: null
-    };
-    setTimeEntries(prevEntries => [newEntry, ...prevEntries]);
-    setIsClockedIn(true);
-  };
-
-  const handleClockOut = () => {
-    setTimeEntries(prevEntries => 
-      prevEntries.map((entry, index) => 
-        index === 0 ? { ...entry, clockOut: new Date().toISOString() } : entry
-      )
+    // Subscribe to Firestore for real-time updates of user's time entries
+    const timeEntriesRef = collection(firestore, 'timeEntries');
+    const userEntriesQuery = query(
+      timeEntriesRef,
+      where('userId', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
     );
-    setIsClockedIn(false);
+
+    const unsubscribe = onSnapshot(userEntriesQuery, 
+      (snapshot) => {
+        const entries: TimeEntryData[] = [];
+        snapshot.forEach((doc) => {
+          entries.push({ 
+            id: doc.id, 
+            ...doc.data() 
+          } as TimeEntryData);
+        });
+        
+        setTimeEntries(entries);
+        
+        // Check if user is currently clocked in based on latest entry
+        const lastEntry = entries[0];
+        setIsClockedIn(lastEntry && !lastEntry.clockOut);
+        setIsLoading(false);
+      },
+      (error) => {
+        console.error('Firestore snapshot error:', error);
+        setIsLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [currentUser, user]);
+
+  const handleClockIn = async () => {
+    if (!currentUser || !user) return;
+    
+    try {
+      const newEntry = {
+        userId: currentUser.uid,
+        userName: user.name,
+        clockIn: serverTimestamp(),
+        clockOut: null,
+        createdAt: serverTimestamp()
+      };
+      
+      await addDoc(collection(firestore, 'timeEntries'), newEntry);
+      setIsClockedIn(true);
+    } catch (error) {
+      console.error('Error clocking in:', error);
+    }
   };
 
-  const handleDeleteEntry = (id: number) => {
-    setTimeEntries(prevEntries => {
-      const updatedEntries = prevEntries.filter(entry => entry.id !== id);
-      if (updatedEntries.length === 0 || updatedEntries[0].clockOut !== null) {
-        setIsClockedIn(false);
-      }
-      return updatedEntries;
+  const handleClockOut = async () => {
+    if (!currentUser || timeEntries.length === 0) return;
+    
+    try {
+      const latestEntry = timeEntries[0];
+      const entryRef = doc(firestore, 'timeEntries', latestEntry.id);
+      
+      await updateDoc(entryRef, {
+        clockOut: serverTimestamp()
+      });
+      
+      setIsClockedIn(false);
+    } catch (error) {
+      console.error('Error clocking out:', error);
+    }
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    try {
+      const entryRef = doc(firestore, 'timeEntries', id);
+      await deleteDoc(entryRef);
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+    }
+  };
+
+  const formatDate = (timestamp: Timestamp) => {
+    if (!timestamp) return 'Loading...';
+    const date = timestamp.toDate();
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
     });
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', { 
+  const formatTime = (timestamp: Timestamp) => {
+    if (!timestamp) return 'Loading...';
+    const date = timestamp.toDate();
+    return date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit', 
       hour12: true 
     });
   };
 
-  const calculateDuration = (clockIn: string, clockOut: string | null) => {
+  const calculateDuration = (clockIn: Timestamp, clockOut: Timestamp | null) => {
+    if (!clockIn) return 'Calculating...';
     if (!clockOut) return 'In progress';
-    const start = new Date(clockIn);
-    const end = new Date(clockOut);
+    
+    const start = clockIn.toDate();
+    const end = clockOut.toDate();
     const diff = end.getTime() - start.getTime();
     const hours = Math.floor(diff / 3600000);
     const minutes = Math.floor((diff % 3600000) / 60000);
@@ -218,11 +265,20 @@ function Timeclock() {
     const csvContent = [
       ['Date', 'Clock In', 'Clock Out', 'Duration'],
       ...timeEntries.map(entry => {
-        const date = new Date(entry.clockIn);
-        const formattedDate = `${date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}`;
-        const clockIn = formatTime(entry.clockIn);
+        if (!entry.clockIn) return ['Loading...', 'Loading...', 'Loading...', 'Loading...'];
+        
+        const date = entry.clockIn.toDate();
+        const formattedDate = `${date.toLocaleDateString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        })}`;
+        
+        const clockIn = entry.clockIn ? formatTime(entry.clockIn) : 'Loading...';
         const clockOut = entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out';
         const duration = calculateDuration(entry.clockIn, entry.clockOut);
+        
         return [formattedDate, clockIn, clockOut, duration];
       })
     ].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -230,6 +286,9 @@ function Timeclock() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, 'timeclock_entries.csv');
   };
+
+  if (!user) return <div>Please log in to use the timeclock.</div>;
+  if (isLoading) return <div>Loading time entries...</div>;
 
   return (
     <TimeclockContainer>
@@ -244,10 +303,10 @@ function Timeclock() {
           <TimeEntry key={entry.id}>
             <EntryInfo>
               <EntryHeader>
-                <EntryDate>{formatDate(new Date(entry.clockIn))}</EntryDate>
+                <EntryDate>{entry.clockIn ? formatDate(entry.clockIn) : 'Loading...'}</EntryDate>
                 <EntryDuration>{calculateDuration(entry.clockIn, entry.clockOut)}</EntryDuration>
               </EntryHeader>
-              <EntryTime>Clock In: {formatTime(entry.clockIn)}</EntryTime>
+              <EntryTime>Clock In: {entry.clockIn ? formatTime(entry.clockIn) : 'Loading...'}</EntryTime>
               <EntryTime>Clock Out: {entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out'}</EntryTime>
             </EntryInfo>
             <DeleteButton onClick={() => handleDeleteEntry(entry.id)}>Delete</DeleteButton>
