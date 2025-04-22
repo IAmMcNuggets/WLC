@@ -1,27 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
   onAuthStateChanged, 
-  User as FirebaseUser,
-  signInWithCredential,
-  GoogleAuthProvider,
-  signInAnonymously
+  User as FirebaseUser
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, signInWithGoogleCredential } from '../firebase';
 
 // Define the shape of our context
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   loading: boolean;
   signInWithGoogle: (googleIdToken: string) => Promise<void>;
-  signInAnonymouslyIfNeeded: () => Promise<void>;
 }
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
-  signInWithGoogle: async () => {},
-  signInAnonymouslyIfNeeded: async () => {}
+  signInWithGoogle: async () => {}
 });
 
 // Custom hook to use the auth context
@@ -54,25 +49,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check if we have a stored Google ID token and sign in with it
     const attemptSignInWithStoredCredential = async () => {
       try {
-        const storedUser = localStorage.getItem('user');
         const storedCredential = localStorage.getItem('google_credential');
         
         console.log('Stored credential exists:', !!storedCredential);
         
-        if (storedUser && storedCredential) {
+        if (storedCredential) {
           try {
             console.log('Attempting to sign in with stored credential');
             await signInWithGoogle(storedCredential);
             console.log('Successfully signed in with stored credential');
           } catch (error) {
             console.error('Error signing in with stored credential:', error);
-            
-            // If credential sign-in fails, try anonymous sign-in
-            await signInAnonymouslyIfNeeded();
+            localStorage.removeItem('google_credential');
           }
-        } else {
-          // If no credential, try anonymous sign-in
-          await signInAnonymouslyIfNeeded();
         }
       } catch (error) {
         console.error('Error during automatic sign-in:', error);
@@ -92,10 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signInWithGoogle = async (googleIdToken: string) => {
     try {
       console.log('Creating Google credential...');
-      const credential = GoogleAuthProvider.credential(googleIdToken);
-      console.log('Signing in to Firebase with credential...');
-      const result = await signInWithCredential(auth, credential);
-      console.log('Successfully signed in to Firebase:', result.user?.uid);
+      await signInWithGoogleCredential(googleIdToken);
       // Store the credential for future use
       localStorage.setItem('google_credential', googleIdToken);
     } catch (error) {
@@ -104,24 +90,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Function to sign in anonymously if no user is authenticated
-  const signInAnonymouslyIfNeeded = async () => {
-    try {
-      if (!currentUser) {
-        console.log('No user authenticated, attempting anonymous sign-in');
-        const result = await signInAnonymously(auth);
-        console.log('Anonymous sign-in successful:', result.user?.uid);
-      }
-    } catch (error) {
-      console.error('Error signing in anonymously:', error);
-    }
-  };
-
   const value = {
     currentUser,
     loading,
-    signInWithGoogle,
-    signInAnonymouslyIfNeeded
+    signInWithGoogle
   };
 
   return (

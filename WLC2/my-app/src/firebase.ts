@@ -1,5 +1,12 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  Auth, 
+  signInWithCredential,
+  signInWithPopup,
+  OAuthProvider 
+} from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
@@ -52,5 +59,33 @@ try {
   console.error('Firebase initialization error:', error);
   throw error;
 }
+
+// Function to sign in with Google OAuth credential
+export const signInWithGoogleCredential = async (idToken: string) => {
+  try {
+    // Create a Google Auth Provider credential with the token
+    const credential = GoogleAuthProvider.credential(idToken);
+    
+    // Sign in with the credential
+    const result = await signInWithCredential(auth, credential);
+    console.log('Successfully signed in with credential', result.user?.uid);
+    return result;
+  } catch (error) {
+    console.error('Error signing in with Google credential:', error);
+    throw error;
+  }
+};
+
+// Function to sign in with a Google popup (alternative approach)
+export const signInWithGooglePopup = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('Successfully signed in with popup', result.user?.uid);
+    return result;
+  } catch (error) {
+    console.error('Error signing in with Google popup:', error);
+    throw error;
+  }
+};
 
 export { app as default, auth, analytics, googleProvider, firestore }; 

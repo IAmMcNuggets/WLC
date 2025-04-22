@@ -84,16 +84,11 @@ function App() {
 
   // Inner component to access useAuth within AuthProvider context
   const AppContent = () => {
-    const { signInWithGoogle, currentUser, signInAnonymouslyIfNeeded } = useAuth();
+    const { signInWithGoogle, currentUser } = useAuth();
     
     // Effect to check Firebase authentication status
     useEffect(() => {
       console.log('AppContent: Firebase auth state:', currentUser ? `User: ${currentUser.uid}` : 'No user');
-      
-      // If we have a Firebase user but no Google user, try anonymous login
-      if (!isLoggedIn && currentUser) {
-        console.log('We have Firebase auth but no Google user, likely anonymous auth');
-      }
     }, [currentUser]);
     
     const handleLogin = async (credentialResponse: CredentialResponse) => {
@@ -111,13 +106,9 @@ function App() {
           console.log('Firebase sign-in complete');
         } catch (error) {
           console.error('Error signing in to Firebase:', error);
-          // Try anonymous auth as fallback
-          await signInAnonymouslyIfNeeded();
         }
       } else {
         console.error('Credential is undefined');
-        // If Google sign-in fails, try anonymous auth
-        await signInAnonymouslyIfNeeded();
       }
     };
 
@@ -162,8 +153,6 @@ function App() {
                   onSuccess={handleLogin}
                   onError={() => {
                     console.log('Google Login Failed');
-                    // Try anonymous auth if Google login fails
-                    signInAnonymouslyIfNeeded();
                   }}
                   size="large"
                   text="signin_with"

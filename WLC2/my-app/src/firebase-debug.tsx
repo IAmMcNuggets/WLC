@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { auth, firestore } from './firebase';
-import { collection, getDocs } from 'firebase/firestore';
-import { getAuth, signInAnonymously } from 'firebase/auth';
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 
 interface DebugInfo {
   authStatus: string;
   userId: string | null;
   firestoreTest: string;
+  firestoreWrite: string;
   googleUserInfo: any;
 }
 
@@ -19,6 +19,7 @@ export const FirebaseDebug: React.FC = () => {
     authStatus: 'Checking...',
     userId: null,
     firestoreTest: 'Not tested',
+    firestoreWrite: 'Not tested',
     googleUserInfo: null
   });
 
@@ -36,30 +37,13 @@ export const FirebaseDebug: React.FC = () => {
           }));
           
           // Try to access Firestore
-          testFirestore(user.uid);
+          await testFirestoreRead(user.uid);
+          await testFirestoreWrite(user.uid);
         } else {
           setDebugInfo(prev => ({
             ...prev,
-            authStatus: 'Not authenticated'
+            authStatus: 'Not authenticated - Please sign in with Google'
           }));
-          
-          // Try anonymous sign-in if not authenticated
-          try {
-            const result = await signInAnonymously(auth);
-            setDebugInfo(prev => ({
-              ...prev,
-              authStatus: 'Anonymous auth success',
-              userId: result.user.uid
-            }));
-            
-            // Test Firestore with anonymous auth
-            testFirestore(result.user.uid);
-          } catch (error: any) {
-            setDebugInfo(prev => ({
-              ...prev,
-              authStatus: `Anonymous auth failed: ${error.message}`
-            }));
-          }
         }
         
         // Check for Google user info in localStorage
@@ -83,7 +67,7 @@ export const FirebaseDebug: React.FC = () => {
       }
     };
     
-    const testFirestore = async (userId: string) => {
+    const testFirestoreRead = async (userId: string) => {
       try {
         // Try to read from Firestore
         const testCollection = collection(firestore, 'test');
@@ -99,8 +83,32 @@ export const FirebaseDebug: React.FC = () => {
         }));
       }
     };
+
+    const testFirestoreWrite = async (userId: string) => {
+      try {
+        // Try to write to Firestore
+        const testDoc = doc(firestore, 'test', userId);
+        await setDoc(testDoc, { 
+          lastChecked: new Date().toISOString(),
+          userId: userId
+        });
+        setDebugInfo(prev => ({
+          ...prev,
+          firestoreWrite: 'Write successful!'
+        }));
+      } catch (error: any) {
+        setDebugInfo(prev => ({
+          ...prev,
+          firestoreWrite: `Error: ${error.message}`
+        }));
+      }
+    };
     
     checkAuth();
+
+    // Re-check auth state every 5 seconds to handle updates
+    const interval = setInterval(checkAuth, 5000);
+    return () => clearInterval(interval);
   }, []);
   
   return (
@@ -118,19 +126,17 @@ export const FirebaseDebug: React.FC = () => {
       <h3>Firebase Debug</h3>
       <p><strong>Auth Status:</strong> {debugInfo.authStatus}</p>
       <p><strong>User ID:</strong> {debugInfo.userId || 'None'}</p>
-      <p><strong>Firestore Test:</strong> {debugInfo.firestoreTest}</p>
+      <p><strong>Firestore Read:</strong> {debugInfo.firestoreTest}</p>
+      <p><strong>Firestore Write:</strong> {debugInfo.firestoreWrite}</p>
       {debugInfo.googleUserInfo && (
         <div>
-          <p><strong>Google User:</strong></p>
-          <pre style={{ 
-            maxHeight: '100px', 
-            overflow: 'auto', 
-            fontSize: '10px' 
-          }}>
-            {JSON.stringify(debugInfo.googleUserInfo, null, 2)}
-          </pre>
+          <p><strong>Google User:</strong> {debugInfo.googleUserInfo.name}</p>
+          <p><strong>Email:</strong> {debugInfo.googleUserInfo.email}</p>
         </div>
       )}
+      <div style={{ marginTop: '10px', fontSize: '11px' }}>
+        Note: If permissions still failing, check Firebase Console security rules.
+      </div>
     </div>
   );
 };
