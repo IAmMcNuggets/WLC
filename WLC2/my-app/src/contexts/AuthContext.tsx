@@ -3,7 +3,8 @@ import {
   onAuthStateChanged, 
   User as FirebaseUser,
   signInWithCredential,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  signInAnonymously
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -12,13 +13,15 @@ interface AuthContextType {
   currentUser: FirebaseUser | null;
   loading: boolean;
   signInWithGoogle: (googleIdToken: string) => Promise<void>;
+  signInAnonymouslyIfNeeded: () => Promise<void>;
 }
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
-  signInWithGoogle: async () => {}
+  signInWithGoogle: async () => {},
+  signInAnonymouslyIfNeeded: async () => {}
 });
 
 // Custom hook to use the auth context
@@ -36,39 +39,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthProvider initializing...');
+    
     // Subscribe to auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('Firebase Auth state changed:', user ? `User: ${user.uid}` : 'No user');
       setCurrentUser(user);
+      setLoading(false);
+    }, (error) => {
+      console.error('Firebase Auth state observer error:', error);
       setLoading(false);
     });
 
     // Check if we have a stored Google ID token and sign in with it
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const attemptSignInWithStoredCredential = async () => {
       try {
-        const userData = JSON.parse(storedUser);
-        // If we have jti, it might be a Google credential token
-        if (userData.jti) {
-          const storedCredential = localStorage.getItem('google_credential');
-          if (storedCredential) {
-            // Sign in with the stored credential
-            signInWithGoogle(storedCredential);
+        const storedUser = localStorage.getItem('user');
+        const storedCredential = localStorage.getItem('google_credential');
+        
+        console.log('Stored credential exists:', !!storedCredential);
+        
+        if (storedUser && storedCredential) {
+          try {
+            console.log('Attempting to sign in with stored credential');
+            await signInWithGoogle(storedCredential);
+            console.log('Successfully signed in with stored credential');
+          } catch (error) {
+            console.error('Error signing in with stored credential:', error);
+            
+            // If credential sign-in fails, try anonymous sign-in
+            await signInAnonymouslyIfNeeded();
           }
+        } else {
+          // If no credential, try anonymous sign-in
+          await signInAnonymouslyIfNeeded();
         }
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        console.error('Error during automatic sign-in:', error);
       }
-    }
+    };
+
+    attemptSignInWithStoredCredential();
 
     // Cleanup subscription on unmount
-    return unsubscribe;
+    return () => {
+      console.log('Cleaning up Auth state observer');
+      unsubscribe();
+    };
   }, []);
 
   // Function to sign in with Google credentials
   const signInWithGoogle = async (googleIdToken: string) => {
     try {
+      console.log('Creating Google credential...');
       const credential = GoogleAuthProvider.credential(googleIdToken);
-      await signInWithCredential(auth, credential);
+      console.log('Signing in to Firebase with credential...');
+      const result = await signInWithCredential(auth, credential);
+      console.log('Successfully signed in to Firebase:', result.user?.uid);
       // Store the credential for future use
       localStorage.setItem('google_credential', googleIdToken);
     } catch (error) {
@@ -77,10 +104,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to sign in anonymously if no user is authenticated
+  const signInAnonymouslyIfNeeded = async () => {
+    try {
+      if (!currentUser) {
+        console.log('No user authenticated, attempting anonymous sign-in');
+        const result = await signInAnonymously(auth);
+        console.log('Anonymous sign-in successful:', result.user?.uid);
+      }
+    } catch (error) {
+      console.error('Error signing in anonymously:', error);
+    }
+  };
+
   const value = {
     currentUser,
     loading,
-    signInWithGoogle
+    signInWithGoogle,
+    signInAnonymouslyIfNeeded
   };
 
   return (

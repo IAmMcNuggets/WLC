@@ -13,6 +13,7 @@ import Chat from './Pages/Chat';
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import FirebaseDebug from './firebase-debug';
 import backgroundImage from './Background/86343.jpg';
 // Define and export the GoogleUser interface
 export interface GoogleUser {
@@ -72,8 +73,10 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    console.log('App component initializing');
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
+      console.log('Found stored user data');
       setUser(JSON.parse(storedUser));
       setIsLoggedIn(true);
     }
@@ -81,10 +84,21 @@ function App() {
 
   // Inner component to access useAuth within AuthProvider context
   const AppContent = () => {
-    const { signInWithGoogle } = useAuth();
+    const { signInWithGoogle, currentUser, signInAnonymouslyIfNeeded } = useAuth();
+    
+    // Effect to check Firebase authentication status
+    useEffect(() => {
+      console.log('AppContent: Firebase auth state:', currentUser ? `User: ${currentUser.uid}` : 'No user');
+      
+      // If we have a Firebase user but no Google user, try anonymous login
+      if (!isLoggedIn && currentUser) {
+        console.log('We have Firebase auth but no Google user, likely anonymous auth');
+      }
+    }, [currentUser]);
     
     const handleLogin = async (credentialResponse: CredentialResponse) => {
       if (credentialResponse.credential) {
+        console.log('Google login successful, processing credential');
         const credentialResponseDecoded = jwtDecode(credentialResponse.credential) as GoogleUser;
         setUser(credentialResponseDecoded);
         setIsLoggedIn(true);
@@ -92,36 +106,53 @@ function App() {
         
         // Sign in to Firebase with the Google credential
         try {
+          console.log('Signing in to Firebase with Google credential');
           await signInWithGoogle(credentialResponse.credential);
+          console.log('Firebase sign-in complete');
         } catch (error) {
           console.error('Error signing in to Firebase:', error);
+          // Try anonymous auth as fallback
+          await signInAnonymouslyIfNeeded();
         }
       } else {
         console.error('Credential is undefined');
-        // Handle the error case
+        // If Google sign-in fails, try anonymous auth
+        await signInAnonymouslyIfNeeded();
       }
+    };
+
+    // Handle logout
+    const handleLogout = () => {
+      setUser(null);
+      setIsLoggedIn(false);
+      localStorage.removeItem('user');
+      localStorage.removeItem('google_credential');
+      // Note: Firebase logout not implemented here, as we're focusing on the permission error
     };
 
     return (
       <Router>
         <AppContainer>
           {isLoggedIn ? (
-            <Routes>
-              <Route path="/events" element={<Events user={user} />} />
-              <Route path="/timeclock" element={<Timeclock />} />
-              <Route 
-                path="/profile" 
-                element={
-                  <Profile 
-                    user={user} 
-                    setIsLoggedIn={setIsLoggedIn} 
-                  />
-                } 
-              />
-              <Route path="/training" element={<Training user={user} />} />
-              <Route path="/chat" element={<Chat user={user} />} />
-              <Route path="*" element={<Navigate to="/events" replace />} />
-            </Routes>
+            <>
+              <Routes>
+                <Route path="/events" element={<Events user={user} />} />
+                <Route path="/timeclock" element={<Timeclock />} />
+                <Route 
+                  path="/profile" 
+                  element={
+                    <Profile 
+                      user={user} 
+                      setIsLoggedIn={handleLogout} 
+                    />
+                  } 
+                />
+                <Route path="/training" element={<Training user={user} />} />
+                <Route path="/chat" element={<Chat user={user} />} />
+                <Route path="*" element={<Navigate to="/events" replace />} />
+              </Routes>
+              <FirebaseDebug />
+            </>
           ) : (
             <LoginContainer>
               <Logo src={logo} alt="Gigfriend Logo" />
@@ -129,13 +160,18 @@ function App() {
               <LoginButton>
                 <GoogleLogin
                   onSuccess={handleLogin}
-                  onError={() => console.log('Login Failed')}
+                  onError={() => {
+                    console.log('Google Login Failed');
+                    // Try anonymous auth if Google login fails
+                    signInAnonymouslyIfNeeded();
+                  }}
                   size="large"
                   text="signin_with"
                   shape="rectangular"
                   logo_alignment="left"
                 />
               </LoginButton>
+              <FirebaseDebug />
             </LoginContainer>
           )}
           {isLoggedIn && <BottomNavBar />}

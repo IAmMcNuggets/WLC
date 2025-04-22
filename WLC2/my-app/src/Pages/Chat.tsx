@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { collection, addDoc, onSnapshot, query, orderBy, limit, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, limit as firestoreLimit, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { GoogleUser } from '../App';
 import { firestore } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -139,6 +139,16 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   const { currentUser } = useAuth();
   const messageListRef = useRef<HTMLDivElement>(null);
 
+  // Debug authentication state
+  useEffect(() => {
+    console.log('Auth Debug Info:');
+    console.log('- currentUser from useAuth():', currentUser);
+    console.log('- currentUser UID:', currentUser?.uid);
+    console.log('- currentUser email:', currentUser?.email);
+    console.log('- Is authenticated:', !!currentUser);
+    console.log('- Google user prop:', user);
+  }, [currentUser, user]);
+
   // Scroll to bottom when messages update
   useEffect(() => {
     if (messageListRef.current) {
@@ -148,25 +158,51 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
 
   // Subscribe to Firestore for real-time updates
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log('Not fetching messages: No user prop provided');
+      return;
+    }
 
-    const messagesRef = collection(firestore, 'messages');
-    const messagesQuery = query(
-      messagesRef,
-      orderBy('createdAt', 'asc'),
-      limit(100)
-    );
+    if (!currentUser) {
+      console.log('Not fetching messages: No Firebase authenticated user');
+      return;
+    }
 
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const newMessages: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        newMessages.push({ id: doc.id, ...doc.data() } as ChatMessage);
-      });
-      setMessages(newMessages);
-    });
+    console.log('Attempting to connect to Firestore with auth:', !!currentUser);
 
-    return () => unsubscribe();
-  }, [user]);
+    try {
+      const messagesRef = collection(firestore, 'messages');
+      const messagesQuery = query(
+        messagesRef,
+        orderBy('createdAt', 'asc'),
+        firestoreLimit(100)
+      );
+
+      console.log('Setting up Firestore listener...');
+      const unsubscribe = onSnapshot(messagesQuery, 
+        (snapshot) => {
+          console.log('Received Firestore snapshot with', snapshot.size, 'messages');
+          const newMessages: ChatMessage[] = [];
+          snapshot.forEach((doc) => {
+            newMessages.push({ id: doc.id, ...doc.data() } as ChatMessage);
+          });
+          setMessages(newMessages);
+        },
+        (error) => {
+          console.error('Firestore snapshot error:', error);
+          console.log('Error code:', error.code);
+          console.log('Error message:', error.message);
+        }
+      );
+
+      return () => {
+        console.log('Cleaning up Firestore listener');
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error('Error setting up Firestore listener:', error);
+    }
+  }, [user, currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +210,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
 
     setIsLoading(true);
     try {
+      console.log('Attempting to add document to Firestore');
       await addDoc(collection(firestore, 'messages'), {
         text: inputValue,
         createdAt: serverTimestamp(),
@@ -183,6 +220,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           photoURL: user.picture || null
         }
       });
+      console.log('Document added successfully');
       setInputValue('');
     } catch (error) {
       console.error('Error sending message:', error);
