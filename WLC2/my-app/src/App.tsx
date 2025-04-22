@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { jwtDecode } from "jwt-decode";
 import styled from 'styled-components';
 import logo from './Logos/Logo Color.png';
 import './App.css';
@@ -11,10 +9,12 @@ import Profile from './Pages/Profile';
 import Training from './Pages/Training';
 import Chat from './Pages/Chat';
 import BottomNavBar from './components/BottomNavBar';
-import { QueryClient, QueryClientProvider } from 'react-query'
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import FirebaseDebug from './firebase-debug';
+import { signInWithGooglePopup } from './firebase';
 import backgroundImage from './Background/86343.jpg';
+
 // Define and export the GoogleUser interface
 export interface GoogleUser {
   name: string;
@@ -84,31 +84,44 @@ function App() {
 
   // Inner component to access useAuth within AuthProvider context
   const AppContent = () => {
-    const { signInWithGoogle, currentUser } = useAuth();
+    const { currentUser } = useAuth();
     
     // Effect to check Firebase authentication status
     useEffect(() => {
       console.log('AppContent: Firebase auth state:', currentUser ? `User: ${currentUser.uid}` : 'No user');
+      
+      // If we have Firebase auth but no local user data, update it
+      if (currentUser && !user) {
+        const userData: GoogleUser = {
+          name: currentUser.displayName || 'User',
+          email: currentUser.email || 'No email',
+          picture: currentUser.photoURL || undefined
+        };
+        setUser(userData);
+        setIsLoggedIn(true);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
     }, [currentUser]);
     
-    const handleLogin = async (credentialResponse: CredentialResponse) => {
-      if (credentialResponse.credential) {
-        console.log('Google login successful, processing credential');
-        const credentialResponseDecoded = jwtDecode(credentialResponse.credential) as GoogleUser;
-        setUser(credentialResponseDecoded);
-        setIsLoggedIn(true);
-        localStorage.setItem('user', JSON.stringify(credentialResponseDecoded));
+    const handleGoogleLogin = async () => {
+      try {
+        console.log('Starting Firebase Google sign-in popup...');
+        const result = await signInWithGooglePopup();
+        console.log('Firebase Google sign-in successful', result.user);
         
-        // Sign in to Firebase with the Google credential
-        try {
-          console.log('Signing in to Firebase with Google credential');
-          await signInWithGoogle(credentialResponse.credential);
-          console.log('Firebase sign-in complete');
-        } catch (error) {
-          console.error('Error signing in to Firebase:', error);
+        if (result.user) {
+          const userData: GoogleUser = {
+            name: result.user.displayName || 'User',
+            email: result.user.email || 'No email',
+            picture: result.user.photoURL || undefined
+          };
+          
+          setUser(userData);
+          setIsLoggedIn(true);
+          localStorage.setItem('user', JSON.stringify(userData));
         }
-      } else {
-        console.error('Credential is undefined');
+      } catch (error) {
+        console.error('Error with Google sign-in:', error);
       }
     };
 
@@ -117,8 +130,6 @@ function App() {
       setUser(null);
       setIsLoggedIn(false);
       localStorage.removeItem('user');
-      localStorage.removeItem('google_credential');
-      // Note: Firebase logout not implemented here, as we're focusing on the permission error
     };
 
     return (
@@ -149,16 +160,9 @@ function App() {
               <Logo src={logo} alt="Gigfriend Logo" />
               <AppTitle>Gigfriend</AppTitle>
               <LoginButton>
-                <GoogleLogin
-                  onSuccess={handleLogin}
-                  onError={() => {
-                    console.log('Google Login Failed');
-                  }}
-                  size="large"
-                  text="signin_with"
-                  shape="rectangular"
-                  logo_alignment="left"
-                />
+                <GoogleLoginButton onClick={handleGoogleLogin}>
+                  Sign in with Google
+                </GoogleLoginButton>
               </LoginButton>
               <FirebaseDebug />
             </LoginContainer>
@@ -171,16 +175,46 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GoogleOAuthProvider 
-        clientId="1076922480921-d8vbuet2khv4ukp4je9st5bh7096ueit.apps.googleusercontent.com"
-        onScriptLoadError={() => console.log('Failed to load Google OAuth script')}
-      >
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </GoogleOAuthProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
+
+// Additional styled component for the Google login button
+const GoogleLoginButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.3s;
+
+  &:hover {
+    background-color: #357ae8;
+  }
+
+  &:before {
+    content: "G";
+    background-color: white;
+    color: #4285f4;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+  }
+`;
 
 export default App;

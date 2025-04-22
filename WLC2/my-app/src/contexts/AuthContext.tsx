@@ -1,22 +1,23 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
   onAuthStateChanged, 
-  User as FirebaseUser
+  User as FirebaseUser,
+  signOut
 } from 'firebase/auth';
-import { auth, signInWithGoogleCredential } from '../firebase';
+import { auth } from '../firebase';
 
 // Define the shape of our context
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   loading: boolean;
-  signInWithGoogle: (googleIdToken: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
-  signInWithGoogle: async () => {}
+  logout: async () => {}
 });
 
 // Custom hook to use the auth context
@@ -46,30 +47,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     });
 
-    // Check if we have a stored Google ID token and sign in with it
-    const attemptSignInWithStoredCredential = async () => {
-      try {
-        const storedCredential = localStorage.getItem('google_credential');
-        
-        console.log('Stored credential exists:', !!storedCredential);
-        
-        if (storedCredential) {
-          try {
-            console.log('Attempting to sign in with stored credential');
-            await signInWithGoogle(storedCredential);
-            console.log('Successfully signed in with stored credential');
-          } catch (error) {
-            console.error('Error signing in with stored credential:', error);
-            localStorage.removeItem('google_credential');
-          }
-        }
-      } catch (error) {
-        console.error('Error during automatic sign-in:', error);
-      }
-    };
-
-    attemptSignInWithStoredCredential();
-
     // Cleanup subscription on unmount
     return () => {
       console.log('Cleaning up Auth state observer');
@@ -77,15 +54,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Function to sign in with Google credentials
-  const signInWithGoogle = async (googleIdToken: string) => {
+  // Function to log out
+  const logout = async () => {
     try {
-      console.log('Creating Google credential...');
-      await signInWithGoogleCredential(googleIdToken);
-      // Store the credential for future use
-      localStorage.setItem('google_credential', googleIdToken);
+      await signOut(auth);
+      localStorage.removeItem('user');
+      console.log('User signed out successfully');
     } catch (error) {
-      console.error('Error signing in with Google:', error);
+      console.error('Error signing out:', error);
       throw error;
     }
   };
@@ -93,7 +69,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     currentUser,
     loading,
-    signInWithGoogle
+    logout
   };
 
   return (

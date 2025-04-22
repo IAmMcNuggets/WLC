@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { GoogleUser } from '../App';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfileContainer = styled.div`
   min-height: 100vh;
@@ -93,6 +94,7 @@ interface ProfileProps {
 function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
     if (user && user.picture) {
@@ -112,10 +114,17 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      // Log out from Firebase
+      await logout();
+      // Update local state
+      setIsLoggedIn(false);
+      // Navigate to home page
+      navigate('/');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   if (!user) {
