@@ -32,7 +32,7 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 80px; // Add space for bottom nav bar
+  padding-bottom: 100px; // Increased space for bottom nav bar
 `;
 
 const ChatTitle = styled.h1`
@@ -47,15 +47,16 @@ const ChatTitle = styled.h1`
 `;
 
 const ChatBox = styled.div`
-  background-color: rgba(255, 255, 255, 0.95); // Slightly more opaque
+  background-color: rgba(255, 255, 255, 0.95);
   border-radius: 15px;
   padding: 20px;
   width: 95%;
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  height: 75vh;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); // Enhanced shadow
+  height: calc(75vh - 70px); // Adjusted to account for nav bar
+  margin-bottom: 20px; // Add margin at the bottom
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
   border: 1px solid rgba(0, 0, 0, 0.05);
 `;
 
