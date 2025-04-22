@@ -8,12 +8,8 @@ import './App.css';
 import Events from './Pages/Events';
 import Timeclock from './Pages/Timeclock';
 import Profile from './Pages/Profile';
-<<<<<<< Updated upstream
-import Training from './Pages/Training'; // Add this import
-=======
 import Training from './Pages/Training';
 import Chat from './Pages/Chat';
->>>>>>> Stashed changes
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
 import backgroundImage from './Background/86343.jpg';
@@ -115,8 +111,8 @@ function App() {
                     />
                   } 
                 />
-<<<<<<< Updated upstream
                 <Route path="/training" element={<Training user={user} />} />
+                <Route path="/chat" element={<Chat user={user} />} />
                 <Route path="*" element={<Navigate to="/events" replace />} />
               </Routes>
             ) : (
@@ -140,27 +136,6 @@ function App() {
         </Router>
       </GoogleOAuthProvider>
     </QueryClientProvider>
-=======
-              } 
-            />
-            <Route path="/training" element={<Training user={googleUser} />} />
-            <Route path="/chat" element={<Chat user={googleUser} />} />
-            <Route path="*" element={<Navigate to="/events" replace />} />
-          </Routes>
-        ) : (
-          <LoginContainer>
-            <Logo src={logo} alt="Gigfriend Logo" />
-            <AppTitle>Gigfriend</AppTitle>
-            <LoginButton onClick={handleLogin}>
-              <GoogleLogo>G</GoogleLogo>
-              Sign in with Google
-            </LoginButton>
-          </LoginContainer>
-        )}
-        {currentUser && <BottomNavBar />}
-      </AppContainer>
-    </Router>
->>>>>>> Stashed changes
   );
 }
 
