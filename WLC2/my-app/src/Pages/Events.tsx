@@ -7,7 +7,8 @@ import { FaMapMarkerAlt, FaPhone, FaClock, FaChevronDown, FaChevronRight, FaBuil
 import { debounce } from 'lodash';
 import { useQuery, UseQueryResult } from 'react-query';
 import { gapi } from 'gapi-script';
-import { useGoogleLogin } from '@react-oauth/google';
+import { signInWithGooglePopup } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 
 const EventsContainer = styled.div`
@@ -702,6 +703,7 @@ const NotificationContainer = styled.div<{ type: 'success' | 'error' }>`
 `;
 
 const Events: React.FC<EventsProps> = ({ user }) => {
+  const { currentUser } = useAuth();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -720,7 +722,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const today = new Date();
   const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
-  // Add useEffect to initialize Google API
+  // Initialize Google API
   useEffect(() => {
     const initializeGapi = async () => {
       try {
@@ -739,18 +741,33 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     initializeGapi();
   }, []);
 
-  const login = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    onSuccess: async (tokenResponse) => {
-      console.log('Login Success:', tokenResponse);
-      // Set the access token for GAPI
-      gapi.client.setToken({
-        access_token: tokenResponse.access_token
+  // Replace useGoogleLogin with this function using Firebase authentication
+  const handleGoogleDriveAuth = async () => {
+    try {
+      console.log('Starting Firebase Google sign-in for Drive access...');
+      const result = await signInWithGooglePopup();
+      console.log('Firebase Google sign-in successful', result.user);
+      
+      // Get the access token from the user credential
+      const credential = result.user.getIdToken();
+      
+      // Set the token for gapi
+      if (credential) {
+        gapi.client.setToken({
+          access_token: await credential
+        });
+        
+        // Now trigger the file upload
+        document.getElementById('photo-upload')?.click();
+      }
+    } catch (error) {
+      console.error('Error with Google sign-in for Drive:', error);
+      setNotification({
+        message: 'Failed to authenticate with Google Drive',
+        type: 'error'
       });
-      document.getElementById('photo-upload')?.click();
-    },
-    onError: (error) => console.log('Login Failed:', error)
-  });
+    }
+  };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>, activity: Activity | null) => {
     const files = event.target.files;
@@ -821,7 +838,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     }
   };
 
-  // Update the button click handler
   const handleUploadClick = () => {
     console.log('Upload button clicked');
     if (!isGapiInitialized) {
@@ -832,7 +848,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     const token = gapi.client.getToken();
     if (!token) {
       console.log('No token, starting login flow');
-      login();
+      // Use our new Firebase-based Google auth function
+      handleGoogleDriveAuth();
     } else {
       document.getElementById('photo-upload')?.click();
     }
@@ -944,9 +961,34 @@ const Events: React.FC<EventsProps> = ({ user }) => {
         attachments: attachmentsResponse
       };
     } catch (error) {
-      console.error(`Error fetching opportunity ${id}:`, error);
-      setIsLoading(false);
-      throw error;
+      console.error(`Error fetching opportunity with ID ${id}:`, error);
+      setSelectedOpportunity(null);
+      setOpportunityItems([]);
+      setAttachments([]);
+      return {
+        id: 0,
+        subject: '',
+        description: '',
+        starts_at: '',
+        ends_at: '',
+        status_name: '',
+        number: '',
+        venue: { name: '' },
+        billing_address: {
+          name: '',
+          street: '',
+          city: '',
+          county: '',
+          postcode: '',
+          country_name: '',
+        },
+        custom_fields: {
+          'on-site_contact_phone': '',
+        },
+        opportunity_items: [],
+        destination: { address: { street: '', city: '', county: '', postcode: '' } },
+        attachments: []
+      };
     }
   };
 
