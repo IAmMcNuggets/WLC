@@ -12,7 +12,7 @@ import Training from './Pages/Training';
 import Chat from './Pages/Chat';
 import BottomNavBar from './components/BottomNavBar';
 import { QueryClient, QueryClientProvider } from 'react-query'
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import backgroundImage from './Background/86343.jpg';
 // Define and export the GoogleUser interface
 export interface GoogleUser {
@@ -79,16 +79,69 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (credentialResponse: CredentialResponse) => {
-    if (credentialResponse.credential) {
-      const credentialResponseDecoded = jwtDecode(credentialResponse.credential) as GoogleUser;
-      setUser(credentialResponseDecoded);
-      setIsLoggedIn(true);
-      localStorage.setItem('user', JSON.stringify(credentialResponseDecoded));
-    } else {
-      console.error('Credential is undefined');
-      // Handle the error case
-    }
+  // Inner component to access useAuth within AuthProvider context
+  const AppContent = () => {
+    const { signInWithGoogle } = useAuth();
+    
+    const handleLogin = async (credentialResponse: CredentialResponse) => {
+      if (credentialResponse.credential) {
+        const credentialResponseDecoded = jwtDecode(credentialResponse.credential) as GoogleUser;
+        setUser(credentialResponseDecoded);
+        setIsLoggedIn(true);
+        localStorage.setItem('user', JSON.stringify(credentialResponseDecoded));
+        
+        // Sign in to Firebase with the Google credential
+        try {
+          await signInWithGoogle(credentialResponse.credential);
+        } catch (error) {
+          console.error('Error signing in to Firebase:', error);
+        }
+      } else {
+        console.error('Credential is undefined');
+        // Handle the error case
+      }
+    };
+
+    return (
+      <Router>
+        <AppContainer>
+          {isLoggedIn ? (
+            <Routes>
+              <Route path="/events" element={<Events user={user} />} />
+              <Route path="/timeclock" element={<Timeclock />} />
+              <Route 
+                path="/profile" 
+                element={
+                  <Profile 
+                    user={user} 
+                    setIsLoggedIn={setIsLoggedIn} 
+                  />
+                } 
+              />
+              <Route path="/training" element={<Training user={user} />} />
+              <Route path="/chat" element={<Chat user={user} />} />
+              <Route path="*" element={<Navigate to="/events" replace />} />
+            </Routes>
+          ) : (
+            <LoginContainer>
+              <Logo src={logo} alt="Gigfriend Logo" />
+              <AppTitle>Gigfriend</AppTitle>
+              <LoginButton>
+                <GoogleLogin
+                  onSuccess={handleLogin}
+                  onError={() => console.log('Login Failed')}
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  logo_alignment="left"
+                />
+              </LoginButton>
+            </LoginContainer>
+          )}
+          {isLoggedIn && <BottomNavBar />}
+        </AppContainer>
+      </Router>
+    );
   };
 
   return (
@@ -98,44 +151,7 @@ function App() {
         onScriptLoadError={() => console.log('Failed to load Google OAuth script')}
       >
         <AuthProvider>
-          <Router>
-            <AppContainer>
-              {isLoggedIn ? (
-                <Routes>
-                  <Route path="/events" element={<Events user={user} />} />
-                  <Route path="/timeclock" element={<Timeclock />} />
-                  <Route 
-                    path="/profile" 
-                    element={
-                      <Profile 
-                        user={user} 
-                        setIsLoggedIn={setIsLoggedIn} 
-                      />
-                    } 
-                  />
-                  <Route path="/training" element={<Training user={user} />} />
-                  <Route path="/chat" element={<Chat user={user} />} />
-                  <Route path="*" element={<Navigate to="/events" replace />} />
-                </Routes>
-              ) : (
-                <LoginContainer>
-                  <Logo src={logo} alt="Gigfriend Logo" />
-                  <AppTitle>Gigfriend</AppTitle>
-                  <LoginButton>
-                    <GoogleLogin
-                      onSuccess={handleLogin}
-                      onError={() => console.log('Login Failed')}
-                      size="large"
-                      text="signin_with"
-                      shape="rectangular"
-                      logo_alignment="left"
-                    />
-                  </LoginButton>
-                </LoginContainer>
-              )}
-              {isLoggedIn && <BottomNavBar />}
-            </AppContainer>
-          </Router>
+          <AppContent />
         </AuthProvider>
       </GoogleOAuthProvider>
     </QueryClientProvider>
