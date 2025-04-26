@@ -22,5 +22,30 @@ service cloud.firestore {
       // Prevent updates and deletes entirely
       allow update, delete: if false;
     }
+    
+    // TimeEntries collection rules
+    match /timeEntries/{entryId} {
+      // Allow reading only the user's own time entries
+      allow read: if request.auth != null && 
+                  resource.data.userId == request.auth.uid;
+      
+      // Allow creating time entries if:
+      // 1. User is authenticated
+      // 2. The entry's userId matches the authenticated user's ID
+      // 3. Required fields exist and have correct types
+      allow create: if request.auth != null &&
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.clockIn is timestamp &&
+                    request.resource.data.createdAt is timestamp;
+      
+      // Allow updating only the user's own time entries
+      allow update: if request.auth != null &&
+                    resource.data.userId == request.auth.uid &&
+                    request.resource.data.userId == request.auth.uid;
+      
+      // Allow deleting only the user's own time entries
+      allow delete: if request.auth != null &&
+                    resource.data.userId == request.auth.uid;
+    }
   }
 } 
