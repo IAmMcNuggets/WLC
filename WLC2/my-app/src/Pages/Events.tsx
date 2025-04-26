@@ -369,17 +369,13 @@ type ApiResponse<T> = {
 
 const fetchWithRetry = async <T,>(url: string, retries = 3, delay = 1000): Promise<T | null> => {
   try {
-    console.log(`Attempting to fetch from ${url}`);
     const response = await currentRMSApi.get<ApiResponse<T>>(url);
-    console.log(`Response received:`, response.data);
     return response.data.data;
   } catch (error) {
     if (retries > 0) {
-      console.log(`Fetch failed, retrying... (${retries} attempts left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchWithRetry<T>(url, retries - 1, delay * 2);
     }
-    console.error(`Failed to fetch data from ${url}:`, error);
     return null;
   }
 };
@@ -395,7 +391,6 @@ const fetchActivities = async (startDate: string, endDate: string): Promise<Acti
     });
     return response.data.activities;
   } catch (error) {
-    console.error('Error fetching activities:', error);
     throw error;
   }
 };
@@ -559,7 +554,6 @@ const AttachmentLink = styled.a`
 // Add this function to fetch attachments
 const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
   try {
-    console.log(`Fetching attachments for regarding_id: ${regardingId}`);
     let allAttachments: Attachment[] = [];
     let page = 1;
     let hasMorePages = true;
@@ -576,8 +570,6 @@ const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
       const { attachments, meta } = response.data;
       allAttachments = [...allAttachments, ...attachments];
       
-      console.log(`Fetched page ${page} of attachments`);
-      
       if (meta.page * meta.per_page >= meta.total_row_count) {
         hasMorePages = false;
       } else {
@@ -585,17 +577,13 @@ const fetchAttachments = async (regardingId: number): Promise<Attachment[]> => {
       }
     }
 
-    console.log(`Total attachments fetched: ${allAttachments.length}`);
-
     // Filter attachments to only include those matching the regardingId
     const filteredAttachments = allAttachments.filter(
       (attachment: Attachment) => attachment.attachable_id === regardingId
     );
     
-    console.log(`Filtered attachments for regarding_id ${regardingId}:`, filteredAttachments);
     return filteredAttachments;
   } catch (error) {
-    console.error(`Error fetching attachments for regarding_id ${regardingId}:`, error);
     return [];
   }
 };
@@ -605,7 +593,6 @@ const fetchItemAssets = async (itemId: number): Promise<ItemAsset[]> => {
     const response = await currentRMSApi.get(`/items/${itemId}/item_assets`);
     return response.data.item_assets;
   } catch (error) {
-    console.error(`Error fetching item assets for item ${itemId}:`, error);
     return [];
   }
 };
@@ -741,7 +728,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
         });
         setIsGapiInitialized(true);
-        console.log('GAPI initialized successfully');
       } catch (error) {
         console.error('Error initializing GAPI:', error);
       }
@@ -753,9 +739,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   // Replace useGoogleLogin with this function using Firebase authentication
   const handleGoogleDriveAuth = async () => {
     try {
-      console.log('Starting Firebase Google sign-in for Drive access...');
       const result = await signInWithGooglePopup();
-      console.log('Firebase Google sign-in successful', result.user);
       
       // Get the access token from the user credential
       const credential = result.user.getIdToken();
@@ -848,7 +832,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const handleUploadClick = () => {
-    console.log('Upload button clicked');
     if (!isGapiInitialized) {
       console.log('GAPI not initialized yet');
       return;
@@ -865,7 +848,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const fetchActivities = async (startDate: string, endDate: string): Promise<void> => {
-    console.log('Fetching activities:', startDate, endDate);
     try {
       const response = await currentRMSApi.get('/activities', {
         params: {
@@ -874,7 +856,6 @@ const Events: React.FC<EventsProps> = ({ user }) => {
           'per_page': 100
         }
       });
-      console.log('Activities response:', response.data);
       setActivities(response.data.activities);
       setIsLoading(false);
     } catch (error) {
@@ -903,13 +884,11 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   const fetchOpportunityDetails = useCallback(async (activity: Activity) => {
     try {
       const response = await currentRMSApi.get(`/opportunities/${activity.regarding_id}`);
-      console.log('Opportunity response:', response.data);
       const opportunity = response.data.opportunity;
       setSelectedOpportunity(opportunity);
       
       // Fetch opportunity items
       const itemsResponse = await currentRMSApi.get(`/opportunities/${activity.regarding_id}/opportunity_items`);
-      console.log('Opportunity items response:', itemsResponse.data);
       
       // The item_assets are already included in the response
       setOpportunityItems(itemsResponse.data.opportunity_items);
@@ -927,13 +906,10 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   }, []);
 
   const handleActivityClick = useCallback((activity: Activity) => {
-    console.log('Activity clicked:', activity);
     setSelectedActivity(activity);
     if (activity.regarding_id) {
-      console.log(`Activity has regarding_id: ${activity.regarding_id}`);
       fetchOpportunityDetails(activity);
     } else {
-      console.log('Activity has no regarding_id');
       setSelectedOpportunity(null);
       setOpportunityItems([]);
       setAttachments([]);
@@ -946,10 +922,8 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   };
 
   const togglePrincipal = (id: number) => {
-    console.log('Toggling principal:', id);
     setExpandedPrincipals(prev => {
       const newState = { ...prev, [id]: !prev[id] };
-      console.log('New expanded state:', newState);
       return newState;
     });
   };
@@ -957,13 +931,11 @@ const Events: React.FC<EventsProps> = ({ user }) => {
   // Move fetchOpportunity inside the component
   const fetchOpportunity = async (id: number): Promise<Opportunity & { attachments: Attachment[] }> => {
     try {
-      console.log(`Fetching opportunity with ID: ${id}`);
       setIsLoading(true);
       const [opportunityResponse, attachmentsResponse] = await Promise.all([
         currentRMSApi.get(`/opportunities/${id}?include[]=opportunity_items`),
         fetchAttachments(id)
       ]);
-      console.log('Opportunity response:', opportunityResponse.data);
       setIsLoading(false);
       return {
         ...opportunityResponse.data.opportunity,

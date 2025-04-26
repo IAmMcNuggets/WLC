@@ -72,10 +72,8 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    console.log('App component initializing');
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      console.log('Found stored user data');
       setUser(JSON.parse(storedUser));
       setIsLoggedIn(true);
     }
@@ -87,8 +85,6 @@ function App() {
     
     // Effect to check Firebase authentication status
     useEffect(() => {
-      console.log('AppContent: Firebase auth state:', currentUser ? `User: ${currentUser.uid}` : 'No user');
-      
       // If we have Firebase auth but no local user data, update it
       if (currentUser && !user) {
         const userData: GoogleUser = {
@@ -104,9 +100,7 @@ function App() {
     
     const handleGoogleLogin = async () => {
       try {
-        console.log('Starting Firebase Google sign-in popup...');
         const result = await signInWithGooglePopup();
-        console.log('Firebase Google sign-in successful', result.user);
         
         if (result.user) {
           const userData: GoogleUser = {

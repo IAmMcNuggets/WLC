@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // For development, use environment variables
 // For production build on Netlify, use hardcoded values
@@ -35,12 +36,14 @@ let auth: Auth;
 let analytics: Analytics | null = null;
 let googleProvider: GoogleAuthProvider;
 let firestore: Firestore;
+let storage;
 
 // Initialize Firebase
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   firestore = getFirestore(app);
+  storage = getStorage(app);
   
   // Initialize Analytics only if supported
   isSupported().then(yes => {
@@ -68,7 +71,6 @@ export const signInWithGoogleCredential = async (idToken: string) => {
     
     // Sign in with the credential
     const result = await signInWithCredential(auth, credential);
-    console.log('Successfully signed in with credential', result.user?.uid);
     return result;
   } catch (error) {
     console.error('Error signing in with Google credential:', error);
@@ -80,7 +82,6 @@ export const signInWithGoogleCredential = async (idToken: string) => {
 export const signInWithGooglePopup = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    console.log('Successfully signed in with popup', result.user?.uid);
     return result;
   } catch (error) {
     console.error('Error signing in with Google popup:', error);
@@ -88,4 +89,4 @@ export const signInWithGooglePopup = async () => {
   }
 };
 
-export { app as default, auth, analytics, googleProvider, firestore }; 
+export { app as default, auth, analytics, googleProvider, firestore, storage }; 

@@ -35,11 +35,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthProvider initializing...');
-    
     // Subscribe to auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Firebase Auth state changed:', user ? `User: ${user.uid}` : 'No user');
       setCurrentUser(user);
       setLoading(false);
     }, (error) => {
@@ -49,7 +46,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Cleanup subscription on unmount
     return () => {
-      console.log('Cleaning up Auth state observer');
       unsubscribe();
     };
   }, []);
@@ -59,7 +55,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await signOut(auth);
       localStorage.removeItem('user');
-      console.log('User signed out successfully');
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
