@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { GoogleUser } from '../App';
+import { GoogleUser } from '../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -93,24 +93,74 @@ interface ProfileProps {
 
 function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<boolean>(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
 
   useEffect(() => {
     if (user && user.picture) {
-      fetchImageAsDataUrl(user.picture);
+      // Check localStorage cache first
+      const cachedImage = localStorage.getItem(`profile-image-${user.email}`);
+      if (cachedImage) {
+        setImageDataUrl(cachedImage);
+      } else {
+        fetchImageAsDataUrl(user.picture);
+      }
     }
   }, [user]);
 
-  const fetchImageAsDataUrl = async (url: string) => {
+  const fetchImageAsDataUrl = async (url: string, retryCount = 0) => {
+    if (retryCount > 2) {
+      setImageError(true);
+      return;
+    }
+
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Cache-Control': 'max-age=3600',
+        },
+      });
+      
+      if (response.status === 429 && retryCount < 2) {
+        // Rate limited, retry with exponential backoff
+        console.log(`Rate limited, retrying in ${Math.pow(2, retryCount) * 1000}ms`);
+        setTimeout(() => {
+          fetchImageAsDataUrl(url, retryCount + 1);
+        }, Math.pow(2, retryCount) * 1000);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const reader = new FileReader();
-      reader.onloadend = () => setImageDataUrl(reader.result as string);
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setImageDataUrl(result);
+        
+        // Cache the image in localStorage
+        if (user?.email) {
+          try {
+            localStorage.setItem(`profile-image-${user.email}`, result);
+          } catch (e) {
+            console.warn('Could not cache image in localStorage:', e);
+          }
+        }
+      };
       reader.readAsDataURL(blob);
     } catch (error) {
       console.error('Error fetching image:', error);
+      if (retryCount < 2) {
+        // Retry with exponential backoff
+        setTimeout(() => {
+          fetchImageAsDataUrl(url, retryCount + 1);
+        }, Math.pow(2, retryCount) * 1000);
+      } else {
+        setImageError(true);
+      }
     }
   };
 
@@ -135,9 +185,19 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
     <ProfileContainer>
       <ProfileTitle>User Profile</ProfileTitle>
       <ProfileCard>
-        {imageDataUrl && (
+        {imageDataUrl && !imageError ? (
           <ProfileImage 
             src={imageDataUrl} 
+            alt={user.name} 
+          />
+        ) : imageError ? (
+          <ProfileImage 
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} 
+            alt={user.name} 
+          />
+        ) : (
+          <ProfileImage 
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} 
             alt={user.name} 
           />
         )}

@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // For development, use environment variables
 // For production build on Netlify, use hardcoded values
@@ -36,7 +36,7 @@ let auth: Auth;
 let analytics: Analytics | null = null;
 let googleProvider: GoogleAuthProvider;
 let firestore: Firestore;
-let storage;
+let storage: FirebaseStorage;
 
 // Initialize Firebase
 try {

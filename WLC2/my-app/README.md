@@ -1,46 +1,164 @@
-# Getting Started with Create React App
+# Gigfriend App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React application for event management, time tracking, team chat, and training resources.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- Firebase Authentication with Google Sign-In
+- Real-time Chat with Firestore
+- Event Management via Current RMS Integration
+- Time Clock for logging work hours
+- Training Resource Management
+- Profile Management
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- **Frontend**: React with TypeScript
+- **Styling**: Styled Components
+- **State Management**:
+  - React Context API
+  - React Query for data fetching
+- **Authentication**: Firebase Authentication
+- **Database**: Firestore
+- **Storage**: Firebase Storage
+- **Routing**: React Router
+- **API Integration**: Axios
+- **Icons**: React Icons
+- **Date Handling**: date-fns
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Project Structure
 
-### `npm test`
+```
+src/
+├── components/      # Reusable UI components
+├── contexts/        # React Contexts for state management
+├── hooks/           # Custom React hooks
+├── Pages/           # Main application views
+├── services/        # API and Firebase services
+├── types/           # TypeScript type definitions
+├── Utils/           # Utility functions
+├── Background/      # Background images
+├── Logos/           # Application logos
+├── App.tsx          # Main App component
+├── index.tsx        # Application entry point
+└── firebase.ts      # Firebase configuration
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Getting Started
 
-### `npm run build`
+### Prerequisites
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Node.js (v14 or higher)
+- npm or yarn
+- Firebase Account
+- Current RMS Account (for event management)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd WLC2/my-app
+   ```
 
-### `npm run eject`
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+3. Create a `.env` file in the root directory with the following environment variables:
+   ```
+   REACT_APP_FIREBASE_API_KEY=<your-firebase-api-key>
+   REACT_APP_FIREBASE_AUTH_DOMAIN=<your-firebase-auth-domain>
+   REACT_APP_FIREBASE_PROJECT_ID=<your-firebase-project-id>
+   REACT_APP_FIREBASE_STORAGE_BUCKET=<your-firebase-storage-bucket>
+   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=<your-firebase-messaging-sender-id>
+   REACT_APP_FIREBASE_APP_ID=<your-firebase-app-id>
+   REACT_APP_FIREBASE_MEASUREMENT_ID=<your-firebase-measurement-id>
+   
+   REACT_APP_CURRENT_RMS_TOKEN=<your-current-rms-api-token>
+   REACT_APP_CURRENT_RMS_SUBDOMAIN=<your-current-rms-subdomain>
+   ```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Running the Application
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+1. Start the development server:
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+2. The application will be available at `http://localhost:3000`
 
-## Learn More
+### Building for Production
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+To create a production build:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm run build
+# or
+yarn build
+```
+
+### Deployment
+
+This project is set up for deployment to Netlify. The configuration is located in the `netlify.toml` file.
+
+To deploy:
+1. Set up the environment variables in Netlify
+2. Connect your repository to Netlify
+3. Configure the build command as `npm run build` or `yarn build`
+4. Set the publish directory to `build`
+
+## Firebase Setup
+
+1. Create a new Firebase project at [console.firebase.google.com](https://console.firebase.google.com/)
+2. Enable Authentication with Google provider
+3. Create a Firestore database with the following collections:
+   - `messages` - for chat messages
+   - `timeEntries` - for time clock entries
+   - `userProfiles` - for user profile information
+   - `trainingMaterials` - for training resources
+4. Set up Firebase Storage for file uploads
+
+## Firebase Security Rules
+
+The Firestore security rules for this application are located in `firestore.rules`. They include:
+
+- Authentication checks for all operations
+- User-based access controls for personal data
+- Admin-only privileges for certain operations
+
+## Current RMS Integration
+
+The application integrates with Current RMS API for event management. To set up:
+
+1. Obtain an API token from your Current RMS account
+2. Set the API token and subdomain in the `.env` file
+3. The application uses a proxy to avoid CORS issues, configure this in `package.json`
+
+## Project Improvements
+
+### Code Structure
+- Components are organized into features and shared components
+- Common styles are extracted to `CommonStyles.tsx`
+- Form handling is abstracted through custom hooks
+
+### Performance Optimizations
+- React memo for pure components
+- Lazy loading of routes
+- Optimized image assets
+- Caching with React Query
+
+### UI/UX Enhancements
+- Responsive design for mobile and desktop
+- Consistent styling with styled-components
+- Accessibility improvements
+- Toast notifications for user feedback
+
+## License
+
+[MIT License](LICENSE)

@@ -1,202 +1,196 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { collection, addDoc, onSnapshot, query, orderBy, where, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { GoogleUser } from '../App';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
 import { firestore } from '../firebase';
+import { FiSend, FiMessageCircle } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
-import backgroundImage from '../Background/86343.jpg';
+import { useToast } from '../contexts/ToastContext';
 import { format } from 'date-fns';
-import { FaPaperPlane, FaUser } from 'react-icons/fa';
+import { GoogleUser } from '../types/user';
 
-// Types for our messages
+// Define the structure of a chat message
 interface ChatMessage {
-  id?: string;
+  id: string;
   text: string;
-  createdAt: Timestamp | null;
+  createdAt: Timestamp;
   user: {
-    uid: string;
     name: string;
-    photoURL: string | null;
+    email: string;
+    picture?: string;
   };
 }
 
-// Styled components
+interface ChatProps {
+  user: GoogleUser | null;
+}
+
+// Styled Components
 const ChatContainer = styled.div`
-  min-height: 100vh;
-  padding: 20px;
-  box-sizing: border-box;
-  background-image: url(${backgroundImage});
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-bottom: 100px; // Increased space for bottom nav bar
+  height: calc(100vh - 80px);
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 70px;
+  position: relative;
 `;
 
-const ChatTitle = styled.h1`
-  color: #ffffff;
-  text-align: center;
-  width: 100%;
-  margin-top: 20px;
-  margin-bottom: 30px;
-  color: black;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  font-size: 2.5rem;
+const ChatTitle = styled.h2`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 15px;
+  font-weight: 600;
 `;
 
 const ChatBox = styled.div`
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 15px;
-  padding: 20px;
-  width: 95%;
-  max-width: 800px;
-  display: flex;
-  flex-direction: column;
-  height: calc(75vh - 70px); // Adjusted to account for nav bar
-  margin-bottom: 20px; // Add margin at the bottom
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-`;
-
-const MessageList = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 10px;
-  display: flex;
-  flex-direction: column;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
   scrollbar-width: thin;
   
-  /* Customize scrollbar */
   &::-webkit-scrollbar {
     width: 6px;
   }
   
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
-    border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: #c1c1c1;
+    border-radius: 10px;
   }
 `;
 
-const MessageGroup = styled.div`
-  margin-bottom: 20px;
+const EmptyMessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #95a5a6;
+  gap: 15px;
 `;
 
-const MessageItem = styled.div<{ isCurrentUser: boolean }>`
-  max-width: 75%;
+const MessageList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+`;
+
+const MessageGroup = styled.div<{ $isMine: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-self: ${({ $isMine }) => $isMine ? 'flex-end' : 'flex-start'};
+  max-width: 70%;
+`;
+
+const MessageItem = styled.div<{ $isMine: boolean }>`
   padding: 12px 16px;
-  border-radius: ${props => props.isCurrentUser ? '18px 18px 0 18px' : '18px 18px 18px 0'};
-  margin-bottom: 4px;
-  background-color: ${props => props.isCurrentUser ? '#0084ff' : '#f0f0f0'};
-  color: ${props => props.isCurrentUser ? 'white' : '#333'};
-  align-self: ${props => props.isCurrentUser ? 'flex-end' : 'flex-start'};
-  word-break: break-word;
+  border-radius: 18px;
+  background-color: ${({ $isMine }) => $isMine ? '#3498db' : '#e9eaeb'};
+  color: ${({ $isMine }) => $isMine ? '#fff' : '#333'};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   position: relative;
+  margin-bottom: 4px;
+  word-break: break-word;
   
   &:last-child {
-    margin-bottom: 0;
+    border-bottom-right-radius: ${({ $isMine }) => $isMine ? '4px' : '18px'};
+    border-bottom-left-radius: ${({ $isMine }) => $isMine ? '18px' : '4px'};
   }
 `;
 
 const MessageForm = styled.form`
   display: flex;
-  margin-top: 20px;
-  position: relative;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 24px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e1e1e1;
 `;
 
 const MessageInput = styled.input`
   flex: 1;
-  padding: 14px 20px;
-  border: 1px solid #ddd;
-  border-radius: 30px;
-  font-size: 16px;
+  padding: 12px 15px;
+  border: none;
+  background-color: transparent;
   outline: none;
-  transition: all 0.3s ease;
+  font-size: 16px;
   
-  &:focus {
-    border-color: #0084ff;
-    box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
+  &::placeholder {
+    color: #95a5a6;
   }
 `;
 
 const SendButton = styled.button`
-  background-color: #0084ff;
+  background-color: #3498db;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  margin-left: 10px;
-  cursor: pointer;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   
   &:hover {
-    background-color: #0073e6;
+    background-color: #2980b9;
     transform: scale(1.05);
   }
   
   &:disabled {
-    background-color: #cccccc;
+    background-color: #bdc3c7;
     cursor: not-allowed;
     transform: none;
   }
 `;
 
-const UserInfo = styled.div<{ isCurrentUser: boolean }>`
-  font-size: 13px;
+const UserInfo = styled.div`
+  display: flex;
+  align-items: center;
   margin-bottom: 5px;
-  color: #666;
-  align-self: ${props => props.isCurrentUser ? 'flex-end' : 'flex-start'};
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 13px;
+  color: #7f8c8d;
 `;
 
-const UserAvatar = styled.div<{ photoURL: string | null; isCurrentUser: boolean }>`
-  width: 28px;
-  height: 28px;
+const UserAvatar = styled.img`
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-right: 6px;
-  background-color: ${props => props.isCurrentUser ? '#0084ff' : '#e1e1e1'};
-  color: ${props => props.isCurrentUser ? 'white' : '#666'};
-  background-image: ${props => props.photoURL ? `url(${props.photoURL})` : 'none'};
-  background-size: cover;
-  background-position: center;
-  font-size: 14px;
-  font-weight: bold;
-  order: ${props => props.isCurrentUser ? 1 : 0};
+  object-fit: cover;
+  border: 1px solid #eaeaea;
 `;
 
-const MessageTime = styled.span<{ isCurrentUser: boolean }>`
+const UserName = styled.span`
+  font-weight: 600;
+  color: #2c3e50;
+`;
+
+const MessageTime = styled.span<{ $isMine: boolean }>`
   font-size: 11px;
-  color: ${props => props.isCurrentUser ? 'rgba(255, 255, 255, 0.7)' : '#999'};
-  margin-top: 5px;
-  display: block;
-  text-align: ${props => props.isCurrentUser ? 'right' : 'left'};
+  color: ${({ $isMine }) => $isMine ? 'rgba(255, 255, 255, 0.8)' : '#95a5a6'};
+  margin-top: 4px;
+  align-self: ${({ $isMine }) => $isMine ? 'flex-end' : 'flex-start'};
 `;
 
-const DateDivider = styled.div`
+const DateSeparator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,98 +199,74 @@ const DateDivider = styled.div`
   &::before, &::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  span {
-    margin: 0 10px;
-    font-size: 12px;
-    color: #888;
-    background-color: white;
-    padding: 3px 8px;
-    border-radius: 10px;
+    height: 1px;
+    background-color: #e1e1e1;
   }
 `;
 
-const EmptyStateMessage = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #888;
-  text-align: center;
-  padding: 20px;
-  
-  p {
-    margin: 10px 0;
-  }
-  
-  svg {
-    font-size: 40px;
-    color: #ccc;
-    margin-bottom: 10px;
-  }
+const DateLabel = styled.span`
+  font-size: 12px;
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  padding: 0 10px;
 `;
-
-interface ChatProps {
-  user: GoogleUser | null;
-}
 
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
-  const messageListRef = useRef<HTMLDivElement>(null);
-
-  // Scroll to bottom when messages update
+  const { addToast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
-    if (messageListRef.current) {
-      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-    }
+    if (!currentUser) return;
+    
+    setLoading(true);
+    
+    // Calculate timestamp for 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const messagesRef = collection(firestore, 'messages');
+    const q = query(
+      messagesRef, 
+      where('createdAt', '>=', Timestamp.fromDate(sevenDaysAgo)),
+      orderBy('createdAt', 'asc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedMessages: ChatMessage[] = [];
+      snapshot.forEach((doc) => {
+        fetchedMessages.push({
+          id: doc.id,
+          ...(doc.data() as Omit<ChatMessage, 'id'>)
+        });
+      });
+      setMessages(fetchedMessages);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching messages:", error);
+      addToast('Failed to load messages', 'error');
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, [currentUser, addToast]);
+  
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
-
-  // Subscribe to Firestore for real-time updates - limited to last 7 days
-  useEffect(() => {
-    if (!user || !currentUser) return;
-
-    try {
-      // Calculate date 7 days ago
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const messagesRef = collection(firestore, 'messages');
-      const messagesQuery = query(
-        messagesRef,
-        where('createdAt', '>=', Timestamp.fromDate(sevenDaysAgo)),
-        orderBy('createdAt', 'asc')
-      );
-
-      const unsubscribe = onSnapshot(messagesQuery, 
-        (snapshot) => {
-          const newMessages: ChatMessage[] = [];
-          snapshot.forEach((doc) => {
-            newMessages.push({ id: doc.id, ...doc.data() } as ChatMessage);
-          });
-          setMessages(newMessages);
-        },
-        (error) => {
-          console.error('Firestore snapshot error:', error);
-        }
-      );
-
-      return () => unsubscribe();
-    } catch (error) {
-      console.error('Error setting up Firestore listener:', error);
-    }
-  }, [user, currentUser]);
-
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!inputValue.trim() || !currentUser || !user) return;
-
-    setIsLoading(true);
+    
     try {
       await addDoc(collection(firestore, 'messages'), {
         text: inputValue.trim(),
@@ -304,157 +274,129 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
         user: {
           uid: currentUser.uid,
           name: user.name,
-          photoURL: user.picture || null
+          email: user.email,
+          picture: user.picture
         }
       });
+      
       setInputValue('');
     } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error sending message:", error);
+      addToast('Failed to send message', 'error');
     }
   };
-
-  if (!user) {
-    return <div>Please log in to access the chat.</div>;
-  }
-
-  const formatMessageDate = (timestamp: Timestamp | null) => {
+  
+  const formatDate = (timestamp: Timestamp) => {
     if (!timestamp) return '';
     
     const date = timestamp.toDate();
-    const now = new Date();
-    
-    // Same day
-    if (date.toDateString() === now.toDateString()) {
-      return `Today at ${format(date, 'h:mm a')}`;
-    }
-    
-    // Yesterday
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (date.toDateString() === yesterday.toDateString()) {
-      return `Yesterday at ${format(date, 'h:mm a')}`;
-    }
-    
-    // Within the last 7 days
-    return format(date, 'EEE, MMM d, h:mm a');
+    return format(date, 'h:mm a');
   };
   
-  // Group messages by date and sender
-  const groupedMessages: { [key: string]: ChatMessage[][] } = {};
-  let currentDay = '';
-  let currentSender = '';
-  let currentGroup: ChatMessage[] = [];
-
-  messages.forEach((message) => {
-    if (!message.createdAt) return;
+  const formatDateSeparator = (timestamp: Timestamp) => {
+    if (!timestamp) return '';
     
-    const messageDate = message.createdAt.toDate();
-    const messageDayKey = messageDate.toDateString();
-    const senderId = message.user.uid;
+    const date = timestamp.toDate();
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
     
-    // If new day, start new day entry
-    if (messageDayKey !== currentDay) {
-      currentDay = messageDayKey;
-      if (!groupedMessages[currentDay]) {
-        groupedMessages[currentDay] = [];
-      }
-      currentSender = senderId;
-      currentGroup = [message];
-      groupedMessages[currentDay].push(currentGroup);
-    } 
-    // If new sender, start new group
-    else if (senderId !== currentSender) {
-      currentSender = senderId;
-      currentGroup = [message];
-      groupedMessages[currentDay].push(currentGroup);
-    } 
-    // Same sender, same day, add to current group
-    else {
-      currentGroup.push(message);
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    } else {
+      return format(date, 'MMMM d, yyyy');
     }
-  });
-
+  };
+  
+  // Group messages by date
+  const groupedMessages = messages.reduce<{[key: string]: ChatMessage[]}>((groups, message) => {
+    if (!message.createdAt) return groups;
+    
+    const dateStr = message.createdAt.toDate().toDateString();
+    if (!groups[dateStr]) {
+      groups[dateStr] = [];
+    }
+    groups[dateStr].push(message);
+    return groups;
+  }, {});
+  
   return (
     <ChatContainer>
-      <ChatTitle>Team Chat</ChatTitle>
+      <ChatTitle>
+        <FiMessageCircle size={24} />
+        Team Chat
+      </ChatTitle>
+      
       <ChatBox>
-        <MessageList ref={messageListRef}>
-          {Object.keys(groupedMessages).length > 0 ? (
-            Object.entries(groupedMessages).map(([day, messageGroups]) => (
-              <React.Fragment key={day}>
-                <DateDivider>
-                  <span>{new Date(day).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-                </DateDivider>
+        {loading ? (
+          <EmptyMessagesContainer>
+            <div>Loading messages...</div>
+          </EmptyMessagesContainer>
+        ) : messages.length === 0 ? (
+          <EmptyMessagesContainer>
+            <FiMessageCircle size={50} />
+            <div>No messages in the last 7 days</div>
+            <div>Be the first to say hello!</div>
+          </EmptyMessagesContainer>
+        ) : (
+          <MessageList>
+            {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+              <React.Fragment key={date}>
+                <DateSeparator>
+                  <DateLabel>
+                    {formatDateSeparator(dateMessages[0].createdAt)}
+                  </DateLabel>
+                </DateSeparator>
                 
-                {messageGroups.map((group, groupIndex) => {
-                  const isCurrentUser = currentUser?.uid === group[0].user.uid;
-                  const firstMessage = group[0];
-                  const initial = firstMessage.user.name.charAt(0).toUpperCase();
+                {dateMessages.map((message) => {
+                  const isMine = currentUser?.email === message.user.email;
                   
                   return (
-                    <MessageGroup key={`${day}-${groupIndex}`}>
-                      <UserInfo isCurrentUser={isCurrentUser}>
-                        {!isCurrentUser && (
-                          <>
-                            <UserAvatar 
-                              photoURL={firstMessage.user.photoURL} 
-                              isCurrentUser={isCurrentUser}
-                            >
-                              {!firstMessage.user.photoURL && initial}
-                            </UserAvatar>
-                            <span>{firstMessage.user.name}</span>
-                          </>
-                        )}
-                        {isCurrentUser && (
-                          <>
-                            <span>You</span>
-                            <UserAvatar 
-                              photoURL={firstMessage.user.photoURL} 
-                              isCurrentUser={isCurrentUser}
-                            >
-                              {!firstMessage.user.photoURL && initial}
-                            </UserAvatar>
-                          </>
-                        )}
-                      </UserInfo>
+                    <MessageGroup key={message.id} $isMine={isMine}>
+                      {!isMine && (
+                        <UserInfo>
+                          <UserAvatar 
+                            src={message.user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.name)}&background=random`} 
+                            alt={message.user.name} 
+                          />
+                          <UserName>{message.user.name}</UserName>
+                        </UserInfo>
+                      )}
                       
-                      {group.map((message, messageIndex) => (
-                        <MessageItem key={message.id} isCurrentUser={isCurrentUser}>
-                          {message.text}
-                          {messageIndex === group.length - 1 && (
-                            <MessageTime isCurrentUser={isCurrentUser}>
-                              {formatMessageDate(message.createdAt)}
-                            </MessageTime>
-                          )}
-                        </MessageItem>
-                      ))}
+                      <MessageItem $isMine={isMine}>
+                        {message.text}
+                      </MessageItem>
+                      
+                      <MessageTime $isMine={isMine}>
+                        {formatDate(message.createdAt)}
+                      </MessageTime>
                     </MessageGroup>
                   );
                 })}
               </React.Fragment>
-            ))
-          ) : (
-            <EmptyStateMessage>
-              <FaUser />
-              <p>No messages in the last 7 days</p>
-              <p>Start a conversation with your team!</p>
-            </EmptyStateMessage>
-          )}
-        </MessageList>
-        
-        <MessageForm onSubmit={handleSubmit}>
-          <MessageInput
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message..."
-          />
-          <SendButton type="submit" disabled={isLoading || !inputValue.trim()}>
-            <FaPaperPlane />
-          </SendButton>
-        </MessageForm>
+            ))}
+            <div ref={messagesEndRef} />
+          </MessageList>
+        )}
       </ChatBox>
+      
+      <MessageForm onSubmit={handleSubmit}>
+        <MessageInput
+          type="text"
+          placeholder="Type a message..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          disabled={loading || !currentUser}
+        />
+        <SendButton 
+          type="submit" 
+          disabled={!inputValue.trim() || loading || !currentUser}
+        >
+          <FiSend size={20} />
+        </SendButton>
+      </MessageForm>
     </ChatContainer>
   );
 };

@@ -4,7 +4,7 @@ import { saveAs } from 'file-saver';
 import { collection, addDoc, updateDoc, doc, query, where, orderBy, onSnapshot, deleteDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { firestore } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleUser } from '../App';
+import { GoogleUser } from '../types/user';
 
 const TimeclockContainer = styled.div`
   min-height: 100vh;
@@ -36,8 +36,8 @@ const TimeclockControls = styled.div`
   margin-bottom: 30px;
 `;
 
-const Button = styled.button<{ isClockOut?: boolean }>`
-  background-color: ${props => props.isClockOut ? '#f44336' : '#4CAF50'};
+const Button = styled.button<{ $isClockOut?: boolean }>`
+  background-color: ${props => props.$isClockOut ? '#f44336' : '#4CAF50'};
   color: white;
   border: none;
   padding: 10px 20px;
@@ -48,7 +48,7 @@ const Button = styled.button<{ isClockOut?: boolean }>`
   margin: 0 10px;
 
   &:hover {
-    background-color: ${props => props.isClockOut ? '#d32f2f' : '#45a049'};
+    background-color: ${props => props.$isClockOut ? '#d32f2f' : '#45a049'};
   }
 
   &:disabled {
@@ -295,7 +295,7 @@ function Timeclock({ user }: TimeclockProps) {
       <TimeclockTitle>Timeclock</TimeclockTitle>
       <TimeclockControls>
         <Button onClick={handleClockIn} disabled={isClockedIn}>Clock In</Button>
-        <Button onClick={handleClockOut} disabled={!isClockedIn} isClockOut>Clock Out</Button>
+        <Button onClick={handleClockOut} disabled={!isClockedIn} $isClockOut>Clock Out</Button>
       </TimeclockControls>
       <ExportButton onClick={exportToCSV}>Export to CSV</ExportButton>
       <TimeEntryList>

@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { GoogleUser } from '../App'; // Import the GoogleUser type
+import { GoogleUser } from '../types/user'; // Import the GoogleUser type
 
 // Define the Props interface
 interface Props {
