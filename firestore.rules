@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isUserOwned(userId) {
+      return isAuthenticated() && userId == request.auth.uid;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function hasValidFields(requiredFields) {
+      return request.resource.data.keys().hasAll(requiredFields);
+    }
+    
+    // Default rule - deny all access unless explicitly allowed
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Messages collection rules
+    match /messages/{messageId} {
+      // Allow reading messages if user is authenticated
+      allow read: if isAuthenticated();
+      
+      // Allow creating messages if:
+      // 1. User is authenticated
+      // 2. The message's user.uid matches the authenticated user's ID
+      // 3. The createdAt field is a valid timestamp
+      // 4. Text is not empty and is a string
+      // 5. Maximum text length is 2000 characters
+      allow create: if isAuthenticated() &&
+                    request.resource.data.user.uid == request.auth.uid &&
+                    request.resource.data.createdAt is timestamp &&
+                    request.resource.data.text is string &&
+                    request.resource.data.text.size() > 0 &&
+                    request.resource.data.text.size() <= 2000;
+      
+      // Prevent updates and deletes entirely (except for admins)
+      allow update, delete: if isAdmin();
+    }
+    
+    // TimeEntries collection rules
+    match /timeEntries/{entryId} {
+      // Allow reading only the user's own time entries (or all for admins)
+      allow read: if isUserOwned(resource.data.userId) || isAdmin();
+      
+      // Allow creating time entries if:
+      // 1. User is authenticated
+      // 2. The entry's userId matches the authenticated user's ID
+      // 3. Required fields exist and have correct types
+      // 4. Clock-in time is not in the future
+      allow create: if isAuthenticated() &&
+                    request.resource.data.userId == request.auth.uid &&
+                    request.resource.data.clockIn is timestamp &&
+                    request.resource.data.createdAt is timestamp &&
+                    request.resource.data.clockIn <= request.time &&
+                    hasValidFields(['userId', 'clockIn', 'createdAt', 'status']);
+      
+      // Allow updating only the user's own time entries
+      // Ensure userId cannot be changed
+      allow update: if isUserOwned(resource.data.userId) &&
+                    request.resource.data.userId == resource.data.userId &&
+                    (request.resource.data.clockOut == null || 
+                     request.resource.data.clockOut is timestamp);
+      
+      // Allow deleting only the user's own time entries
+      allow delete: if isUserOwned(resource.data.userId);
+    }
+    
+    // User Profiles collection
+    match /userProfiles/{userId} {
+      // Users can read their own profile and admins can read all
+      allow read: if isUserOwned(userId) || isAdmin();
+      
+      // Users can create their own profile
+      allow create: if isAuthenticated() && 
+                    userId == request.auth.uid;
+      
+      // Users can update their own profile (not role field)
+      // Admins can update any profile including role
+      allow update: if (isUserOwned(userId) && 
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+                    isAdmin();
+                    
+      // Special rule for FCM token updates
+      match /{document=**} {
+        allow write: if isAuthenticated() && 
+                      request.auth.uid == userId;
+      }
+      
+      // Only admins can delete profiles
+      allow delete: if isAdmin();
+    }
+    
+    // Training Materials collection
+    match /trainingMaterials/{materialId} {
+      // Anyone authenticated can read training materials
+      allow read: if isAuthenticated();
+      
+      // Only admins can create, update or delete training materials
+      allow create, update, delete: if isAdmin();
+    }
+  }
+} 

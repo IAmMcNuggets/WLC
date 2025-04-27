@@ -1,5 +1,5 @@
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 
 // Initialize messaging if it's supported
@@ -57,30 +57,73 @@ export const requestNotificationPermission = async () => {
 
     // Save token to user's profile in Firestore
     if (auth.currentUser) {
-      const userId = auth.currentUser.uid;
-      const userProfileRef = doc(firestore, 'userProfiles', userId);
-      
-      // Check if user profile exists
-      const userProfileSnap = await getDoc(userProfileRef);
-      
-      if (!userProfileSnap.exists()) {
-        // Create a basic user profile if it doesn't exist
-        await setDoc(userProfileRef, {
-          displayName: auth.currentUser.displayName || 'User',
-          email: auth.currentUser.email || '',
-          photoURL: auth.currentUser.photoURL || '',
-          createdAt: new Date(),
-          fcmToken: token
-        });
-      } else {
-        // Just update the token if profile exists
-        await setDoc(userProfileRef, {
-          fcmToken: token
-        }, { merge: true });
+      try {
+        const userId = auth.currentUser.uid;
+        console.log('Current user ID:', userId);
+        
+        const userProfileRef = doc(firestore, 'userProfiles', userId);
+        console.log('User profile ref created');
+        
+        // Check if user profile exists
+        console.log('Checking if user profile exists...');
+        const userProfileSnap = await getDoc(userProfileRef);
+        console.log('User profile exists:', userProfileSnap.exists());
+        
+        if (!userProfileSnap.exists()) {
+          // Create a basic user profile if it doesn't exist
+          console.log('Creating new user profile');
+          try {
+            await setDoc(userProfileRef, {
+              displayName: auth.currentUser.displayName || 'User',
+              email: auth.currentUser.email || '',
+              photoURL: auth.currentUser.photoURL || '',
+              createdAt: serverTimestamp(),
+              fcmToken: token
+            });
+            console.log('New user profile created successfully');
+          } catch (createError) {
+            console.error('Error creating user profile:', createError);
+            // Try with minimal fields
+            try {
+              console.log('Trying minimal profile creation');
+              await setDoc(userProfileRef, {
+                displayName: 'User',
+                email: auth.currentUser.email || '',
+                createdAt: serverTimestamp(),
+                fcmToken: token
+              });
+              console.log('Minimal profile created successfully');
+            } catch (minimalError) {
+              console.error('Error creating minimal profile:', minimalError);
+              throw minimalError;
+            }
+          }
+        } else {
+          // Just update the token if profile exists
+          console.log('Updating existing profile with token');
+          try {
+            await setDoc(userProfileRef, {
+              fcmToken: token
+            }, { merge: true });
+            console.log('Token updated successfully');
+          } catch (updateError) {
+            console.error('Error updating token:', updateError);
+            throw updateError;
+          }
+        }
+        
+        return true;
+      } catch (firestoreError) {
+        console.error('Firestore operation error:', firestoreError);
+        if (firestoreError.code === 'permission-denied') {
+          console.error('This is a permissions issue. Check Firestore security rules.');
+        }
+        throw firestoreError;
       }
+    } else {
+      console.error('No authenticated user');
+      return false;
     }
-
-    return true;
   } catch (error) {
     console.error('Error requesting notification permission:', error);
     return false;
