@@ -88,7 +88,8 @@ service cloud.firestore {
       // Users can only update their own profile (not role field)
       // Admins can update any profile including role
       allow update: if (isUserOwned(userId) && 
-                      (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))) ||
+                       ((!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) ||
+                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['fcmToken']))) ||
                      isAdmin();
       
       // Only admins can delete profiles
