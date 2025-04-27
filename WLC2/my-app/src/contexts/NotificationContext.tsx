@@ -6,19 +6,44 @@ import { requestNotificationPermission, onForegroundMessage } from '../services/
 interface NotificationContextType {
   notificationsEnabled: boolean;
   enableNotifications: () => Promise<boolean>;
+  isIOS: boolean;
+  isPWA: boolean;
+  showIOSInstructions: boolean;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
   notificationsEnabled: false,
-  enableNotifications: async () => false
+  enableNotifications: async () => false,
+  isIOS: false,
+  isPWA: false,
+  showIOSInstructions: false
 });
 
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+  const [isIOS, setIsIOS] = useState<boolean>(false);
+  const [isPWA, setIsPWA] = useState<boolean>(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState<boolean>(false);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
+  
+  // Detect iOS and PWA status
+  useEffect(() => {
+    // Check if user is on iOS
+    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(iosCheck);
+    
+    // Check if app is installed as PWA
+    const isPwaCheck = window.matchMedia('(display-mode: standalone)').matches || 
+                      (window.navigator as any).standalone === true || 
+                      document.referrer.includes('android-app://');
+    setIsPWA(isPwaCheck);
+    
+    // Show iOS instructions if on iOS but not in PWA mode
+    setShowIOSInstructions(iosCheck && !isPwaCheck);
+  }, []);
   
   // Check if notifications were previously enabled
   useEffect(() => {
@@ -37,6 +62,17 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   // Enable notifications
   const enableNotifications = async (): Promise<boolean> => {
     try {
+      // If on iOS but not installed as PWA, show special instructions
+      if (isIOS && !isPWA) {
+        setShowIOSInstructions(true);
+        addToast(
+          'iOS requires installing as a PWA for notifications', 
+          'info', 
+          5000
+        );
+        return false;
+      }
+      
       const enabled = await requestNotificationPermission();
       setNotificationsEnabled(enabled);
       
@@ -83,7 +119,13 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   }, [currentUser, notificationsEnabled, addToast]);
   
   return (
-    <NotificationContext.Provider value={{ notificationsEnabled, enableNotifications }}>
+    <NotificationContext.Provider value={{ 
+      notificationsEnabled, 
+      enableNotifications,
+      isIOS,
+      isPWA,
+      showIOSInstructions 
+    }}>
       {children}
     </NotificationContext.Provider>
   );

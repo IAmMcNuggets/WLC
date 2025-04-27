@@ -18,7 +18,7 @@
   "license": "ISC",
   "description": "Cloud Functions for Firebase",
   "dependencies": {
-    "firebase-admin": "^13.3.0",
+    "firebase-admin": "^12.7.0",
     "firebase-functions": "^6.3.2"
   },
   "devDependencies": {

@@ -257,13 +257,46 @@ const NotificationButton = styled.button`
   }
 `;
 
+const InstallInstructions = styled.div`
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  width: 250px;
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  font-size: 14px;
+  z-index: 100;
+`;
+
+const InstructionStep = styled.div`
+  margin: 10px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+`;
+
+const StepNumber = styled.div`
+  background-color: #3498db;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+`;
+
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
-  const { notificationsEnabled, enableNotifications } = useNotifications();
+  const { notificationsEnabled, enableNotifications, isIOS, isPWA, showIOSInstructions } = useNotifications();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatBoxRef = useRef<HTMLDivElement>(null);
   
@@ -390,8 +423,31 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             disabled={notificationsEnabled}
           >
             <FiBell size={16} />
-            {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
+            {notificationsEnabled 
+              ? 'Notifications Enabled' 
+              : isIOS && !isPWA 
+                ? 'Install App for Notifications' 
+                : 'Enable Notifications'}
           </NotificationButton>
+          
+          {showIOSInstructions && (
+            <InstallInstructions>
+              <h4>Enable Notifications on iOS</h4>
+              <InstructionStep>
+                <StepNumber>1</StepNumber>
+                <div>Tap the share icon at the bottom of your browser</div>
+              </InstructionStep>
+              <InstructionStep>
+                <StepNumber>2</StepNumber>
+                <div>Select "Add to Home Screen"</div>
+              </InstructionStep>
+              <InstructionStep>
+                <StepNumber>3</StepNumber>
+                <div>Open the app from your home screen and enable notifications</div>
+              </InstructionStep>
+            </InstallInstructions>
+          )}
+          
           <ChatBox ref={chatBoxRef}>
             {loading ? (
               <EmptyMessagesContainer>Loading messages...</EmptyMessagesContainer>
