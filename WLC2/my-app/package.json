@@ -58,6 +58,8 @@
   "proxy": "https://api.current-rms.com",
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@types/lodash": "^4.17.12"
+    "@types/lodash": "^4.17.12",
+    "firebase-admin": "^13.3.0",
+    "firebase-functions": "^6.3.2"
   }
 }

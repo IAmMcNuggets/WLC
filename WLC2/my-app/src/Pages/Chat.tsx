@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
 import { firestore } from '../firebase';
-import { FiSend, FiMessageCircle } from 'react-icons/fi';
+import { FiSend, FiMessageCircle, FiBell } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import { format } from 'date-fns';
 import { GoogleUser } from '../types/user';
+import backgroundImage from '../Background/86343.jpg';
 
 // Define the structure of a chat message
 interface ChatMessage {
@@ -25,34 +27,56 @@ interface ChatProps {
 }
 
 // Styled Components
+const PageWrapper = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  z-index: 0; /* Ensure this doesn't cover the navigation */
+`;
+
+const ChatWrapper = styled.div`
+  background-image: url(${backgroundImage});
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  height: 100%;
+  padding: 20px 20px 120px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px);
+  flex: 1;
   max-width: 800px;
   margin: 0 auto;
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(255, 255, 255, 0.9);
   border-radius: 12px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  margin-bottom: 70px;
   position: relative;
+  overflow: hidden; /* Prevent container from scrolling */
 `;
 
-const ChatTitle = styled.h2`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #2c3e50;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eaeaea;
-  padding-bottom: 15px;
-  font-weight: 600;
+const ChatTitle = styled.h1`
+  text-align: center;
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  color: black;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 2.5rem;
 `;
 
 const ChatBox = styled.div`
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto; /* Only this element should scroll */
   padding: 10px;
   margin-bottom: 20px;
   border-radius: 8px;
@@ -211,13 +235,37 @@ const DateLabel = styled.span`
   padding: 0 10px;
 `;
 
+const NotificationButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${props => props.disabled ? '#90caf9' : '#3498db'};
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: ${props => props.disabled ? 'default' : 'pointer'};
+  transition: all 0.2s ease;
+  gap: 6px;
+  
+  &:hover {
+    background-color: ${props => props.disabled ? '#90caf9' : '#2980b9'};
+  }
+`;
+
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
+  const { notificationsEnabled, enableNotifications } = useNotifications();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatBoxRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (!currentUser) return;
@@ -245,6 +293,11 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       });
       setMessages(fetchedMessages);
       setLoading(false);
+      
+      // Scroll to bottom after messages are loaded and rendered
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }, (error) => {
       console.error("Error fetching messages:", error);
       addToast('Failed to load messages', 'error');
@@ -254,12 +307,17 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     return () => unsubscribe();
   }, [currentUser, addToast]);
   
+  // Scroll to bottom when new messages are added
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!loading && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, loading]);
   
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -323,81 +381,92 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   }, {});
   
   return (
-    <ChatContainer>
-      <ChatTitle>
-        <FiMessageCircle size={24} />
-        Team Chat
-      </ChatTitle>
-      
-      <ChatBox>
-        {loading ? (
-          <EmptyMessagesContainer>
-            <div>Loading messages...</div>
-          </EmptyMessagesContainer>
-        ) : messages.length === 0 ? (
-          <EmptyMessagesContainer>
-            <FiMessageCircle size={50} />
-            <div>No messages in the last 7 days</div>
-            <div>Be the first to say hello!</div>
-          </EmptyMessagesContainer>
-        ) : (
-          <MessageList>
-            {Object.entries(groupedMessages).map(([date, dateMessages]) => (
-              <React.Fragment key={date}>
-                <DateSeparator>
-                  <DateLabel>
-                    {formatDateSeparator(dateMessages[0].createdAt)}
-                  </DateLabel>
-                </DateSeparator>
-                
-                {dateMessages.map((message) => {
-                  const isMine = currentUser?.email === message.user.email;
+    <PageWrapper>
+      <ChatWrapper>
+        <ChatContainer>
+          <ChatTitle>Team Chat</ChatTitle>
+          <NotificationButton 
+            onClick={enableNotifications}
+            disabled={notificationsEnabled}
+          >
+            <FiBell size={16} />
+            {notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'}
+          </NotificationButton>
+          <ChatBox ref={chatBoxRef}>
+            {loading ? (
+              <EmptyMessagesContainer>Loading messages...</EmptyMessagesContainer>
+            ) : messages.length === 0 ? (
+              <EmptyMessagesContainer>
+                <FiMessageCircle size={48} />
+                <p>No messages yet. Start the conversation!</p>
+              </EmptyMessagesContainer>
+            ) : (
+              <MessageList>
+                {/* Group messages by date */}
+                {(() => {
+                  let lastMessageDate: string | null = null;
                   
-                  return (
-                    <MessageGroup key={message.id} $isMine={isMine}>
-                      {!isMine && (
-                        <UserInfo>
-                          <UserAvatar 
-                            src={message.user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.name)}&background=random`} 
-                            alt={message.user.name} 
-                          />
-                          <UserName>{message.user.name}</UserName>
-                        </UserInfo>
-                      )}
-                      
-                      <MessageItem $isMine={isMine}>
-                        {message.text}
-                      </MessageItem>
-                      
-                      <MessageTime $isMine={isMine}>
-                        {formatDate(message.createdAt)}
-                      </MessageTime>
-                    </MessageGroup>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-            <div ref={messagesEndRef} />
-          </MessageList>
-        )}
-      </ChatBox>
-      
-      <MessageForm onSubmit={handleSubmit}>
-        <MessageInput
-          type="text"
-          placeholder="Type a message..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          disabled={loading || !currentUser}
-        />
-        <SendButton 
-          type="submit" 
-          disabled={!inputValue.trim() || loading || !currentUser}
-        >
-          <FiSend size={20} />
-        </SendButton>
-      </MessageForm>
-    </ChatContainer>
+                  return messages.map((message, index) => {
+                    const messageDate = formatDateSeparator(message.createdAt);
+                    const showDateSeparator = messageDate !== lastMessageDate;
+                    
+                    if (showDateSeparator) {
+                      lastMessageDate = messageDate;
+                    }
+                    
+                    const isMine = message.user.email === user?.email;
+                    const isLastMessage = index === messages.length - 1;
+                    
+                    return (
+                      <React.Fragment key={message.id}>
+                        {showDateSeparator && (
+                          <DateSeparator>
+                            <DateLabel>{messageDate}</DateLabel>
+                          </DateSeparator>
+                        )}
+                        <MessageGroup $isMine={isMine}>
+                          {!isMine && (
+                            <UserInfo>
+                              {message.user.picture ? (
+                                <UserAvatar src={message.user.picture} alt={message.user.name} />
+                              ) : (
+                                <UserAvatar 
+                                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.name)}&background=random&size=128`} 
+                                  alt={message.user.name} 
+                                />
+                              )}
+                              <UserName>{message.user.name}</UserName>
+                            </UserInfo>
+                          )}
+                          <MessageItem $isMine={isMine}>
+                            {message.text}
+                          </MessageItem>
+                          <MessageTime $isMine={isMine}>
+                            {formatDate(message.createdAt)}
+                          </MessageTime>
+                          {isLastMessage && <div ref={messagesEndRef} />}
+                        </MessageGroup>
+                      </React.Fragment>
+                    );
+                  });
+                })()}
+              </MessageList>
+            )}
+          </ChatBox>
+          <MessageForm onSubmit={handleSubmit}>
+            <MessageInput
+              type="text"
+              placeholder="Type a message..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+            />
+            <SendButton type="submit" disabled={!inputValue.trim()}>
+              <FiSend />
+            </SendButton>
+          </MessageForm>
+        </ChatContainer>
+      </ChatWrapper>
+    </PageWrapper>
   );
 };
 

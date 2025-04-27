@@ -15,16 +15,16 @@ const EventsContainer = styled.div`
   background-image: url(${backgroundImage});
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 20px;
-  padding-bottom: 100px; // Add extra padding at the bottom
+  padding-bottom: 120px; // Increase padding at the bottom to accommodate the nav bar
   box-sizing: border-box;
 `;
 
 const EventsTitle = styled.h1`
-  color: #ffffff;
   text-align: center;
   width: 100%;
   margin-top: 20px;
@@ -43,11 +43,11 @@ const ActivityList = styled.ul`
 `;
 
 const ActivityItem = styled.li`
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   margin-bottom: 16px;
   padding: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 `;
 
 const ActivityTitle = styled.h3`
@@ -196,17 +196,15 @@ const Modal = styled.div`
 `;
 
 const ModalContent = styled.div`
-  background-color: #ffffff; // White background
+  background-color: rgba(255, 255, 255, 0.95); // More consistent with other components
   padding: 20px;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  max-width: 90%;
+  max-height: 90vh;
   overflow-y: auto;
+  width: 600px;
   position: relative;
-  z-index: 1004;
-  padding-bottom: 80px;
-  box-shadow: 0 4px 6px rgba(0, 0, 100, 0.1);
 `;
 
 const CloseButton = styled.button`
@@ -475,6 +473,7 @@ const RefreshButton = styled.button`
   font-size: 16px;
   transition: background-color 0.3s ease;
   margin-top: 20px;
+  margin-bottom: 70px; // Add bottom margin to ensure the button is visible above the nav menu
 
   &:hover {
     background-color: #45a049;
