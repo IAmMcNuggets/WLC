@@ -10,6 +10,7 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const https = require('https');
 const functions = require("firebase-functions");
 admin.initializeApp();
 
@@ -51,7 +52,10 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       usersSnapshot.forEach(doc => {
         // Don't send to sender
         if (doc.id !== senderUid && doc.data().fcmToken) {
-          tokens.push(doc.data().fcmToken);
+          tokens.push({
+            token: doc.data().fcmToken,
+            userId: doc.id
+          });
         }
       });
       
@@ -62,127 +66,138 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       
       logger.log(`Found ${tokens.length} tokens to send notifications to`);
       
-      // Create notification payload
-      const notification = {
-        title: `New message from ${message.user.name || "Team Member"}`,
-        body: message.text.substring(0, 100) + (message.text.length > 100 ? "..." : ""),
-        sound: 'default'
-      };
+      // Get Firebase project ID for FCM
+      const projectId = process.env.GCLOUD_PROJECT || 'gigfriend-9b3ea';
       
-      // Add data payload with extra info for foreground handling
-      const data = {
-        type: 'chat',
-        messageId: event.params.messageId,
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK' // This helps some mobile platforms
-      };
-      
-      // Create a messaging payload for FCM
-      const payload = {
-        notification: notification,
-        data: data,
-        // Critical for iOS background notifications
-        apns: {
-          payload: {
-            aps: {
-              contentAvailable: true,
-              sound: 'default'
-            }
-          },
-          headers: {
-            'apns-priority': '10'
-          }
-        },
-        // For Android
-        android: {
-          priority: 'high',
-          notification: {
-            sound: 'default'
-          }
-        }
-      };
-      
-      // Process tokens in batches of 500 to avoid FCM limitations
-      const batchSize = 500;
-      const results = [];
-      
-      for (let i = 0; i < tokens.length; i += batchSize) {
-        const batch = tokens.slice(i, i + batchSize);
-        
+      // Fallback to using the Legacy HTTP API directly
+      const getAccessToken = async () => {
         try {
-          // Use the multicast method to send to multiple tokens
-          const batchResponse = await admin.messaging().sendMulticast({
-            tokens: batch,
-            ...payload
-          });
-          
-          logger.log(`Batch ${i/batchSize + 1}: ${batchResponse.successCount} sent successfully out of ${batch.length}`);
-          
-          // Track failed tokens for cleanup
-          if (batchResponse.failureCount > 0) {
-            batchResponse.responses.forEach((resp, idx) => {
-              if (!resp.success) {
-                logger.error(`Failed to send to token ${batch[idx].substring(0, 10)}...: ${resp.error.message}`);
-                results.push({ 
-                  success: false, 
-                  token: batch[idx], 
-                  error: resp.error.message
-                });
-              } else {
-                results.push({ success: true, token: batch[idx] });
-              }
-            });
-          } else {
-            // All successful
-            batch.forEach(token => {
-              results.push({ success: true, token });
-            });
-          }
-        } catch (batchError) {
-          logger.error(`Error sending batch ${i/batchSize + 1}:`, batchError);
-          // Mark all as failed in this batch
-          batch.forEach(token => {
-            results.push({ 
-              success: false, 
-              token,
-              error: batchError.message
-            });
-          });
+          const accessToken = await admin.credential.applicationDefault().getAccessToken();
+          return accessToken.access_token;
+        } catch (error) {
+          logger.error('Error getting access token:', error);
+          throw error;
         }
-      }
+      };
       
-      const successes = results.filter(r => r.success).length;
+      const sendFcmMessage = async (fcmToken, title, body, data = {}) => {
+        try {
+          const accessToken = await getAccessToken();
+          
+          // Prepare the FCM message
+          const message = {
+            message: {
+              token: fcmToken,
+              notification: {
+                title,
+                body
+              },
+              data: {
+                ...data,
+                click_action: 'FLUTTER_NOTIFICATION_CLICK' // Helps mobile platforms
+              }
+            }
+          };
+          
+          // Prepare the HTTP request
+          const options = {
+            hostname: 'fcm.googleapis.com',
+            path: `/v1/projects/${projectId}/messages:send`,
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          };
+          
+          // Send the HTTP request
+          return new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+              let data = '';
+              
+              res.on('data', (chunk) => {
+                data += chunk;
+              });
+              
+              res.on('end', () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                  resolve({
+                    success: true,
+                    statusCode: res.statusCode,
+                    response: data
+                  });
+                } else {
+                  reject({
+                    success: false,
+                    statusCode: res.statusCode,
+                    response: data
+                  });
+                }
+              });
+            });
+            
+            req.on('error', (error) => {
+              reject({
+                success: false,
+                error: error.message
+              });
+            });
+            
+            req.write(JSON.stringify(message));
+            req.end();
+          });
+        } catch (error) {
+          logger.error('Error sending FCM message:', error);
+          throw error;
+        }
+      };
+      
+      // Send notifications to each token
+      const results = await Promise.all(tokens.map(async ({ token, userId }) => {
+        try {
+          const title = `New message from ${message.user.name || "Team Member"}`;
+          const body = message.text.substring(0, 100) + (message.text.length > 100 ? "..." : "");
+          const data = {
+            type: 'chat',
+            messageId: event.params.messageId,
+            timestamp: Date.now().toString(),
+            sender: message.user.name || 'Unknown'
+          };
+          
+          const response = await sendFcmMessage(token, title, body, data);
+          logger.log(`Successfully sent message to user ${userId}:`, response);
+          return { success: true, token, userId };
+        } catch (error) {
+          logger.error(`Failed to send message to user ${userId}:`, error);
+          return { success: false, token, userId, error: JSON.stringify(error) };
+        }
+      }));
+      
+      const successes = results.filter(r => r.success);
       const failures = results.filter(r => !r.success);
       
-      logger.log(`${successes} messages were sent successfully out of ${tokens.length}`);
+      logger.log(`${successes.length} notifications sent successfully out of ${tokens.length}`);
       
-      // For tokens that caused errors, we should remove them from the database
-      if (failures.length > 0) {
-        const failedTokens = failures.map(f => f.token);
-        
-        // For each failed token, find the user and remove the token
-        await Promise.all(failedTokens.map(async (token) => {
-          try {
-            const userQuery = await admin.firestore()
-              .collection("userProfiles")
-              .where("fcmToken", "==", token)
-              .get();
-            
-            const updatePromises = [];
-            userQuery.forEach((userDoc) => {
-              logger.log(`Removing invalid token from user ${userDoc.id}`);
-              updatePromises.push(userDoc.ref.update({
-                fcmToken: admin.firestore.FieldValue.delete()
-              }));
-            });
-            
-            await Promise.all(updatePromises);
-          } catch (error) {
-            logger.error(`Error removing token ${token.substring(0, 10)}...: ${error.message}`);
-          }
-        }));
+      // Remove invalid tokens
+      for (const failure of failures) {
+        try {
+          const { token, userId } = failure;
+          logger.log(`Removing invalid token from user ${userId}`);
+          
+          const userRef = admin.firestore().collection("userProfiles").doc(userId);
+          await userRef.update({
+            fcmToken: admin.firestore.FieldValue.delete()
+          });
+        } catch (error) {
+          logger.error("Error removing token:", error);
+        }
       }
       
-      return { success: true, sent: successes, failed: failures.length };
+      return { 
+        success: true, 
+        sent: successes.length, 
+        failed: failures.length 
+      };
     } catch (error) {
       logger.error("Error sending notification:", error);
       return { error: error.message };

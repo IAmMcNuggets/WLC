@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
 import { firestore } from '../firebase';
@@ -16,6 +16,7 @@ interface ChatMessage {
   text: string;
   createdAt: Timestamp;
   user: {
+    uid: string;
     name: string;
     email: string;
     picture?: string;
@@ -290,41 +291,96 @@ const StepNumber = styled.div`
   font-weight: bold;
 `;
 
+const NotificationTestButton = styled.button`
+  background-color: #5c6bc0;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  
+  &:hover {
+    background-color: #3f51b5;
+  }
+`;
+
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const chatBoxRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
-  const { notificationsEnabled, enableNotifications, isIOS, isPWA, showIOSInstructions } = useNotifications();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const chatBoxRef = useRef<HTMLDivElement>(null);
+  const { 
+    notificationsEnabled,
+    enableNotifications,
+    showIOSInstructions,
+    isIOS,
+    isPWA
+  } = useNotifications();
+  
+  // Test notification function
+  const testNotification = useCallback(async () => {
+    if (!currentUser || !user) return;
+    
+    try {
+      // Add a test message document with special flag
+      await addDoc(collection(firestore, 'messages'), {
+        text: `Test notification ${new Date().toLocaleTimeString()}`,
+        createdAt: serverTimestamp(),
+        isNotificationTest: true,
+        user: {
+          uid: currentUser.uid,
+          name: user.name,
+          email: user.email,
+          picture: user.picture
+        }
+      });
+      
+      addToast('Test notification sent', 'info');
+    } catch (error) {
+      console.error("Error sending test notification:", error);
+      addToast('Failed to send test notification', 'error');
+    }
+  }, [currentUser, user, addToast]);
   
   useEffect(() => {
     if (!currentUser) return;
     
     setLoading(true);
     
-    // Calculate timestamp for 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const messagesRef = collection(firestore, 'messages');
-    const q = query(
-      messagesRef, 
-      where('createdAt', '>=', Timestamp.fromDate(sevenDaysAgo)),
+    // Query messages from Firestore
+    const messagesQuery = query(
+      collection(firestore, 'messages'),
       orderBy('createdAt', 'asc')
     );
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedMessages: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        fetchedMessages.push({
-          id: doc.id,
-          ...(doc.data() as Omit<ChatMessage, 'id'>)
-        });
+    // Subscribe to real-time updates
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      const messageList: ChatMessage[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.createdAt) {
+          messageList.push({
+            id: doc.id,
+            text: data.text,
+            createdAt: data.createdAt,
+            user: {
+              uid: data.user.uid,
+              name: data.user.name,
+              email: data.user.email,
+              picture: data.user.picture
+            }
+          });
+        }
       });
-      setMessages(fetchedMessages);
+      
+      setMessages(messageList);
       setLoading(false);
       
       // Scroll to bottom after messages are loaded and rendered
@@ -418,17 +474,25 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       <ChatWrapper>
         <ChatContainer>
           <ChatTitle>Team Chat</ChatTitle>
-          <NotificationButton 
-            onClick={enableNotifications}
-            disabled={notificationsEnabled}
-          >
-            <FiBell size={16} />
-            {notificationsEnabled 
-              ? 'Notifications Enabled' 
-              : isIOS && !isPWA 
-                ? 'Install App for Notifications' 
-                : 'Enable Notifications'}
-          </NotificationButton>
+          <div style={{ display: 'flex' }}>
+            <NotificationButton 
+              onClick={enableNotifications}
+              disabled={notificationsEnabled}
+            >
+              <FiBell size={16} />
+              {notificationsEnabled 
+                ? 'Notifications Enabled' 
+                : isIOS && !isPWA 
+                  ? 'Install App for Notifications' 
+                  : 'Enable Notifications'}
+            </NotificationButton>
+            
+            {notificationsEnabled && (
+              <NotificationTestButton onClick={testNotification}>
+                Test Notification
+              </NotificationTestButton>
+            )}
+          </div>
           
           {showIOSInstructions && (
             <InstallInstructions>
