@@ -70,7 +70,7 @@ export const requestNotificationPermission = async () => {
 };
 
 // Handle foreground messages
-export const onForegroundMessage = (callback) => {
+export const onForegroundMessage = (callback: (payload: any) => void) => {
   const handleForegroundMessage = async () => {
     const messaging = await initializeMessaging();
     if (!messaging) return () => {};
