@@ -13,18 +13,84 @@ firebase.initializeApp({
   measurementId: "G-47QE5FT56P"
 });
 
+// Log service worker initialization
+console.log('Firebase service worker initialized');
+
 // Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
 
+// Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log("[firebase-messaging-sw.js] Received background message ", payload);
   
-  // Customize notification here
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: "/logo192.png"
-  };
+  // Check if the payload contains notification data
+  if (payload.notification) {
+    // Standard notification format from FCM
+    const notificationTitle = payload.notification.title || 'New Notification';
+    const notificationOptions = {
+      body: payload.notification.body || '',
+      icon: "/logo192.png",
+      badge: "/logo192.png",
+      timestamp: Date.now(),
+      tag: payload.notification.tag || 'default',
+      data: payload.data || {}
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    console.log("[firebase-messaging-sw.js] Showing notification with title:", notificationTitle);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  } else if (payload.data) {
+    // Custom data message format
+    const notificationTitle = payload.data.title || 'New Message';
+    const notificationOptions = {
+      body: payload.data.body || '',
+      icon: "/logo192.png",
+      badge: "/logo192.png",
+      timestamp: Date.now(),
+      tag: payload.data.tag || 'default',
+      data: payload.data
+    };
+
+    console.log("[firebase-messaging-sw.js] Showing notification from data with title:", notificationTitle);
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  } else {
+    console.log("[firebase-messaging-sw.js] Received payload without notification or data:", payload);
+  }
+});
+
+// Handle notification click event
+self.addEventListener('notificationclick', (event) => {
+  console.log('[firebase-messaging-sw.js] Notification click detected', event);
+  
+  // Close the notification
+  event.notification.close();
+  
+  // This looks to see if the current is already open and focuses it
+  event.waitUntil(
+    clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    })
+    .then((clientList) => {
+      // If a Window client is already open, focus it
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      // If no Window client is open, open a new one
+      if (clients.openWindow) {
+        return clients.openWindow('/chat');
+      }
+    })
+  );
+});
+
+// Log any errors that occur during installation
+self.addEventListener('install', (event) => {
+  console.log('[firebase-messaging-sw.js] Service worker installed');
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[firebase-messaging-sw.js] Service worker activated');
 }); 

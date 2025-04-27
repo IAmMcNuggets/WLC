@@ -3,6 +3,8 @@ import styled from 'styled-components';
 import { GoogleUser } from '../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
+import { FaBell, FaBellSlash } from 'react-icons/fa';
 
 const ProfileContainer = styled.div`
   min-height: 100vh;
@@ -86,6 +88,45 @@ const LogoutButton = styled.button`
   }
 `;
 
+const NotificationButton = styled.button`
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+  max-width: 200px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #388e3c;
+  }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+`;
+
+const NotificationIcon = styled.span`
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+`;
+
+const InfoMessage = styled.p`
+  font-size: 14px;
+  color: #666;
+  margin: 10px 0;
+  text-align: center;
+`;
+
 interface ProfileProps {
   user: GoogleUser | null;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
@@ -94,8 +135,16 @@ interface ProfileProps {
 function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<boolean>(false);
+  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { 
+    notificationsEnabled, 
+    enableNotifications, 
+    isIOS, 
+    isPWA,
+    showIOSInstructions 
+  } = useNotifications();
 
   useEffect(() => {
     if (user && user.picture) {
@@ -144,6 +193,17 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
     }
   };
 
+  const handleEnableNotifications = async () => {
+    setIsEnablingNotifications(true);
+    try {
+      await enableNotifications();
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+    } finally {
+      setIsEnablingNotifications(false);
+    }
+  };
+
   if (!user) {
     return <ProfileContainer>No user data available</ProfileContainer>;
   }
@@ -171,6 +231,27 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
             <InfoLabel>Email</InfoLabel> {user.email}
           </InfoItem>
         </ProfileInfo>
+        
+        {showIOSInstructions && (
+          <InfoMessage>
+            To enable notifications on iOS, you must first add this app to your home screen.
+          </InfoMessage>
+        )}
+        
+        <NotificationButton 
+          onClick={handleEnableNotifications}
+          disabled={notificationsEnabled || isEnablingNotifications || (isIOS && !isPWA)}
+        >
+          <NotificationIcon>
+            {notificationsEnabled ? <FaBell /> : <FaBellSlash />}
+          </NotificationIcon>
+          {notificationsEnabled 
+            ? 'Notifications Enabled' 
+            : isEnablingNotifications 
+              ? 'Enabling...' 
+              : 'Enable Notifications'}
+        </NotificationButton>
+        
         <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
       </ProfileCard>
     </ProfileContainer>

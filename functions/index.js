@@ -66,7 +66,6 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       const notification = {
         title: `New message from ${message.user.name || "Team Member"}`,
         body: message.text.substring(0, 100) + (message.text.length > 100 ? "..." : ""),
-        // Add a sound for iOS
         sound: 'default'
       };
       
@@ -77,11 +76,10 @@ exports.sendChatNotificationV3 = onDocumentCreated({
         clickAction: 'FLUTTER_NOTIFICATION_CLICK' // This helps some mobile platforms
       };
       
-      // Send notifications to all valid tokens
-      const response = await admin.messaging().sendMulticast({
-        tokens,
-        notification,
-        data,
+      // Create a messaging payload for FCM
+      const payload = {
+        notification: notification,
+        data: data,
         // Critical for iOS background notifications
         apns: {
           payload: {
@@ -101,37 +99,90 @@ exports.sendChatNotificationV3 = onDocumentCreated({
             sound: 'default'
           }
         }
-      });
+      };
       
-      logger.log(`${response.successCount} messages were sent successfully out of ${tokens.length}`);
+      // Process tokens in batches of 500 to avoid FCM limitations
+      const batchSize = 500;
+      const results = [];
+      
+      for (let i = 0; i < tokens.length; i += batchSize) {
+        const batch = tokens.slice(i, i + batchSize);
+        
+        try {
+          // Use the multicast method to send to multiple tokens
+          const batchResponse = await admin.messaging().sendMulticast({
+            tokens: batch,
+            ...payload
+          });
+          
+          logger.log(`Batch ${i/batchSize + 1}: ${batchResponse.successCount} sent successfully out of ${batch.length}`);
+          
+          // Track failed tokens for cleanup
+          if (batchResponse.failureCount > 0) {
+            batchResponse.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                logger.error(`Failed to send to token ${batch[idx].substring(0, 10)}...: ${resp.error.message}`);
+                results.push({ 
+                  success: false, 
+                  token: batch[idx], 
+                  error: resp.error.message
+                });
+              } else {
+                results.push({ success: true, token: batch[idx] });
+              }
+            });
+          } else {
+            // All successful
+            batch.forEach(token => {
+              results.push({ success: true, token });
+            });
+          }
+        } catch (batchError) {
+          logger.error(`Error sending batch ${i/batchSize + 1}:`, batchError);
+          // Mark all as failed in this batch
+          batch.forEach(token => {
+            results.push({ 
+              success: false, 
+              token,
+              error: batchError.message
+            });
+          });
+        }
+      }
+      
+      const successes = results.filter(r => r.success).length;
+      const failures = results.filter(r => !r.success);
+      
+      logger.log(`${successes} messages were sent successfully out of ${tokens.length}`);
       
       // For tokens that caused errors, we should remove them from the database
-      if (response.failureCount > 0) {
-        const failedTokens = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            logger.log(`Failed to send to token ${tokens[idx]}: ${resp.error?.message}`);
-            failedTokens.push(tokens[idx]);
-          }
-        });
+      if (failures.length > 0) {
+        const failedTokens = failures.map(f => f.token);
         
         // For each failed token, find the user and remove the token
         await Promise.all(failedTokens.map(async (token) => {
-          const userQuery = await admin.firestore()
-            .collection("userProfiles")
-            .where("fcmToken", "==", token)
-            .get();
-          
-          userQuery.forEach(async (userDoc) => {
-            logger.log(`Removing invalid token from user ${userDoc.id}`);
-            await userDoc.ref.update({
-              fcmToken: admin.firestore.FieldValue.delete()
+          try {
+            const userQuery = await admin.firestore()
+              .collection("userProfiles")
+              .where("fcmToken", "==", token)
+              .get();
+            
+            const updatePromises = [];
+            userQuery.forEach((userDoc) => {
+              logger.log(`Removing invalid token from user ${userDoc.id}`);
+              updatePromises.push(userDoc.ref.update({
+                fcmToken: admin.firestore.FieldValue.delete()
+              }));
             });
-          });
+            
+            await Promise.all(updatePromises);
+          } catch (error) {
+            logger.error(`Error removing token ${token.substring(0, 10)}...: ${error.message}`);
+          }
         }));
       }
       
-      return { success: true, sent: response.successCount };
+      return { success: true, sent: successes, failed: failures.length };
     } catch (error) {
       logger.error("Error sending notification:", error);
       return { error: error.message };
