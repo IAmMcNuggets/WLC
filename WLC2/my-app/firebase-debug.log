@@ -1,0 +1,31 @@
+[debug] [2025-04-27T19:44:39.274Z] ----------------------------------------------------------------------
+[debug] [2025-04-27T19:44:39.276Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\David\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js hosting:disable
+[debug] [2025-04-27T19:44:39.277Z] CLI Version:   14.2.1
+[debug] [2025-04-27T19:44:39.277Z] Platform:      win32
+[debug] [2025-04-27T19:44:39.277Z] Node Version:  v22.9.0
+[debug] [2025-04-27T19:44:39.277Z] Time:          Sun Apr 27 2025 15:44:39 GMT-0400 (Eastern Daylight Time)
+[debug] [2025-04-27T19:44:39.277Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-04-27T19:44:39.280Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-04-27T19:44:39.416Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-04-27T19:44:39.416Z] > authorizing via signed-in user (dtweisberg@gmail.com)
+[debug] [2025-04-27T19:44:39.416Z] [iam] checking project gigfriend-9b3ea for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-04-27T19:44:39.417Z] Checked if tokens are valid: false, expires at: 1745773040021
+[debug] [2025-04-27T19:44:39.417Z] Checked if tokens are valid: false, expires at: 1745773040021
+[debug] [2025-04-27T19:44:39.417Z] > refreshing access token with scopes: []
+[debug] [2025-04-27T19:44:39.417Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-04-27T19:44:39.417Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-04-27T19:44:39.513Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-04-27T19:44:39.513Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2025-04-27T19:44:39.527Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-04-27T19:44:39.527Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-04-27T19:44:39.538Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/gigfriend-9b3ea:testIamPermissions [none]
+[debug] [2025-04-27T19:44:39.538Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/gigfriend-9b3ea:testIamPermissions x-goog-quota-user=projects/gigfriend-9b3ea
+[debug] [2025-04-27T19:44:39.538Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/gigfriend-9b3ea:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-04-27T19:44:39.724Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/gigfriend-9b3ea:testIamPermissions 200
+[debug] [2025-04-27T19:44:39.724Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/gigfriend-9b3ea:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-04-27T19:44:39.724Z] Checked if tokens are valid: true, expires at: 1745786678527
+[debug] [2025-04-27T19:44:39.724Z] Checked if tokens are valid: true, expires at: 1745786678527
+[debug] [2025-04-27T19:44:39.724Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/gigfriend-9b3ea [none]
+[debug] [2025-04-27T19:44:40.023Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/gigfriend-9b3ea 200
+[debug] [2025-04-27T19:44:40.023Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/gigfriend-9b3ea {"projectId":"gigfriend-9b3ea","projectNumber":"457762949335","displayName":"Gigfriend","name":"projects/gigfriend-9b3ea","resources":{"hostingSite":"gigfriend-9b3ea","realtimeDatabaseInstance":"gigfriend-9b3ea-default-rtdb"},"state":"ACTIVE","etag":"1_9e0b162a-1b32-4d6c-bd0d-353968fb9864"}
