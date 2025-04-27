@@ -6,6 +6,7 @@ import { FiSend, FiMessageCircle, FiBell } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useNotifications } from '../contexts/NotificationContext';
+import { testNotification as testFCMNotification } from '../services/messaging';
 import { format } from 'date-fns';
 import { GoogleUser } from '../types/user';
 import backgroundImage from '../Background/86343.jpg';
@@ -326,25 +327,55 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   
   // Test notification function
   const testNotification = useCallback(async () => {
-    if (!currentUser || !user) return;
-    
     try {
-      // Add a test message document with special flag
-      await addDoc(collection(firestore, 'messages'), {
-        text: `Test notification ${new Date().toLocaleTimeString()}`,
-        createdAt: serverTimestamp(),
-        isNotificationTest: true,
-        user: {
-          uid: currentUser.uid,
-          name: user.name,
-          email: user.email,
-          picture: user.picture
-        }
-      });
+      // First try the direct testing method (which tests foreground notifications)
+      const testResult = await testFCMNotification();
       
-      addToast('Test notification sent', 'info');
+      if (testResult) {
+        addToast('Testing foreground notification', 'info');
+        
+        // Wait a short delay then also create a real message for background notification test
+        setTimeout(async () => {
+          if (!currentUser || !user) return;
+          
+          try {
+            await addDoc(collection(firestore, 'messages'), {
+              text: `Test notification ${new Date().toLocaleTimeString()}`,
+              createdAt: serverTimestamp(),
+              isNotificationTest: true,
+              user: {
+                uid: currentUser.uid,
+                name: user.name,
+                email: user.email,
+                picture: user.picture
+              }
+            });
+            
+            addToast('Background notification test sent', 'info');
+          } catch (error) {
+            console.error("Error sending test background notification:", error);
+          }
+        }, 3000);
+      } else {
+        // Fallback to the original method if direct test fails
+        if (!currentUser || !user) return;
+        
+        await addDoc(collection(firestore, 'messages'), {
+          text: `Test notification ${new Date().toLocaleTimeString()}`,
+          createdAt: serverTimestamp(),
+          isNotificationTest: true,
+          user: {
+            uid: currentUser.uid,
+            name: user.name,
+            email: user.email,
+            picture: user.picture
+          }
+        });
+        
+        addToast('Test notification sent', 'info');
+      }
     } catch (error) {
-      console.error("Error sending test notification:", error);
+      console.error("Error during notification test:", error);
       addToast('Failed to send test notification', 'error');
     }
   }, [currentUser, user, addToast]);

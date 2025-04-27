@@ -1,4 +1,4 @@
-import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, isSupported, deleteToken } from 'firebase/messaging';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 
@@ -28,6 +28,27 @@ export const initializeMessaging = async () => {
     if (isIOSDevice() && !isPWAInstalled()) {
       console.log('iOS device requires PWA installation for notifications');
       return null;
+    }
+
+    // Check if service worker is registered
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      const hasMessagingSW = registrations.some(reg => 
+        reg.scope.includes(window.location.origin) && 
+        reg.active?.scriptURL.includes('firebase-messaging-sw.js')
+      );
+      
+      if (!hasMessagingSW) {
+        console.warn('Firebase messaging service worker not found. Attempting registration...');
+        try {
+          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          console.log('Firebase messaging service worker registered:', registration.scope);
+        } catch (error) {
+          console.error('Failed to register Firebase messaging service worker:', error);
+        }
+      } else {
+        console.log('Firebase messaging service worker already registered');
+      }
     }
 
     const app = (await import('../firebase')).default;
@@ -75,7 +96,19 @@ export const requestNotificationPermission = async () => {
       return false;
     }
 
-    // Get token
+    // Try to get existing token first and delete it to ensure we get a fresh one
+    try {
+      const currentToken = await getToken(messaging);
+      if (currentToken) {
+        console.log('Found existing token, deleting to refresh');
+        await deleteToken(messaging);
+      }
+    } catch (refreshError) {
+      console.warn('Error refreshing token:', refreshError);
+      // Continue anyway
+    }
+
+    // Get new token
     console.log('Requesting FCM token with VAPID key');
     const token = await getToken(messaging, {
       vapidKey: "BJWQUEOMjTk_Iw8jdsV-4Y8HXOkKP-NvYPw0yBn_rQGw1OitHb5Hchz_Qvaunq6gB8wjDdOEj_GJ4v_J5vr-_0Q"
@@ -110,7 +143,8 @@ export const requestNotificationPermission = async () => {
             email: auth.currentUser.email || '',
             photoURL: auth.currentUser.photoURL || '',
             createdAt: serverTimestamp(),
-            fcmToken: token
+            fcmToken: token,
+            lastTokenUpdate: serverTimestamp()
           };
           console.log('Profile data:', { ...profileData, fcmToken: '(hidden)' });
           
@@ -130,7 +164,8 @@ export const requestNotificationPermission = async () => {
                 displayName: 'User',
                 email: auth.currentUser.email || '',
                 createdAt: serverTimestamp(),
-                fcmToken: token
+                fcmToken: token,
+                lastTokenUpdate: serverTimestamp()
               };
               await setDoc(userProfileRef, minimalData);
               console.log('Minimal profile created successfully');
@@ -138,7 +173,19 @@ export const requestNotificationPermission = async () => {
               console.error('Error creating minimal profile:', minimalError);
               console.error('Error code:', minimalError.code);
               console.error('Error message:', minimalError.message);
-              throw minimalError;
+              
+              // Last resort: try with just the token
+              try {
+                console.log('Attempting to save just the token');
+                await setDoc(userProfileRef, {
+                  fcmToken: token,
+                  lastTokenUpdate: serverTimestamp()
+                }, { merge: true });
+                console.log('Token saved successfully with merge');
+              } catch (tokenError) {
+                console.error('Failed to save token with merge:', tokenError);
+                throw tokenError;
+              }
             }
           }
         } else {
@@ -147,7 +194,8 @@ export const requestNotificationPermission = async () => {
           try {
             console.log('Attempting to update FCM token in Firestore...');
             await setDoc(userProfileRef, {
-              fcmToken: token
+              fcmToken: token,
+              lastTokenUpdate: serverTimestamp()
             }, { merge: true });
             console.log('Token updated successfully');
           } catch (updateError: any) {
@@ -159,21 +207,10 @@ export const requestNotificationPermission = async () => {
         }
         
         return true;
-      } catch (firestoreError: any) {
+      } catch (firestoreError) {
         console.error('Firestore operation error:', firestoreError);
-        console.error('Error code:', firestoreError.code);
-        console.error('Error message:', firestoreError.message);
-        
-        if (firestoreError && typeof firestoreError === 'object' && 'code' in firestoreError && 
-            firestoreError.code === 'permission-denied') {
+        if (firestoreError instanceof Error && firestoreError.message.includes('permission-denied')) {
           console.error('This is a permissions issue. Check Firestore security rules.');
-          console.error('Make sure the userProfiles collection is properly configured in security rules.');
-          
-          // Print current auth state for debugging
-          console.log('Current auth state:');
-          console.log('- User logged in:', !!auth.currentUser);
-          console.log('- User ID:', auth.currentUser?.uid);
-          console.log('- User email:', auth.currentUser?.email);
         }
         throw firestoreError;
       }
@@ -181,15 +218,38 @@ export const requestNotificationPermission = async () => {
       console.error('No authenticated user');
       return false;
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error requesting notification permission:', error);
-    if (error && typeof error === 'object') {
-      console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
-    }
+    return false;
+  }
+};
+
+// Test notification function
+export const testNotification = async () => {
+  try {
+    const messaging = await initializeMessaging();
+    if (!messaging) return false;
+    
+    // This only tests foreground notifications via the onMessage handler
+    console.log('Sending test notification to yourself');
+    
+    // Create a test notification through the onForegroundMessage handler
+    const testPayload = {
+      notification: {
+        title: 'Test Notification',
+        body: 'This is a test notification. If you see this, foreground notifications are working.'
+      }
+    };
+    
+    // Manually trigger any registered onMessage handlers
+    // This only works for the current session
+    window.dispatchEvent(new CustomEvent('firebase-messaging-test', { 
+      detail: testPayload 
+    }));
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending test notification:', error);
     return false;
   }
 };
@@ -201,10 +261,28 @@ export const onForegroundMessage = (callback: (payload: any) => void) => {
     if (!messaging) return () => {};
 
     console.log('Setting up foreground message handler');
-    return onMessage(messaging, (payload) => {
+    
+    // Also listen for test notifications
+    const testHandler = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        console.log('Received test message:', customEvent.detail);
+        callback(customEvent.detail);
+      }
+    };
+    
+    window.addEventListener('firebase-messaging-test', testHandler);
+    
+    const unsubscribeFirebase = onMessage(messaging, (payload) => {
       console.log('Message received in foreground:', payload);
       callback(payload);
     });
+    
+    // Return a function that unsubscribes from both
+    return () => {
+      unsubscribeFirebase();
+      window.removeEventListener('firebase-messaging-test', testHandler);
+    };
   };
 
   return handleForegroundMessage();

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
-import { requestNotificationPermission, onForegroundMessage } from '../services/messaging';
+import { requestNotificationPermission, onForegroundMessage, isIOSDevice, isPWAInstalled } from '../services/messaging';
 
 interface NotificationContextType {
   notificationsEnabled: boolean;
@@ -9,6 +9,7 @@ interface NotificationContextType {
   isIOS: boolean;
   isPWA: boolean;
   showIOSInstructions: boolean;
+  checkNotificationStatus: () => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -16,7 +17,8 @@ const NotificationContext = createContext<NotificationContextType>({
   enableNotifications: async () => false,
   isIOS: false,
   isPWA: false,
-  showIOSInstructions: false
+  showIOSInstructions: false,
+  checkNotificationStatus: async () => false
 });
 
 export const useNotifications = () => useContext(NotificationContext);
@@ -31,31 +33,96 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   
   // Detect iOS and PWA status
   useEffect(() => {
-    // Check if user is on iOS
-    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(iosCheck);
+    const detectDeviceAndPWA = () => {
+      const iosCheck = isIOSDevice();
+      const isPwaCheck = isPWAInstalled();
+      
+      setIsIOS(iosCheck);
+      setIsPWA(isPwaCheck);
+      setShowIOSInstructions(iosCheck && !isPwaCheck);
+      
+      // Log status for debugging
+      console.log('Device detection:', {
+        isIOS: iosCheck,
+        isPWA: isPwaCheck,
+        userAgent: navigator.userAgent
+      });
+    };
     
-    // Check if app is installed as PWA
-    const isPwaCheck = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone === true || 
-                      document.referrer.includes('android-app://');
-    setIsPWA(isPwaCheck);
+    detectDeviceAndPWA();
     
-    // Show iOS instructions if on iOS but not in PWA mode
-    setShowIOSInstructions(iosCheck && !isPwaCheck);
+    // Also check when visibility changes (app might have been installed)
+    document.addEventListener('visibilitychange', detectDeviceAndPWA);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', detectDeviceAndPWA);
+    };
   }, []);
   
-  // Check if notifications were previously enabled
+  // Check if service worker is registered
   useEffect(() => {
-    const checkNotificationStatus = async () => {
-      // Check if permission is already granted
-      if (Notification.permission === 'granted') {
-        // Check local storage for token status
-        const hasEnabledNotifications = localStorage.getItem('notifications-enabled') === 'true';
-        setNotificationsEnabled(hasEnabledNotifications);
+    const checkServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          const hasMessagingSW = registrations.some(reg => 
+            reg.active?.scriptURL.includes('firebase-messaging-sw.js')
+          );
+          
+          console.log('Service worker check:', { 
+            hasRegistrations: registrations.length > 0,
+            hasMessagingSW,
+            registrations: registrations.map(r => r.scope)
+          });
+          
+          if (!hasMessagingSW) {
+            console.warn('Firebase messaging service worker not found');
+          }
+        } catch (error) {
+          console.error('Error checking service worker registration:', error);
+        }
+      } else {
+        console.warn('Service workers not supported in this browser');
       }
     };
     
+    checkServiceWorker();
+  }, []);
+  
+  // Check notification status
+  const checkNotificationStatus = async (): Promise<boolean> => {
+    try {
+      // Check permission status
+      const permissionStatus = Notification.permission;
+      console.log('Notification permission status:', permissionStatus);
+      
+      // Check if we have stored token status
+      const hasStoredToken = localStorage.getItem('notifications-enabled') === 'true';
+      console.log('Stored token status:', hasStoredToken);
+      
+      // Check service worker registration
+      let hasServiceWorker = false;
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        hasServiceWorker = registrations.some(reg => 
+          reg.active?.scriptURL.includes('firebase-messaging-sw.js')
+        );
+      }
+      console.log('Has messaging service worker:', hasServiceWorker);
+      
+      // All conditions must be true for notifications to be enabled
+      const isEnabled = permissionStatus === 'granted' && hasStoredToken && hasServiceWorker;
+      setNotificationsEnabled(isEnabled);
+      
+      return isEnabled;
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+      return false;
+    }
+  };
+  
+  // Initial notification status check
+  useEffect(() => {
     checkNotificationStatus();
   }, []);
   
@@ -74,13 +141,18 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
       }
       
       const enabled = await requestNotificationPermission();
-      setNotificationsEnabled(enabled);
       
       if (enabled) {
+        setNotificationsEnabled(true);
         localStorage.setItem('notifications-enabled', 'true');
         addToast('Notifications enabled successfully', 'success');
       } else {
-        addToast('Failed to enable notifications. Please check your browser settings.', 'error');
+        // Check specifically why it failed
+        if (Notification.permission === 'denied') {
+          addToast('Notification permission denied. Please update your browser settings.', 'error', 8000);
+        } else {
+          addToast('Failed to enable notifications. Please try again.', 'error');
+        }
       }
       
       return enabled;
@@ -96,7 +168,9 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
     if (!currentUser || !notificationsEnabled) return;
     
     const setupForegroundListener = async () => {
+      console.log('Setting up foreground message listener');
       const unsubscribe = await onForegroundMessage((payload: any) => {
+        console.log('Foreground message received in context:', payload);
         const { title, body } = payload.notification || {};
         
         if (title) {
@@ -124,7 +198,8 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
       enableNotifications,
       isIOS,
       isPWA,
-      showIOSInstructions 
+      showIOSInstructions,
+      checkNotificationStatus
     }}>
       {children}
     </NotificationContext.Provider>
