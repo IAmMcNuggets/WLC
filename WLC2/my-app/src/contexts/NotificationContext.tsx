@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { requestNotificationPermission, onForegroundMessage, isIOSDevice, isPWAInstalled } from '../services/messaging';
@@ -30,6 +30,9 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   const [showIOSInstructions, setShowIOSInstructions] = useState<boolean>(false);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
+  
+  // Keep track of recently processed notification IDs to prevent duplicates
+  const recentNotificationIds = useRef<Set<string>>(new Set());
   
   // Detect iOS and PWA status
   useEffect(() => {
@@ -163,18 +166,79 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
     }
   };
   
+  // Clean up old notification IDs periodically
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      // Only keep IDs from the last 10 seconds
+      const now = Date.now();
+      const idsToRemove: string[] = [];
+      
+      recentNotificationIds.current.forEach(id => {
+        const [messageId, timestamp] = id.split('|');
+        if (now - parseInt(timestamp) > 10000) { // 10 seconds
+          idsToRemove.push(id);
+        }
+      });
+      
+      idsToRemove.forEach(id => {
+        recentNotificationIds.current.delete(id);
+      });
+      
+      console.log(`Cleaned up ${idsToRemove.length} old notification IDs. Remaining: ${recentNotificationIds.current.size}`);
+    }, 30000); // Run cleanup every 30 seconds
+    
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, []);
+  
   // Listen for foreground messages
   useEffect(() => {
     if (!currentUser || !notificationsEnabled) return;
     
     const setupForegroundListener = async () => {
       console.log('Setting up foreground message listener');
-      const unsubscribe = await onForegroundMessage((payload: any) => {
+      const unsubscribe = await onForegroundMessage((payload) => {
         console.log('Foreground message received in context:', payload);
+        
+        // Extract notification data
         const { title, body } = payload.notification || {};
         
+        // Get messageId from either top-level or data property
+        const messageId = payload.messageId || payload.data?.messageId || '';
+        
+        if (messageId) {
+          console.log('Processing notification with ID:', messageId);
+          
+          // Check if we've recently shown this notification (by messageId alone)
+          if (recentNotificationIds.current.has(messageId)) {
+            console.log('Duplicate notification skipped (exact ID match):', messageId);
+            return;
+          }
+          
+          // Also check any ID that starts with this messageId (might have different timestamp)
+          const isDuplicate = Array.from(recentNotificationIds.current).some(id => 
+            id.split('|')[0] === messageId
+          );
+          
+          if (isDuplicate) {
+            console.log('Duplicate notification skipped (ID prefix match):', messageId);
+            return;
+          }
+          
+          // Add to recent notifications with timestamp to prevent duplicates
+          const uniqueId = `${messageId}|${Date.now()}`;
+          recentNotificationIds.current.add(uniqueId);
+          
+          console.log('Added notification ID to tracking:', uniqueId);
+        } else {
+          console.warn('Received notification without messageId');
+        }
+        
+        // Show toast notification
         if (title) {
           addToast(title, 'info', body || '');
+          console.log('Toast notification displayed:', title);
         }
       });
       
