@@ -38,6 +38,12 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       return null;
     }
     
+    // Skip test notifications to avoid duplicate notifications
+    if (message.isNotificationTest === true) {
+      logger.log("Skipping test notification message");
+      return { success: true, skipped: true, reason: "test_notification" };
+    }
+    
     // Don't send notifications for your own messages
     const senderUid = message.user.uid;
     

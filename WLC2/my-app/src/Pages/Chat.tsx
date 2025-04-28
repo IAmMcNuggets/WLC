@@ -2,11 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
 import { firestore } from '../firebase';
-import { FiSend, FiMessageCircle, FiBell } from 'react-icons/fi';
+import { FiSend, FiMessageCircle } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { useNotifications } from '../contexts/NotificationContext';
-import { testNotification as testFCMNotification } from '../services/messaging';
 import { format } from 'date-fns';
 import { GoogleUser } from '../types/user';
 import backgroundImage from '../Background/86343.jpg';
@@ -237,78 +235,6 @@ const DateLabel = styled.span`
   padding: 0 10px;
 `;
 
-const NotificationButton = styled.button`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: ${props => props.disabled ? '#90caf9' : '#3498db'};
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 14px;
-  cursor: ${props => props.disabled ? 'default' : 'pointer'};
-  transition: all 0.2s ease;
-  gap: 6px;
-  
-  &:hover {
-    background-color: ${props => props.disabled ? '#90caf9' : '#2980b9'};
-  }
-`;
-
-const InstallInstructions = styled.div`
-  position: absolute;
-  top: 70px;
-  right: 20px;
-  width: 250px;
-  background-color: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  font-size: 14px;
-  z-index: 100;
-`;
-
-const InstructionStep = styled.div`
-  margin: 10px 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-`;
-
-const StepNumber = styled.div`
-  background-color: #3498db;
-  color: white;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: bold;
-`;
-
-const NotificationTestButton = styled.button`
-  background-color: #5c6bc0;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  margin-left: 10px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 14px;
-  
-  &:hover {
-    background-color: #3f51b5;
-  }
-`;
-
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -317,68 +243,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
-  const { 
-    notificationsEnabled,
-    enableNotifications,
-    showIOSInstructions,
-    isIOS,
-    isPWA
-  } = useNotifications();
-  
-  // Test notification function
-  const testNotification = useCallback(async () => {
-    try {
-      // First try the direct testing method (which tests foreground notifications)
-      const testResult = await testFCMNotification();
-      
-      if (testResult) {
-        addToast('Testing foreground notification', 'info');
-        
-        // Wait a short delay then also create a real message for background notification test
-        setTimeout(async () => {
-          if (!currentUser || !user) return;
-          
-          try {
-            await addDoc(collection(firestore, 'messages'), {
-              text: `Test notification ${new Date().toLocaleTimeString()}`,
-              createdAt: serverTimestamp(),
-              isNotificationTest: true,
-              user: {
-                uid: currentUser.uid,
-                name: user.name,
-                email: user.email,
-                picture: user.picture
-              }
-            });
-            
-            addToast('Background notification test sent', 'info');
-          } catch (error) {
-            console.error("Error sending test background notification:", error);
-          }
-        }, 3000);
-      } else {
-        // Fallback to the original method if direct test fails
-        if (!currentUser || !user) return;
-        
-        await addDoc(collection(firestore, 'messages'), {
-          text: `Test notification ${new Date().toLocaleTimeString()}`,
-          createdAt: serverTimestamp(),
-          isNotificationTest: true,
-          user: {
-            uid: currentUser.uid,
-            name: user.name,
-            email: user.email,
-            picture: user.picture
-          }
-        });
-        
-        addToast('Test notification sent', 'info');
-      }
-    } catch (error) {
-      console.error("Error during notification test:", error);
-      addToast('Failed to send test notification', 'error');
-    }
-  }, [currentUser, user, addToast]);
   
   useEffect(() => {
     if (!currentUser) return;
@@ -505,43 +369,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       <ChatWrapper>
         <ChatContainer>
           <ChatTitle>Team Chat</ChatTitle>
-          <div style={{ display: 'flex' }}>
-            <NotificationButton 
-              onClick={enableNotifications}
-              disabled={notificationsEnabled}
-            >
-              <FiBell size={16} />
-              {notificationsEnabled 
-                ? 'Notifications Enabled' 
-                : isIOS && !isPWA 
-                  ? 'Install App for Notifications' 
-                  : 'Enable Notifications'}
-            </NotificationButton>
-            
-            {notificationsEnabled && (
-              <NotificationTestButton onClick={testNotification}>
-                Test Notification
-              </NotificationTestButton>
-            )}
-          </div>
-          
-          {showIOSInstructions && (
-            <InstallInstructions>
-              <h4>Enable Notifications on iOS</h4>
-              <InstructionStep>
-                <StepNumber>1</StepNumber>
-                <div>Tap the share icon at the bottom of your browser</div>
-              </InstructionStep>
-              <InstructionStep>
-                <StepNumber>2</StepNumber>
-                <div>Select "Add to Home Screen"</div>
-              </InstructionStep>
-              <InstructionStep>
-                <StepNumber>3</StepNumber>
-                <div>Open the app from your home screen and enable notifications</div>
-              </InstructionStep>
-            </InstallInstructions>
-          )}
           
           <ChatBox ref={chatBoxRef}>
             {loading ? (
