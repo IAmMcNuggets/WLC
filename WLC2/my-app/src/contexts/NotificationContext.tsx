@@ -169,13 +169,13 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   // Clean up old notification IDs periodically
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
-      // Only keep IDs from the last 10 seconds
+      // Only keep IDs from the last 5 seconds
       const now = Date.now();
       const idsToRemove: string[] = [];
       
       recentNotificationIds.current.forEach(id => {
         const [messageId, timestamp] = id.split('|');
-        if (now - parseInt(timestamp) > 10000) { // 10 seconds
+        if (now - parseInt(timestamp) > 5000) { // 5 seconds
           idsToRemove.push(id);
         }
       });
@@ -185,7 +185,7 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
       });
       
       console.log(`Cleaned up ${idsToRemove.length} old notification IDs. Remaining: ${recentNotificationIds.current.size}`);
-    }, 30000); // Run cleanup every 30 seconds
+    }, 10000); // Run cleanup every 10 seconds
     
     return () => {
       clearInterval(cleanupInterval);
@@ -210,23 +210,17 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
         if (messageId) {
           console.log('Processing notification with ID:', messageId);
           
-          // Check if we've recently shown this notification (by messageId alone)
-          if (recentNotificationIds.current.has(messageId)) {
-            console.log('Duplicate notification skipped (exact ID match):', messageId);
-            return;
-          }
-          
-          // Also check any ID that starts with this messageId (might have different timestamp)
+          // Check if we've recently shown this notification
           const isDuplicate = Array.from(recentNotificationIds.current).some(id => 
             id.split('|')[0] === messageId
           );
           
           if (isDuplicate) {
-            console.log('Duplicate notification skipped (ID prefix match):', messageId);
+            console.log('Duplicate notification skipped:', messageId);
             return;
           }
           
-          // Add to recent notifications with timestamp to prevent duplicates
+          // Add to recent notifications with timestamp
           const uniqueId = `${messageId}|${Date.now()}`;
           recentNotificationIds.current.add(uniqueId);
           

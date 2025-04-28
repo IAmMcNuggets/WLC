@@ -44,33 +44,9 @@ const cleanupNotificationIds = () => {
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log("[firebase-messaging-sw.js] Received background message ", payload);
-  
-  // Extract message ID from payload (check both top-level and data)
-  const messageId = payload.messageId || payload.data?.messageId || `fallback-${Date.now()}`;
-  
-  // Check for duplicates
-  if (recentNotificationIds.has(messageId)) {
-    console.log('[firebase-messaging-sw.js] Duplicate notification skipped (exact ID match):', messageId);
-    return;
-  }
-  
-  // Also check any ID that starts with this messageId (different timestamp)
-  const isDuplicate = Array.from(recentNotificationIds).some(id => 
-    id.split('|')[0] === messageId
-  );
-  
-  if (isDuplicate) {
-    console.log('[firebase-messaging-sw.js] Duplicate notification skipped (ID prefix match):', messageId);
-    return;
-  }
-  
-  // Add to tracking with timestamp
-  const uniqueId = `${messageId}|${Date.now()}`;
-  recentNotificationIds.add(uniqueId);
-  console.log('[firebase-messaging-sw.js] Added notification ID to tracking:', uniqueId);
-  
-  // Schedule cleanup
-  setTimeout(cleanupNotificationIds, 30000);
+
+  // Get messageId from either top-level or data property
+  const messageId = payload.messageId || payload.data?.messageId || '';
   
   // Check if the app is in focus - don't show background notification if app is in focus
   self.clients.matchAll({
@@ -97,15 +73,25 @@ messaging.onBackgroundMessage((payload) => {
         icon: "/logo192.png",
         badge: "/logo192.png",
         timestamp: Date.now(),
-        tag: messageId, // Use message ID as tag to replace duplicates
+        tag: messageId, // Use messageId as tag to replace duplicates
+        renotify: false, // Don't renotify for same tag
         data: {
           ...payload.data,
           messageId  // Ensure messageId is included in data
         }
       };
 
-      console.log("[firebase-messaging-sw.js] Showing notification with title:", notificationTitle);
-      return self.registration.showNotification(notificationTitle, notificationOptions);
+      // Check if a notification with this tag already exists
+      self.registration.getNotifications().then(notifications => {
+        const existingNotification = notifications.find(n => n.tag === messageId);
+        if (existingNotification) {
+          console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead');
+          existingNotification.close();
+        }
+        
+        console.log("[firebase-messaging-sw.js] Showing notification with title:", notificationTitle);
+        return self.registration.showNotification(notificationTitle, notificationOptions);
+      });
     } else if (payload.data) {
       // Custom data message format
       const notificationTitle = payload.data.title || 'New Message';
@@ -114,15 +100,25 @@ messaging.onBackgroundMessage((payload) => {
         icon: "/logo192.png",
         badge: "/logo192.png",
         timestamp: Date.now(),
-        tag: messageId, // Use message ID as tag to replace duplicates
+        tag: messageId, // Use messageId as tag to replace duplicates
+        renotify: false, // Don't renotify for same tag
         data: {
           ...payload.data,
           messageId  // Ensure messageId is included in data
         }
       };
 
-      console.log("[firebase-messaging-sw.js] Showing notification from data with title:", notificationTitle);
-      return self.registration.showNotification(notificationTitle, notificationOptions);
+      // Check if a notification with this tag already exists
+      self.registration.getNotifications().then(notifications => {
+        const existingNotification = notifications.find(n => n.tag === messageId);
+        if (existingNotification) {
+          console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead');
+          existingNotification.close();
+        }
+        
+        console.log("[firebase-messaging-sw.js] Showing notification from data with title:", notificationTitle);
+        return self.registration.showNotification(notificationTitle, notificationOptions);
+      });
     } else {
       console.log("[firebase-messaging-sw.js] Received payload without notification or data:", payload);
     }
