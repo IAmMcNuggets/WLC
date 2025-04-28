@@ -14,7 +14,7 @@ firebase.initializeApp({
 });
 
 // Log service worker initialization
-console.log('Firebase service worker initialized');
+console.log('[firebase-messaging-sw.js] Service worker initialized');
 
 // Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
@@ -47,6 +47,7 @@ messaging.onBackgroundMessage((payload) => {
 
   // Get messageId from either top-level or data property
   const messageId = payload.messageId || payload.data?.messageId || '';
+  console.log('[firebase-messaging-sw.js] Processing message with ID:', messageId);
   
   // Check if the app is in focus - don't show background notification if app is in focus
   self.clients.matchAll({
@@ -58,15 +59,33 @@ messaging.onBackgroundMessage((payload) => {
       client.visibilityState === 'visible' && client.focused
     );
     
+    console.log('[firebase-messaging-sw.js] App focus state:', { 
+      messageId,
+      appIsInFocus,
+      clientCount: clients.length,
+      clientStates: clients.map(c => ({
+        url: c.url,
+        visibilityState: c.visibilityState,
+        focused: c.focused
+      }))
+    });
+    
     // Skip background notification if app is in focus
     if (appIsInFocus) {
-      console.log('[firebase-messaging-sw.js] App is in focus, skipping background notification');
+      console.log('[firebase-messaging-sw.js] App is in focus, skipping background notification', { messageId });
       return;
     }
     
     // Get notification data from payload
     const title = payload.data?.title || 'New Message';
     const body = payload.data?.body || '';
+    
+    console.log('[firebase-messaging-sw.js] Preparing notification:', { 
+      messageId,
+      title,
+      body,
+      data: payload.data
+    });
     
     const notificationOptions = {
       body,
@@ -85,11 +104,18 @@ messaging.onBackgroundMessage((payload) => {
     self.registration.getNotifications().then(notifications => {
       const existingNotification = notifications.find(n => n.tag === messageId);
       if (existingNotification) {
-        console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead');
+        console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead', { 
+          messageId,
+          existingNotificationId: existingNotification.id
+        });
         existingNotification.close();
       }
       
-      console.log("[firebase-messaging-sw.js] Showing notification with title:", title);
+      console.log("[firebase-messaging-sw.js] Showing notification", { 
+        messageId,
+        title,
+        options: notificationOptions
+      });
       return self.registration.showNotification(title, notificationOptions);
     });
   });

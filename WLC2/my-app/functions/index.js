@@ -27,17 +27,18 @@ exports.sendChatNotificationV3 = onDocumentCreated({
   region: 'us-central1'
 }, async (event) => {
     const message = event.data.data();
-    logger.log('Processing message for notification:', message);
+    const messageId = event.params.messageId;
+    logger.log('Processing message for notification:', { messageId, message });
     
     // Skip if message doesn't have the required data
     if (!message || !message.user || !message.text) {
-      logger.error("Message data is incomplete:", message);
+      logger.error("Message data is incomplete:", { messageId, message });
       return null;
     }
     
     // Skip test notifications to avoid duplicate notifications
     if (message.isNotificationTest === true) {
-      logger.log("Skipping test notification message");
+      logger.log("Skipping test notification message", { messageId });
       return { success: true, skipped: true, reason: "test_notification" };
     }
     
@@ -63,11 +64,11 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       });
       
       if (tokens.length === 0) {
-        logger.log("No valid tokens found to send notifications");
+        logger.log("No valid tokens found to send notifications", { messageId });
         return null;
       }
       
-      logger.log(`Found ${tokens.length} tokens to send notifications to`);
+      logger.log(`Found ${tokens.length} tokens to send notifications to`, { messageId });
       
       // Get Firebase project ID for FCM
       const projectId = process.env.GCLOUD_PROJECT || 'gigfriend-9b3ea';
@@ -78,7 +79,7 @@ exports.sendChatNotificationV3 = onDocumentCreated({
           const accessToken = await admin.credential.applicationDefault().getAccessToken();
           return accessToken.access_token;
         } catch (error) {
-          logger.error('Error getting access token:', error);
+          logger.error('Error getting access token:', { messageId, error });
           throw error;
         }
       };
@@ -100,6 +101,8 @@ exports.sendChatNotificationV3 = onDocumentCreated({
               }
             }
           };
+          
+          logger.log('Sending FCM message:', { messageId, token: fcmToken.substring(0, 10) + '...', title });
           
           // Prepare the HTTP request
           const options = {
@@ -123,12 +126,14 @@ exports.sendChatNotificationV3 = onDocumentCreated({
               
               res.on('end', () => {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
+                  logger.log('FCM message sent successfully:', { messageId, token: fcmToken.substring(0, 10) + '...', statusCode: res.statusCode });
                   resolve({
                     success: true,
                     statusCode: res.statusCode,
                     response: data
                   });
                 } else {
+                  logger.error('FCM message failed:', { messageId, token: fcmToken.substring(0, 10) + '...', statusCode: res.statusCode, response: data });
                   reject({
                     success: false,
                     statusCode: res.statusCode,
@@ -139,6 +144,7 @@ exports.sendChatNotificationV3 = onDocumentCreated({
             });
             
             req.on('error', (error) => {
+              logger.error('FCM request error:', { messageId, token: fcmToken.substring(0, 10) + '...', error: error.message });
               reject({
                 success: false,
                 error: error.message
@@ -149,7 +155,7 @@ exports.sendChatNotificationV3 = onDocumentCreated({
             req.end();
           });
         } catch (error) {
-          logger.error('Error sending FCM message:', error);
+          logger.error('Error sending FCM message:', { messageId, token: fcmToken.substring(0, 10) + '...', error });
           throw error;
         }
       };
@@ -167,10 +173,10 @@ exports.sendChatNotificationV3 = onDocumentCreated({
           };
           
           const response = await sendFcmMessage(token, title, body, data);
-          logger.log(`Successfully sent message to user ${userId}:`, response);
+          logger.log(`Successfully sent message to user ${userId}:`, { messageId, userId, response });
           return { success: true, token, userId };
         } catch (error) {
-          logger.error(`Failed to send message to user ${userId}:`, error);
+          logger.error(`Failed to send message to user ${userId}:`, { messageId, userId, error: JSON.stringify(error) });
           return { success: false, token, userId, error: JSON.stringify(error) };
         }
       }));
@@ -178,20 +184,20 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       const successes = results.filter(r => r.success);
       const failures = results.filter(r => !r.success);
       
-      logger.log(`${successes.length} notifications sent successfully out of ${tokens.length}`);
+      logger.log(`${successes.length} notifications sent successfully out of ${tokens.length}`, { messageId });
       
       // Remove invalid tokens
       for (const failure of failures) {
         try {
           const { token, userId } = failure;
-          logger.log(`Removing invalid token from user ${userId}`);
+          logger.log(`Removing invalid token from user ${userId}`, { messageId, userId });
           
           const userRef = admin.firestore().collection("userProfiles").doc(userId);
           await userRef.update({
             fcmToken: admin.firestore.FieldValue.delete()
           });
         } catch (error) {
-          logger.error("Error removing token:", error);
+          logger.error("Error removing token:", { messageId, userId, error });
         }
       }
       
@@ -201,7 +207,20 @@ exports.sendChatNotificationV3 = onDocumentCreated({
         failed: failures.length 
       };
     } catch (error) {
-      logger.error("Error sending notification:", error);
+      logger.error("Error sending notification:", { messageId, error: error.message });
       return { error: error.message };
     }
-}); 
+});
+
+/**
+ * Cloud function that logs when new chat messages are created
+ * This function is now disabled to prevent duplicate notifications
+ */
+// exports.logNewMessagesV3 = onDocumentCreated({
+//   document: 'messages/{messageId}',
+//   region: 'us-central1'
+// }, async (event) => {
+//   const message = event.data.data();
+//   logger.log('New message created:', message);
+//   return { success: true };
+// }); 
