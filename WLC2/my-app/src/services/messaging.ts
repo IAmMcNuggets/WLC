@@ -9,7 +9,7 @@ interface MessagePayload {
     body?: string;
   };
   data?: {
-    [key: string]: string;
+    [key: string]: string | undefined;
     messageId?: string;
   };
   from: string;
