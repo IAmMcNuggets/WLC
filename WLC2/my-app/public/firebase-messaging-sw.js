@@ -64,64 +64,34 @@ messaging.onBackgroundMessage((payload) => {
       return;
     }
     
-    // Otherwise proceed with showing the notification
-    if (payload.notification) {
-      // Standard notification format from FCM
-      const notificationTitle = payload.notification.title || 'New Notification';
-      const notificationOptions = {
-        body: payload.notification.body || '',
-        icon: "/logo192.png",
-        badge: "/logo192.png",
-        timestamp: Date.now(),
-        tag: messageId, // Use messageId as tag to replace duplicates
-        renotify: false, // Don't renotify for same tag
-        data: {
-          ...payload.data,
-          messageId  // Ensure messageId is included in data
-        }
-      };
+    // Get notification data from payload
+    const title = payload.data?.title || 'New Message';
+    const body = payload.data?.body || '';
+    
+    const notificationOptions = {
+      body,
+      icon: "/logo192.png",
+      badge: "/logo192.png",
+      timestamp: Date.now(),
+      tag: messageId, // Use messageId as tag to replace duplicates
+      renotify: false, // Don't renotify for same tag
+      data: {
+        ...payload.data,
+        messageId  // Ensure messageId is included in data
+      }
+    };
 
-      // Check if a notification with this tag already exists
-      self.registration.getNotifications().then(notifications => {
-        const existingNotification = notifications.find(n => n.tag === messageId);
-        if (existingNotification) {
-          console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead');
-          existingNotification.close();
-        }
-        
-        console.log("[firebase-messaging-sw.js] Showing notification with title:", notificationTitle);
-        return self.registration.showNotification(notificationTitle, notificationOptions);
-      });
-    } else if (payload.data) {
-      // Custom data message format
-      const notificationTitle = payload.data.title || 'New Message';
-      const notificationOptions = {
-        body: payload.data.body || '',
-        icon: "/logo192.png",
-        badge: "/logo192.png",
-        timestamp: Date.now(),
-        tag: messageId, // Use messageId as tag to replace duplicates
-        renotify: false, // Don't renotify for same tag
-        data: {
-          ...payload.data,
-          messageId  // Ensure messageId is included in data
-        }
-      };
-
-      // Check if a notification with this tag already exists
-      self.registration.getNotifications().then(notifications => {
-        const existingNotification = notifications.find(n => n.tag === messageId);
-        if (existingNotification) {
-          console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead');
-          existingNotification.close();
-        }
-        
-        console.log("[firebase-messaging-sw.js] Showing notification from data with title:", notificationTitle);
-        return self.registration.showNotification(notificationTitle, notificationOptions);
-      });
-    } else {
-      console.log("[firebase-messaging-sw.js] Received payload without notification or data:", payload);
-    }
+    // Check if a notification with this tag already exists
+    self.registration.getNotifications().then(notifications => {
+      const existingNotification = notifications.find(n => n.tag === messageId);
+      if (existingNotification) {
+        console.log('[firebase-messaging-sw.js] Notification with this tag already exists, updating instead');
+        existingNotification.close();
+      }
+      
+      console.log("[firebase-messaging-sw.js] Showing notification with title:", title);
+      return self.registration.showNotification(title, notificationOptions);
+    });
   });
 });
 

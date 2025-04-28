@@ -201,9 +201,6 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
       const unsubscribe = await onForegroundMessage((payload) => {
         console.log('Foreground message received in context:', payload);
         
-        // Extract notification data
-        const { title, body } = payload.notification || {};
-        
         // Get messageId from either top-level or data property
         const messageId = payload.messageId || payload.data?.messageId || '';
         
@@ -228,6 +225,10 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
         } else {
           console.warn('Received notification without messageId');
         }
+        
+        // Get notification data from payload
+        const title = payload.data?.title || 'New Message';
+        const body = payload.data?.body || '';
         
         // Show toast notification
         if (title) {

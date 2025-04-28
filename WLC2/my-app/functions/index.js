@@ -91,11 +91,10 @@ exports.sendChatNotificationV3 = onDocumentCreated({
           const message = {
             message: {
               token: fcmToken,
-              notification: {
-                title,
-                body
-              },
+              // Send as data message only to prevent duplicates
               data: {
+                title,
+                body,
                 ...data,
                 click_action: 'FLUTTER_NOTIFICATION_CLICK' // Helps mobile platforms
               }
