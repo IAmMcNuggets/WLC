@@ -22,7 +22,7 @@ admin.initializeApp();
 /**
  * Cloud function that sends notifications when new chat messages are created
  */
-exports.sendChatNotificationV3 = onDocumentCreated({
+exports.sendChatNotification = onDocumentCreated({
   document: 'messages/{messageId}',
   region: 'us-central1'
 }, async (event) => {
@@ -34,12 +34,6 @@ exports.sendChatNotificationV3 = onDocumentCreated({
     if (!message || !message.user || !message.text) {
       logger.error("Message data is incomplete:", { messageId, message });
       return null;
-    }
-    
-    // Skip test notifications to avoid duplicate notifications
-    if (message.isNotificationTest === true) {
-      logger.log("Skipping test notification message", { messageId });
-      return { success: true, skipped: true, reason: "test_notification" };
     }
     
     // Don't send notifications for your own messages
@@ -73,7 +67,7 @@ exports.sendChatNotificationV3 = onDocumentCreated({
       // Get Firebase project ID for FCM
       const projectId = process.env.GCLOUD_PROJECT || 'gigfriend-9b3ea';
       
-      // Fallback to using the Legacy HTTP API directly
+      // Get access token for FCM
       const getAccessToken = async () => {
         try {
           const accessToken = await admin.credential.applicationDefault().getAccessToken();
@@ -84,6 +78,7 @@ exports.sendChatNotificationV3 = onDocumentCreated({
         }
       };
       
+      // Send FCM message
       const sendFcmMessage = async (fcmToken, title, body, data = {}) => {
         try {
           const accessToken = await getAccessToken();
@@ -92,12 +87,11 @@ exports.sendChatNotificationV3 = onDocumentCreated({
           const message = {
             message: {
               token: fcmToken,
-              // Send as data message only to prevent duplicates
               data: {
                 title,
                 body,
                 ...data,
-                click_action: 'FLUTTER_NOTIFICATION_CLICK' // Helps mobile platforms
+                click_action: 'FLUTTER_NOTIFICATION_CLICK'
               }
             }
           };
@@ -214,13 +208,12 @@ exports.sendChatNotificationV3 = onDocumentCreated({
 
 /**
  * Cloud function that logs when new chat messages are created
- * This function is now disabled to prevent duplicate notifications
  */
-// exports.logNewMessagesV3 = onDocumentCreated({
-//   document: 'messages/{messageId}',
-//   region: 'us-central1'
-// }, async (event) => {
-//   const message = event.data.data();
-//   logger.log('New message created:', message);
-//   return { success: true };
-// }); 
+exports.logNewMessages = onDocumentCreated({
+  document: 'messages/{messageId}',
+  region: 'us-central1'
+}, async (event) => {
+  const message = event.data.data();
+  logger.log('New message created:', message);
+  return { success: true };
+}); 

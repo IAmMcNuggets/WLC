@@ -8,6 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 import { format } from 'date-fns';
 import { GoogleUser } from '../types/user';
 import backgroundImage from '../Background/86343.jpg';
+import { requestNotificationPermission } from '../services/messaging';
 
 // Define the structure of a chat message
 interface ChatMessage {
@@ -23,286 +24,228 @@ interface ChatMessage {
 }
 
 interface ChatProps {
-  user: GoogleUser | null;
+  user: GoogleUser;
 }
-
-// Styled Components
-const PageWrapper = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  z-index: 0; /* Ensure this doesn't cover the navigation */
-`;
-
-const ChatWrapper = styled.div`
-  background-image: url(${backgroundImage});
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  height: 100%;
-  padding: 20px 20px 120px 20px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-`;
 
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  flex: 1;
-  max-width: 800px;
-  margin: 0 auto;
+  height: 100vh;
+  background-image: url(${backgroundImage});
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 1rem;
   background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  position: relative;
-  overflow: hidden; /* Prevent container from scrolling */
+  border-bottom: 1px solid #e0e0e0;
 `;
 
 const ChatTitle = styled.h1`
-  text-align: center;
-  width: 100%;
-  margin-top: 20px;
-  margin-bottom: 30px;
-  color: black;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  font-size: 2.5rem;
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
 `;
 
-const ChatBox = styled.div`
+const MessagesContainer = styled.div`
   flex: 1;
-  overflow-y: auto; /* Only this element should scroll */
-  padding: 10px;
-  margin-bottom: 20px;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  scrollbar-width: thin;
-  
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 10px;
-  }
-`;
-
-const EmptyMessagesContainer = styled.div`
+  overflow-y: auto;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #95a5a6;
-  gap: 15px;
+  gap: 1rem;
 `;
 
-const MessageList = styled.div`
+const MessageGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 0.5rem;
 `;
 
-const MessageGroup = styled.div<{ $isMine: boolean }>`
+const DateSeparator = styled.div`
+  text-align: center;
+  margin: 1rem 0;
+  color: #666;
+  font-size: 0.9rem;
+`;
+
+const Message = styled.div<{ isOwn: boolean }>`
   display: flex;
-  flex-direction: column;
-  align-self: ${({ $isMine }) => $isMine ? 'flex-end' : 'flex-start'};
+  flex-direction: ${props => props.isOwn ? 'row-reverse' : 'row'};
+  align-items: flex-start;
+  gap: 0.5rem;
   max-width: 70%;
+  align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 `;
 
-const MessageItem = styled.div<{ $isMine: boolean }>`
-  padding: 12px 16px;
-  border-radius: 18px;
-  background-color: ${({ $isMine }) => $isMine ? '#3498db' : '#e9eaeb'};
-  color: ${({ $isMine }) => $isMine ? '#fff' : '#333'};
+const MessageContent = styled.div<{ isOwn: boolean }>`
+  background-color: ${props => props.isOwn ? '#007bff' : '#f0f0f0'};
+  color: ${props => props.isOwn ? 'white' : 'black'};
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  position: relative;
-  margin-bottom: 4px;
-  word-break: break-word;
-  
-  &:last-child {
-    border-bottom-right-radius: ${({ $isMine }) => $isMine ? '4px' : '18px'};
-    border-bottom-left-radius: ${({ $isMine }) => $isMine ? '18px' : '4px'};
-  }
 `;
 
-const MessageForm = styled.form`
+const MessageText = styled.p`
+  margin: 0;
+  word-wrap: break-word;
+`;
+
+const MessageTime = styled.span`
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+  display: block;
+`;
+
+const UserAvatar = styled.img`
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+`;
+
+const InputContainer = styled.form`
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 15px;
-  background-color: #fff;
-  border-radius: 24px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e1e1e1;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid #e0e0e0;
 `;
 
 const MessageInput = styled.input`
   flex: 1;
-  padding: 12px 15px;
-  border: none;
-  background-color: transparent;
+  padding: 0.75rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 1.5rem;
+  font-size: 1rem;
   outline: none;
-  font-size: 16px;
   
-  &::placeholder {
-    color: #95a5a6;
+  &:focus {
+    border-color: #007bff;
   }
 `;
 
 const SendButton = styled.button`
-  background-color: #3498db;
+  background-color: #007bff;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s;
   
   &:hover {
-    background-color: #2980b9;
-    transform: scale(1.05);
+    background-color: #0056b3;
   }
   
   &:disabled {
-    background-color: #bdc3c7;
+    background-color: #ccc;
     cursor: not-allowed;
-    transform: none;
   }
-`;
-
-const UserInfo = styled.div`
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  font-size: 13px;
-  color: #7f8c8d;
-`;
-
-const UserAvatar = styled.img`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  margin-right: 6px;
-  object-fit: cover;
-  border: 1px solid #eaeaea;
 `;
 
 const UserName = styled.span`
-  font-weight: 600;
-  color: #2c3e50;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
 `;
 
-const MessageTime = styled.span<{ $isMine: boolean }>`
-  font-size: 11px;
-  color: ${({ $isMine }) => $isMine ? 'rgba(255, 255, 255, 0.8)' : '#95a5a6'};
-  margin-top: 4px;
-  align-self: ${({ $isMine }) => $isMine ? 'flex-end' : 'flex-start'};
-`;
-
-const DateSeparator = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 15px 0;
+const NotificationButton = styled.button`
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  margin-left: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
   
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background-color: #e1e1e1;
+  &:hover {
+    background-color: #218838;
   }
-`;
-
-const DateLabel = styled.span`
-  font-size: 12px;
-  background-color: #f8f9fa;
-  color: #7f8c8d;
-  padding: 0 10px;
+  
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
 `;
 
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState<boolean>(true);
-  const chatBoxRef = useRef<HTMLDivElement>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
   
+  // Check if notifications are enabled
+  useEffect(() => {
+    const checkNotifications = async () => {
+      const enabled = localStorage.getItem('notifications-enabled') === 'true';
+      setNotificationsEnabled(enabled);
+    };
+    
+    checkNotifications();
+  }, []);
+  
+  // Request notification permission
+  const handleEnableNotifications = async () => {
+    try {
+      const enabled = await requestNotificationPermission();
+      if (enabled) {
+        setNotificationsEnabled(true);
+        addToast('Notifications enabled successfully', 'success');
+      } else {
+        addToast('Failed to enable notifications', 'error');
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      addToast('Error enabling notifications', 'error');
+    }
+  };
+  
+  // Scroll to bottom when messages change
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+  
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+  
+  // Listen for new messages
   useEffect(() => {
     if (!currentUser) return;
     
-    setLoading(true);
-    
-    // Query messages from Firestore
-    const messagesQuery = query(
+    const q = query(
       collection(firestore, 'messages'),
       orderBy('createdAt', 'asc')
     );
     
-    // Subscribe to real-time updates
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const messageList: ChatMessage[] = [];
-      snapshot.forEach(doc => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newMessages: ChatMessage[] = [];
+      snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.createdAt) {
-          messageList.push({
-            id: doc.id,
-            text: data.text,
-            createdAt: data.createdAt,
-            user: {
-              uid: data.user.uid,
-              name: data.user.name,
-              email: data.user.email,
-              picture: data.user.picture
-            }
-          });
-        }
+        newMessages.push({
+          id: doc.id,
+          text: data.text,
+          createdAt: data.createdAt,
+          user: data.user
+        });
       });
-      
-      setMessages(messageList);
-      setLoading(false);
-      
-      // Scroll to bottom after messages are loaded and rendered
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }, (error) => {
-      console.error("Error fetching messages:", error);
-      addToast('Failed to load messages', 'error');
-      setLoading(false);
+      setMessages(newMessages);
     });
     
     return () => unsubscribe();
-  }, [currentUser, addToast]);
-  
-  // Scroll to bottom when new messages are added
-  useEffect(() => {
-    if (!loading && messages.length > 0) {
-      scrollToBottom();
-    }
-  }, [messages, loading]);
-  
-  const scrollToBottom = () => {
-    if (chatBoxRef.current) {
-      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
-    }
-  };
+  }, [currentUser]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -365,86 +308,57 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   }, {});
   
   return (
-    <PageWrapper>
-      <ChatWrapper>
-        <ChatContainer>
-          <ChatTitle>Team Chat</ChatTitle>
-          
-          <ChatBox ref={chatBoxRef}>
-            {loading ? (
-              <EmptyMessagesContainer>Loading messages...</EmptyMessagesContainer>
-            ) : messages.length === 0 ? (
-              <EmptyMessagesContainer>
-                <FiMessageCircle size={48} />
-                <p>No messages yet. Start the conversation!</p>
-              </EmptyMessagesContainer>
-            ) : (
-              <MessageList>
-                {/* Group messages by date */}
-                {(() => {
-                  let lastMessageDate: string | null = null;
-                  
-                  return messages.map((message, index) => {
-                    const messageDate = formatDateSeparator(message.createdAt);
-                    const showDateSeparator = messageDate !== lastMessageDate;
-                    
-                    if (showDateSeparator) {
-                      lastMessageDate = messageDate;
-                    }
-                    
-                    const isMine = message.user.email === user?.email;
-                    const isLastMessage = index === messages.length - 1;
-                    
-                    return (
-                      <React.Fragment key={message.id}>
-                        {showDateSeparator && (
-                          <DateSeparator>
-                            <DateLabel>{messageDate}</DateLabel>
-                          </DateSeparator>
-                        )}
-                        <MessageGroup $isMine={isMine}>
-                          {!isMine && (
-                            <UserInfo>
-                              {message.user.picture ? (
-                                <UserAvatar src={message.user.picture} alt={message.user.name} />
-                              ) : (
-                                <UserAvatar 
-                                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(message.user.name)}&background=random&size=128`} 
-                                  alt={message.user.name} 
-                                />
-                              )}
-                              <UserName>{message.user.name}</UserName>
-                            </UserInfo>
-                          )}
-                          <MessageItem $isMine={isMine}>
-                            {message.text}
-                          </MessageItem>
-                          <MessageTime $isMine={isMine}>
-                            {formatDate(message.createdAt)}
-                          </MessageTime>
-                          {isLastMessage && <div ref={messagesEndRef} />}
-                        </MessageGroup>
-                      </React.Fragment>
-                    );
-                  });
-                })()}
-              </MessageList>
-            )}
-          </ChatBox>
-          <MessageForm onSubmit={handleSubmit}>
-            <MessageInput
-              type="text"
-              placeholder="Type a message..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-            />
-            <SendButton type="submit" disabled={!inputValue.trim()}>
-              <FiSend />
-            </SendButton>
-          </MessageForm>
-        </ChatContainer>
-      </ChatWrapper>
-    </PageWrapper>
+    <ChatContainer>
+      <Header>
+        <ChatTitle>Chat</ChatTitle>
+        {!notificationsEnabled && (
+          <NotificationButton onClick={handleEnableNotifications}>
+            Enable Notifications
+          </NotificationButton>
+        )}
+      </Header>
+      
+      <MessagesContainer>
+        {Object.entries(groupedMessages).map(([date, messages]) => (
+          <MessageGroup key={date}>
+            <DateSeparator>
+              {formatDateSeparator(messages[0].createdAt)}
+            </DateSeparator>
+            
+            {messages.map((message) => (
+              <Message 
+                key={message.id} 
+                isOwn={message.user.uid === currentUser?.uid}
+              >
+                <UserAvatar 
+                  src={message.user.picture || 'https://via.placeholder.com/40'} 
+                  alt={message.user.name}
+                />
+                <MessageContent isOwn={message.user.uid === currentUser?.uid}>
+                  <UserName>{message.user.name}</UserName>
+                  <MessageText>{message.text}</MessageText>
+                  <MessageTime>{formatDate(message.createdAt)}</MessageTime>
+                </MessageContent>
+              </Message>
+            ))}
+          </MessageGroup>
+        ))}
+        <div ref={messagesEndRef} />
+      </MessagesContainer>
+      
+      <InputContainer onSubmit={handleSubmit}>
+        <MessageInput
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Type a message..."
+          disabled={!currentUser}
+        />
+        <SendButton type="submit" disabled={!inputValue.trim() || !currentUser}>
+          <FiSend size={20} />
+        </SendButton>
+      </InputContainer>
+    </ChatContainer>
   );
 };
 
