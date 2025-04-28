@@ -35,10 +35,10 @@ export const initializeMessaging = async () => {
     console.log('Initializing messaging...');
     
     // Check if messaging is supported
-    const isSupported = await isSupported();
-    console.log('Messaging supported:', isSupported);
+    const messagingSupported = await isSupported();
+    console.log('Messaging supported:', messagingSupported);
     
-    if (!isSupported) {
+    if (!messagingSupported) {
       console.error('Messaging is not supported in this browser');
       return null;
     }
