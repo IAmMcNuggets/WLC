@@ -237,7 +237,7 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
         
         // Show toast notification
         if (title) {
-          addToast(title, 'info', body || '');
+          addToast(`${title}${body ? `: ${body}` : ''}`, 'info');
           console.log('Toast notification displayed:', title);
         }
       });
