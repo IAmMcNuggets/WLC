@@ -29,49 +29,30 @@ export const isPWAInstalled = (): boolean => {
          (window.navigator as any).standalone === true;
 };
 
-// Initialize messaging if it's supported
+// Initialize messaging
 export const initializeMessaging = async () => {
   try {
-    // Check if the browser supports FCM
-    const isFCMSupported = await isSupported();
-    if (!isFCMSupported) {
-      console.log('Firebase Cloud Messaging is not supported in this browser');
+    console.log('Initializing messaging...');
+    
+    // Check if messaging is supported
+    const isSupported = await isSupported();
+    console.log('Messaging supported:', isSupported);
+    
+    if (!isSupported) {
+      console.error('Messaging is not supported in this browser');
       return null;
     }
-
-    // iOS specific check - FCM only works in PWA mode
-    if (isIOSDevice() && !isPWAInstalled()) {
-      console.log('iOS device requires PWA installation for notifications');
-      return null;
-    }
-
-    // Check if service worker is registered
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      const hasMessagingSW = registrations.some(reg => 
-        reg.scope.includes(window.location.origin) && 
-        reg.active?.scriptURL.includes('firebase-messaging-sw.js')
-      );
-      
-      if (!hasMessagingSW) {
-        console.warn('Firebase messaging service worker not found. Attempting registration...');
-        try {
-          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-          console.log('Firebase messaging service worker registered:', registration.scope);
-        } catch (error) {
-          console.error('Failed to register Firebase messaging service worker:', error);
-        }
-      } else {
-        console.log('Firebase messaging service worker already registered');
-      }
-    }
-
-    const app = (await import('../firebase')).default;
+    
+    // Get messaging instance
+    const app = getApp();
+    console.log('Firebase app initialized:', !!app);
+    
     const messaging = getMessaging(app);
-    console.log('Firebase messaging initialized successfully');
+    console.log('Messaging instance created:', !!messaging);
+    
     return messaging;
   } catch (error) {
-    console.error('Error initializing Firebase messaging:', error);
+    console.error('Error initializing messaging:', error);
     return null;
   }
 };
@@ -151,6 +132,30 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
   }
 };
 
+// Get service worker registration
+export const getServiceWorkerRegistration = async () => {
+  try {
+    console.log('Getting service worker registration...');
+    
+    if (!('serviceWorker' in navigator)) {
+      console.error('Service workers not supported');
+      return null;
+    }
+    
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    console.log('Service worker registered:', registration);
+    
+    // Wait for the service worker to be ready
+    await navigator.serviceWorker.ready;
+    console.log('Service worker ready');
+    
+    return registration;
+  } catch (error) {
+    console.error('Error registering service worker:', error);
+    return null;
+  }
+};
+
 // Get FCM token and store it
 export const getAndStoreToken = async (): Promise<boolean> => {
   try {
@@ -159,18 +164,26 @@ export const getAndStoreToken = async (): Promise<boolean> => {
     
     console.log('Getting FCM token...');
     
+    // Get service worker registration first
+    const registration = await getServiceWorkerRegistration();
+    if (!registration) {
+      console.error('Failed to get service worker registration');
+      return false;
+    }
+    
     const currentToken = await getToken(messaging, {
       vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY,
-      serviceWorkerRegistration: await getServiceWorkerRegistration()
+      serviceWorkerRegistration: registration
     });
     
     if (currentToken) {
-      console.log('FCM token acquired');
+      console.log('FCM token acquired:', currentToken.substring(0, 10) + '...');
       localStorage.setItem('notifications-enabled', 'true');
       
       // Store token in user document
       try {
         await storeTokenInUserDocument(currentToken);
+        console.log('Token stored in user document');
         return true;
       } catch (error) {
         console.error('Error storing token in user document:', error);
@@ -186,30 +199,26 @@ export const getAndStoreToken = async (): Promise<boolean> => {
   }
 };
 
-// Get service worker registration
-export const getServiceWorkerRegistration = async (): Promise<ServiceWorkerRegistration | undefined> => {
-  try {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      return registrations.find(reg => 
-        reg.active?.scriptURL.includes('firebase-messaging-sw.js')
-      );
-    }
-    return undefined;
-  } catch (error) {
-    console.error('Error getting service worker registration:', error);
-    return undefined;
+// Store token in user document
+const storeTokenInUserDocument = async (token: string) => {
+  if (!auth.currentUser) {
+    console.error('No authenticated user');
+    return;
   }
-};
-
-// Store FCM token in user document
-export const storeTokenInUserDocument = async (token: string): Promise<void> => {
+  
   try {
-    const { saveUserFCMToken } = await import('../api/users');
-    await saveUserFCMToken(token);
-    console.log('FCM token saved to user document');
+    const userId = auth.currentUser.uid;
+    console.log('Storing token for user:', userId);
+    
+    const userProfileRef = doc(firestore, 'userProfiles', userId);
+    await setDoc(userProfileRef, {
+      fcmToken: token,
+      lastTokenUpdate: serverTimestamp()
+    }, { merge: true });
+    
+    console.log('Token stored successfully');
   } catch (error) {
-    console.error('Error saving FCM token:', error);
+    console.error('Error storing token:', error);
     throw error;
   }
 };

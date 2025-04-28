@@ -95,6 +95,8 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   // Check notification status
   const checkNotificationStatus = async (): Promise<boolean> => {
     try {
+      console.log('Checking notification status...');
+      
       // Check permission status
       const permissionStatus = Notification.permission;
       console.log('Notification permission status:', permissionStatus);
@@ -110,13 +112,26 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
         hasServiceWorker = registrations.some(reg => 
           reg.active?.scriptURL.includes('firebase-messaging-sw.js')
         );
+        console.log('Service worker check:', {
+          hasServiceWorker,
+          registrations: registrations.map(r => ({
+            scope: r.scope,
+            state: r.active?.state,
+            scriptURL: r.active?.scriptURL
+          }))
+        });
       }
-      console.log('Has messaging service worker:', hasServiceWorker);
       
       // All conditions must be true for notifications to be enabled
       const isEnabled = permissionStatus === 'granted' && hasStoredToken && hasServiceWorker;
-      setNotificationsEnabled(isEnabled);
+      console.log('Notification status check result:', {
+        isEnabled,
+        permissionStatus,
+        hasStoredToken,
+        hasServiceWorker
+      });
       
+      setNotificationsEnabled(isEnabled);
       return isEnabled;
     } catch (error) {
       console.error('Error checking notification status:', error);
@@ -132,8 +147,11 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
   // Enable notifications
   const enableNotifications = async (): Promise<boolean> => {
     try {
+      console.log('Enabling notifications...');
+      
       // If on iOS but not installed as PWA, show special instructions
       if (isIOS && !isPWA) {
+        console.log('iOS device detected, showing PWA instructions');
         setShowIOSInstructions(true);
         addToast(
           'iOS requires installing as a PWA for notifications', 
@@ -144,6 +162,7 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
       }
       
       const enabled = await requestNotificationPermission();
+      console.log('Notification permission request result:', enabled);
       
       if (enabled) {
         setNotificationsEnabled(true);
@@ -152,8 +171,10 @@ export const NotificationProvider: React.FC<{children: ReactNode}> = ({ children
       } else {
         // Check specifically why it failed
         if (Notification.permission === 'denied') {
+          console.log('Notification permission denied by user');
           addToast('Notification permission denied. Please update your browser settings.', 'error', 8000);
         } else {
+          console.log('Failed to enable notifications');
           addToast('Failed to enable notifications. Please try again.', 'error');
         }
       }
