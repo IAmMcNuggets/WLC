@@ -37,7 +37,7 @@ const ChatContainer = styled.div`
   margin: 0 auto;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
   position: relative;
-  padding-bottom: 80px; /* Add padding for input container */
+  padding-bottom: 120px; /* Increased padding */
 
   @media (max-width: 768px) {
     height: calc(100vh - 90px);
@@ -177,10 +177,11 @@ const InputContainer = styled.form`
   right: 0;
   z-index: 1001;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
-  margin-bottom: 90px; /* Add margin to stay above nav bar */
+  margin-bottom: 120px; /* Increased margin */
 
   @media (max-width: 768px) {
     padding: 1rem;
+    margin-bottom: 100px; /* Slightly less on mobile */
   }
 `;
 
