@@ -12,7 +12,6 @@ import BottomNavBar from './components/BottomNavBar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
-import { NotificationProvider } from './contexts/NotificationContext';
 import { signInWithGooglePopup } from './firebase';
 import { GoogleUser } from './types/user';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -198,9 +197,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <NotificationProvider>
-          <AppContent />
-        </NotificationProvider>
+        <AppContent />
       </ToastProvider>
     </AuthProvider>
   );
