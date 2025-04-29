@@ -38,9 +38,12 @@ const ChatContainer = styled.div`
   height: calc(100vh - 110px);
   max-width: 1200px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  margin: 0 8px; /* Add some margin from screen edges */
 `;
 
 const Header = styled.div`
@@ -48,11 +51,12 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  border-radius: 12px 12px 0 0;
 `;
 
 const ChatTitle = styled.h1`
@@ -66,10 +70,12 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 100px;
+  padding-bottom: 0; /* Remove bottom padding */
+  margin-bottom: 90px; /* Add margin to account for input container height */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -86,7 +92,8 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 90px;
+    padding-bottom: 0;
+    margin-bottom: 80px;
   }
 `;
 
@@ -137,14 +144,14 @@ const Message = styled.div<{ isOwn: boolean }>`
 
 const MessageContent = styled.div<{ isOwn: boolean }>`
   background: ${props => props.isOwn ? 
-    'linear-gradient(135deg, rgba(0, 132, 255, 0.95), rgba(0, 132, 255, 0.85))' : 
-    'rgba(255, 255, 255, 0.7)'};
+    'linear-gradient(135deg, rgba(0, 132, 255, 0.9), rgba(0, 132, 255, 0.8))' : 
+    'rgba(255, 255, 255, 0.6)'};
   color: ${props => props.isOwn ? 'white' : '#1a1a1a'};
   padding: 0.875rem 1.25rem;
   border-radius: 1.25rem;
   box-shadow: 0 2px 10px ${props => props.isOwn ? 
-    'rgba(0, 132, 255, 0.2)' : 
-    'rgba(0, 0, 0, 0.05)'};
+    'rgba(0, 132, 255, 0.15)' : 
+    'rgba(0, 0, 0, 0.03)'};
   backdrop-filter: ${props => props.isOwn ? 'none' : 'blur(8px)'};
   -webkit-backdrop-filter: ${props => props.isOwn ? 'none' : 'blur(8px)'};
   border: 1px solid ${props => props.isOwn ? 
@@ -180,7 +187,7 @@ const InputContainer = styled.form`
   gap: 1rem;
   padding: 1.25rem 1.5rem;
   margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
@@ -189,11 +196,14 @@ const InputContainer = styled.form`
   left: 0;
   right: 0;
   z-index: 2;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  border-radius: 0 0 12px 12px;
+  height: 90px; /* Set explicit height */
 
   @media (max-width: 768px) {
     padding: 1rem;
     margin-bottom: 15px;
+    height: 80px;
   }
 `;
 
@@ -204,14 +214,15 @@ const MessageInput = styled.input`
   border-radius: 1.5rem;
   font-size: 0.9375rem;
   outline: none;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   transition: all 0.2s ease;
+  color: #1a1a1a;
   
   &:focus {
     border-color: #0084ff;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.7);
     box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
   }
   
