@@ -51,7 +51,6 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   height: 100%;
   position: relative;
-  padding-bottom: 120px; /* Space for input + nav margin */
 `;
 
 const Header = styled.div`
@@ -78,6 +77,7 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
+  padding-bottom: 110px; /* Enough space for input + nav */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -98,6 +98,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
+    padding-bottom: 90px;
   }
 `;
 
@@ -194,17 +195,19 @@ const InputContainer = styled.form`
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  position: absolute;
-  bottom: 20px; /* Space from bottom nav */
-  left: 0;
-  right: 0;
-  z-index: 2;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 70px; /* Height of nav bar + some gap */
+  width: 100%;
+  max-width: 1200px;
+  z-index: 10;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
   border-radius: 0 0 12px 12px;
 
   @media (max-width: 768px) {
     padding: 1rem;
-    bottom: 15px;
+    bottom: 65px;
   }
 `;
 
