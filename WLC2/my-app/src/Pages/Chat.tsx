@@ -62,7 +62,7 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 180px; /* Increased to account for input container */
+  padding-bottom: 90px; /* Height of input container */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -82,7 +82,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 160px;
+    padding-bottom: 80px;
   }
 `;
 
@@ -169,13 +169,11 @@ const InputContainer = styled.form`
   padding: 1.25rem 1.5rem;
   background-color: white;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  position: fixed;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 1200px;
-  z-index: 1001;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
 
   @media (max-width: 768px) {
