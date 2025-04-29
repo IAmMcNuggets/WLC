@@ -44,6 +44,14 @@ const ChatContainer = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   margin: 0 8px;
+  overflow: hidden; /* Prevent content from overflowing */
+`;
+
+const ContentWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
 `;
 
 const Header = styled.div`
@@ -70,12 +78,12 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 0;
-  margin-bottom: 80px;
+  padding-bottom: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   background: rgba(255, 255, 255, 0.1);
+  height: calc(100% - 100px); /* Subtract input container height */
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -92,8 +100,8 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 0;
-    margin-bottom: 70px;
+    padding-bottom: 1rem;
+    height: calc(100% - 85px); /* Adjusted for mobile input height */
   }
 `;
 
@@ -186,7 +194,6 @@ const InputContainer = styled.form`
   display: flex;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
-  margin-bottom: 20px;
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -199,11 +206,13 @@ const InputContainer = styled.form`
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
   border-radius: 0 0 12px 12px;
   height: 80px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
 
   @media (max-width: 768px) {
     padding: 1rem;
-    margin-bottom: 15px;
     height: 70px;
+    margin-bottom: 15px;
   }
 `;
 
@@ -407,47 +416,47 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           </NotificationButton>
         )}
       </Header>
-      
-      <MessagesContainer>
-        {Object.entries(groupedMessages).map(([date, messages]) => (
-          <MessageGroup key={date}>
-            <DateSeparator>
-              {formatDateSeparator(messages[0].createdAt)}
-            </DateSeparator>
-            
-            {messages.map((message) => (
-              <Message 
-                key={message.id} 
-                isOwn={message.user.uid === currentUser?.uid}
-              >
-                <UserAvatar 
-                  src={message.user.picture || 'https://via.placeholder.com/40'} 
-                  alt={message.user.name}
-                />
-                <MessageContent isOwn={message.user.uid === currentUser?.uid}>
-                  <UserName>{message.user.name}</UserName>
-                  <MessageText>{message.text}</MessageText>
-                  <MessageTime>{formatDate(message.createdAt)}</MessageTime>
-                </MessageContent>
-              </Message>
-            ))}
-          </MessageGroup>
-        ))}
-        <div ref={messagesEndRef} />
-      </MessagesContainer>
-      
-      <InputContainer onSubmit={handleSubmit}>
-        <MessageInput
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Type a message..."
-          disabled={!currentUser || !user}
-        />
-        <SendButton type="submit" disabled={!inputValue.trim() || !currentUser || !user}>
-          <FiSend size={20} />
-        </SendButton>
-      </InputContainer>
+      <ContentWrapper>
+        <MessagesContainer>
+          {Object.entries(groupedMessages).map(([date, messages]) => (
+            <MessageGroup key={date}>
+              <DateSeparator>
+                {formatDateSeparator(messages[0].createdAt)}
+              </DateSeparator>
+              
+              {messages.map((message) => (
+                <Message 
+                  key={message.id} 
+                  isOwn={message.user.uid === currentUser?.uid}
+                >
+                  <UserAvatar 
+                    src={message.user.picture || 'https://via.placeholder.com/40'} 
+                    alt={message.user.name}
+                  />
+                  <MessageContent isOwn={message.user.uid === currentUser?.uid}>
+                    <UserName>{message.user.name}</UserName>
+                    <MessageText>{message.text}</MessageText>
+                    <MessageTime>{formatDate(message.createdAt)}</MessageTime>
+                  </MessageContent>
+                </Message>
+              ))}
+            </MessageGroup>
+          ))}
+          <div ref={messagesEndRef} />
+        </MessagesContainer>
+        <InputContainer onSubmit={handleSubmit}>
+          <MessageInput
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Type a message..."
+            disabled={!currentUser || !user}
+          />
+          <SendButton type="submit" disabled={!inputValue.trim() || !currentUser || !user}>
+            <FiSend size={20} />
+          </SendButton>
+        </InputContainer>
+      </ContentWrapper>
     </ChatContainer>
   );
 };
