@@ -31,7 +31,7 @@ interface ChatProps {
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 90px); /* Subtract nav bar height */
+  height: calc(100vh - 90px);
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
