@@ -38,8 +38,6 @@ const ChatContainer = styled.div`
   flex-direction: column;
   align-items: center;
   background: rgba(255, 255, 255, 0.02); /* Almost fully transparent */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 `;
 
 const ChatInner = styled.div`
