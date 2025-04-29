@@ -35,10 +35,12 @@ const ChatContainer = styled.div`
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  height: calc(100vh - 90px);
+  height: calc(100vh - 110px);
   max-width: 1200px;
   width: 100%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 `;
 
 const Header = styled.div`
@@ -46,9 +48,11 @@ const Header = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  background-color: white;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 `;
 
 const ChatTitle = styled.h1`
@@ -62,7 +66,7 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 90px; /* Height of input container */
+  padding-bottom: 100px;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -82,7 +86,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 80px;
+    padding-bottom: 90px;
   }
 `;
 
@@ -132,12 +136,20 @@ const Message = styled.div<{ isOwn: boolean }>`
 `;
 
 const MessageContent = styled.div<{ isOwn: boolean }>`
-  background-color: ${props => props.isOwn ? '#0084ff' : 'white'};
+  background: ${props => props.isOwn ? 
+    'linear-gradient(135deg, rgba(0, 132, 255, 0.95), rgba(0, 132, 255, 0.85))' : 
+    'rgba(255, 255, 255, 0.7)'};
   color: ${props => props.isOwn ? 'white' : '#1a1a1a'};
   padding: 0.875rem 1.25rem;
   border-radius: 1.25rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  border: 1px solid ${props => props.isOwn ? 'transparent' : 'rgba(0, 0, 0, 0.08)'};
+  box-shadow: 0 2px 10px ${props => props.isOwn ? 
+    'rgba(0, 132, 255, 0.2)' : 
+    'rgba(0, 0, 0, 0.05)'};
+  backdrop-filter: ${props => props.isOwn ? 'none' : 'blur(8px)'};
+  -webkit-backdrop-filter: ${props => props.isOwn ? 'none' : 'blur(8px)'};
+  border: 1px solid ${props => props.isOwn ? 
+    'transparent' : 
+    'rgba(255, 255, 255, 0.3)'};
 `;
 
 const MessageText = styled.p`
@@ -167,38 +179,44 @@ const InputContainer = styled.form`
   display: flex;
   gap: 1rem;
   padding: 1.25rem 1.5rem;
-  background-color: white;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 2;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 
   @media (max-width: 768px) {
     padding: 1rem;
+    margin-bottom: 15px;
   }
 `;
 
 const MessageInput = styled.input`
   flex: 1;
   padding: 0.875rem 1.25rem;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 1.5rem;
   font-size: 0.9375rem;
   outline: none;
-  background-color: #f8f9fa;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   transition: all 0.2s ease;
   
   &:focus {
     border-color: #0084ff;
-    background-color: white;
+    background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
   }
   
   &::placeholder {
-    color: #adb5bd;
+    color: rgba(0, 0, 0, 0.4);
   }
 `;
 
@@ -241,9 +259,9 @@ const UserName = styled.span`
 `;
 
 const NotificationButton = styled.button`
-  background-color: #f8f9fa;
+  background: rgba(255, 255, 255, 0.7);
   color: #1a1a1a;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 1rem;
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
@@ -253,9 +271,11 @@ const NotificationButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   
   &:hover {
-    background-color: #e9ecef;
+    background: rgba(255, 255, 255, 0.9);
   }
   
   svg {
