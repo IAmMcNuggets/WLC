@@ -70,7 +70,7 @@ export const getServiceWorkerRegistration = async () => {
 };
 
 // Request permission for notifications
-export const requestNotificationPermission = async () => {
+export const requestNotificationPermission = async (): Promise<boolean> => {
   try {
     // Check if notifications are supported in this browser
     if (!('Notification' in window)) {
@@ -139,6 +139,10 @@ export const requestNotificationPermission = async () => {
         return false;
       }
     }
+    
+    // If we reach here without a user, we still got a token but couldn't store it
+    console.log('No authenticated user to store token');
+    return false;
   } catch (error) {
     console.error('Error requesting notification permission:', error);
     return false;
