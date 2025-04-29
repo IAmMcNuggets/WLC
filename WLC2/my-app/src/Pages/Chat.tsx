@@ -31,10 +31,16 @@ interface ChatProps {
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  padding-bottom: 90px;
+  height: calc(100vh - 90px); /* Subtract nav bar height */
+  max-width: 1200px; /* Maximum width on large screens */
+  width: 100%;
+  margin: 0 auto; /* Center the container */
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
   position: relative;
+
+  @media (max-width: 768px) {
+    height: calc(100vh - 90px); /* Adjust for mobile */
+  }
 `;
 
 const Header = styled.div`
@@ -61,6 +67,7 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  margin-bottom: 80px; /* Add margin to prevent messages from going under input */
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -73,6 +80,10 @@ const MessagesContainer = styled.div`
   &::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
   }
 `;
 
@@ -113,8 +124,12 @@ const Message = styled.div<{ isOwn: boolean }>`
   flex-direction: ${props => props.isOwn ? 'row-reverse' : 'row'};
   align-items: flex-end;
   gap: 0.75rem;
-  max-width: 75%;
+  max-width: min(75%, 600px); /* Responsive max-width */
   align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
+
+  @media (max-width: 768px) {
+    max-width: 85%;
+  }
 `;
 
 const MessageContent = styled.div<{ isOwn: boolean }>`
@@ -155,12 +170,16 @@ const InputContainer = styled.form`
   padding: 1.25rem 1.5rem;
   background-color: white;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  position: fixed;
-  bottom: 90px;
+  position: absolute; /* Change from fixed to absolute */
+  bottom: 0;
   left: 0;
   right: 0;
   z-index: 1001;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 const MessageInput = styled.input`
