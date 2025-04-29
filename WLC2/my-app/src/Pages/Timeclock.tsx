@@ -192,7 +192,8 @@ function Timeclock({ user }: TimeclockProps) {
         userName: user.name,
         clockIn: serverTimestamp(),
         clockOut: null,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        status: 'active'
       };
       
       await addDoc(collection(firestore, 'timeEntries'), newEntry);
