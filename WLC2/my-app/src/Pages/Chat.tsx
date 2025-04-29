@@ -33,7 +33,7 @@ const ChatContainer = styled.div`
   top: 0;
   left: 0;
   right: 0;
-  bottom: 90px; /* Height of nav bar */
+  bottom: 100px; /* Increased from 90px to give more space above nav */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -75,7 +75,7 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 90px; /* Height of input container */
+  padding-bottom: 100px; /* Increased to match input container height */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -95,7 +95,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 80px;
+    padding-bottom: 90px;
   }
 `;
 
@@ -193,13 +193,14 @@ const InputContainer = styled.form`
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   position: absolute;
-  bottom: 0;
+  bottom: 10px; /* Added space from bottom */
   left: 0;
   right: 0;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
 
   @media (max-width: 768px) {
     padding: 1rem;
+    bottom: 8px;
   }
 `;
 
