@@ -32,14 +32,15 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: calc(100vh - 90px); /* Subtract nav bar height */
-  max-width: 1200px; /* Maximum width on large screens */
+  max-width: 1200px;
   width: 100%;
-  margin: 0 auto; /* Center the container */
+  margin: 0 auto;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
   position: relative;
+  padding-bottom: 80px; /* Add padding for input container */
 
   @media (max-width: 768px) {
-    height: calc(100vh - 90px); /* Adjust for mobile */
+    height: calc(100vh - 90px);
   }
 `;
 
@@ -67,7 +68,7 @@ const MessagesContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  margin-bottom: 80px; /* Add margin to prevent messages from going under input */
+  padding-bottom: 1rem; /* Reduced padding since we have it on the container */
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -170,12 +171,13 @@ const InputContainer = styled.form`
   padding: 1.25rem 1.5rem;
   background-color: white;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  position: absolute; /* Change from fixed to absolute */
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 1001;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
+  margin-bottom: 90px; /* Add margin to stay above nav bar */
 
   @media (max-width: 768px) {
     padding: 1rem;
