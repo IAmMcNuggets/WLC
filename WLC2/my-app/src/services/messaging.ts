@@ -1,5 +1,5 @@
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 import { getApp } from 'firebase/app';
 
@@ -41,7 +41,21 @@ export const getServiceWorkerRegistration = async () => {
       return null;
     }
     
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    // Check if the service worker is already registered
+    const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+    const existingFCMServiceWorker = existingRegistrations.find(
+      reg => reg.scope.includes(window.location.origin) && reg.active
+    );
+    
+    if (existingFCMServiceWorker) {
+      console.log('Using existing service worker registration:', existingFCMServiceWorker);
+      return existingFCMServiceWorker;
+    }
+    
+    // Register a new service worker
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/'
+    });
     console.log('Service worker registered:', registration);
     
     // Wait for the service worker to be ready
@@ -55,77 +69,78 @@ export const getServiceWorkerRegistration = async () => {
   }
 };
 
-// Request notification permission
-export const requestNotificationPermission = async (): Promise<boolean> => {
+// Request permission for notifications
+export const requestNotificationPermission = async () => {
   try {
-    console.log('Requesting notification permission...');
-    
-    // Check if notifications are supported
+    // Check if notifications are supported in this browser
     if (!('Notification' in window)) {
-      console.error('This browser does not support notifications');
+      console.log('This browser does not support desktop notifications');
       return false;
-    }
-
-    // Check if permission is already granted
-    if (Notification.permission === 'granted') {
-      console.log('Notification permission already granted');
-      return await getAndStoreToken();
     }
 
     // Request permission
     const permission = await Notification.requestPermission();
-    console.log('Notification permission result:', permission);
-    
-    if (permission === 'granted') {
-      return await getAndStoreToken();
+    if (permission !== 'granted') {
+      console.log('Notification permission denied');
+      return false;
     }
-    
-    return false;
-  } catch (error) {
-    console.error('Error requesting notification permission:', error);
-    return false;
-  }
-};
 
-// Get FCM token and store it
-export const getAndStoreToken = async (): Promise<boolean> => {
-  try {
-    const app = getApp();
-    const messaging = getMessaging(app);
+    // Detect Android
+    const isAndroid = /android/i.test(navigator.userAgent);
     
-    console.log('Getting FCM token...');
-    
-    // Get service worker registration first
+    // Get service worker registration first to ensure it's ready
+    // This is particularly important for Android
     const registration = await getServiceWorkerRegistration();
     if (!registration) {
       console.error('Failed to get service worker registration');
       return false;
     }
     
-    const currentToken = await getToken(messaging, {
-      vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY,
-      serviceWorkerRegistration: registration
-    });
+    // Initialize Firebase Messaging
+    const messaging = await initializeMessaging();
+    if (!messaging) return false;
+
+    // Get token with service worker registration (crucial for Android)
+    const vapidKey = "BJWQUEOMjTk_Iw8jdsV-4Y8HXOkKP-NvYPw0yBn_rQGw1OitHb5Hchz_Qvaunq6gB8wjDdOEj_GJ4v_J5vr-_0Q";
     
-    if (currentToken) {
-      console.log('FCM token acquired:', currentToken.substring(0, 10) + '...');
-      localStorage.setItem('notifications-enabled', 'true');
-      
-      // Store token in user document
+    const tokenOptions = {
+      vapidKey,
+      serviceWorkerRegistration: registration
+    };
+    
+    const token = await getToken(messaging, tokenOptions);
+
+    if (!token) {
+      console.log('No registration token available');
+      return false;
+    }
+
+    console.log('FCM Registration Token:', token);
+
+    // Save token to user's profile in Firestore
+    if (auth.currentUser) {
       try {
-        await storeTokenInUserDocument(currentToken);
+        const userId = auth.currentUser.uid;
+        console.log('Current user ID:', userId);
+        
+        const userProfileRef = doc(firestore, 'userProfiles', userId);
+        console.log('User profile ref created');
+        
+        // Check if user profile exists
+        console.log('Checking if user profile exists...');
+        const userProfileSnap = await getDoc(userProfileRef);
+        console.log('User profile exists:', userProfileSnap.exists());
+        
+        await storeTokenInUserDocument(token);
         console.log('Token stored in user document');
         return true;
       } catch (error) {
         console.error('Error storing token in user document:', error);
         return false;
       }
-    } else {
-      console.error('No FCM token received');
-      return false;
     }
   } catch (error) {
-    console.error('Error getting FCM token:', error);
+    console.error('Error requesting notification permission:', error);
     return false;
   }
 };

@@ -20,28 +20,46 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log("[firebase-messaging-sw.js] Received background message ", payload);
 
-  // Get messageId from payload
-  const messageId = payload.data?.messageId || '';
-  
-  // Get notification data
-  const title = payload.data?.title || 'New Message';
-  const body = payload.data?.body || '';
-  
-  const notificationOptions = {
-    body,
-    icon: "/logo192.png",
-    badge: "/logo192.png",
-    timestamp: Date.now(),
-    tag: messageId, // Use messageId as tag to replace duplicates
-    renotify: false, // Don't renotify for same tag
-    data: {
-      ...payload.data,
-      messageId
-    }
-  };
+  // Special handling for Android
+  if (payload.notification) {
+    // If Firebase sends a notification object directly (common for Android)
+    const { title, body, icon = "/logo192.png" } = payload.notification;
+    
+    const notificationOptions = {
+      body,
+      icon,
+      badge: "/logo192.png",
+      timestamp: Date.now(),
+      tag: payload.data?.messageId || Date.now().toString(), // Fallback to timestamp
+      renotify: false,
+      data: payload.data || {}
+    };
+    
+    return self.registration.showNotification(title || "New Message", notificationOptions);
+  } else {
+    // Get messageId from payload
+    const messageId = payload.data?.messageId || '';
+    
+    // Get notification data
+    const title = payload.data?.title || 'New Message';
+    const body = payload.data?.body || '';
+    
+    const notificationOptions = {
+      body,
+      icon: "/logo192.png",
+      badge: "/logo192.png",
+      timestamp: Date.now(),
+      tag: messageId, // Use messageId as tag to replace duplicates
+      renotify: false, // Don't renotify for same tag
+      data: {
+        ...(payload.data || {}),
+        messageId
+      }
+    };
 
-  // Show the notification
-  return self.registration.showNotification(title, notificationOptions);
+    // Show the notification
+    return self.registration.showNotification(title, notificationOptions);
+  }
 });
 
 // Handle notification click
