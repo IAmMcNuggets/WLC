@@ -31,11 +31,8 @@ interface ChatProps {
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  height: calc(100vh - 110px);
+  position: relative;
+  height: 100vh;
   max-width: 1200px;
   width: 100%;
   background: rgba(255, 255, 255, 0.2);
@@ -43,7 +40,7 @@ const ChatContainer = styled.div`
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  margin: 0 8px;
+  margin: 0 auto;
 `;
 
 const ContentWrapper = styled.div`
@@ -77,7 +74,7 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 110px; /* Enough space for input + nav */
+  padding-bottom: 130px; /* Height of input + nav bar */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -98,7 +95,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 90px;
+    padding-bottom: 110px;
   }
 `;
 
