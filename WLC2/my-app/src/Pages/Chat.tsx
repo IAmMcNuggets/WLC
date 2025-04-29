@@ -32,157 +32,216 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding-bottom: 100px; /* Add padding to account for the bottom nav bar */
-  background-image: url(${backgroundImage});
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  padding-bottom: 90px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
   position: relative;
 `;
 
 const Header = styled.div`
   display: flex;
   align-items: center;
-  padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-bottom: 1px solid #e0e0e0;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  background-color: white;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 `;
 
 const ChatTitle = styled.h1`
   margin: 0;
-  font-size: 1.5rem;
-  color: #333;
+  font-size: 1.75rem;
+  color: #1a1a1a;
+  font-weight: 600;
 `;
 
 const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
 `;
 
 const MessageGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 `;
 
 const DateSeparator = styled.div`
   text-align: center;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+  
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 25%;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  &::before {
+    left: 10%;
+  }
+  
+  &::after {
+    right: 10%;
+  }
 `;
 
 const Message = styled.div<{ isOwn: boolean }>`
   display: flex;
   flex-direction: ${props => props.isOwn ? 'row-reverse' : 'row'};
-  align-items: flex-start;
-  gap: 0.5rem;
-  max-width: 70%;
+  align-items: flex-end;
+  gap: 0.75rem;
+  max-width: 75%;
   align-self: ${props => props.isOwn ? 'flex-end' : 'flex-start'};
 `;
 
 const MessageContent = styled.div<{ isOwn: boolean }>`
-  background-color: ${props => props.isOwn ? '#007bff' : '#f0f0f0'};
-  color: ${props => props.isOwn ? 'white' : 'black'};
-  padding: 0.75rem 1rem;
-  border-radius: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background-color: ${props => props.isOwn ? '#0084ff' : 'white'};
+  color: ${props => props.isOwn ? 'white' : '#1a1a1a'};
+  padding: 0.875rem 1.25rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid ${props => props.isOwn ? 'transparent' : 'rgba(0, 0, 0, 0.08)'};
 `;
 
 const MessageText = styled.p`
   margin: 0;
   word-wrap: break-word;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 `;
 
 const MessageTime = styled.span`
   font-size: 0.75rem;
-  color: #666;
-  margin-top: 0.25rem;
+  color: ${props => props.color || 'rgba(0, 0, 0, 0.4)'};
+  margin-top: 0.375rem;
   display: block;
 `;
 
 const UserAvatar = styled.img`
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const InputContainer = styled.form`
   display: flex;
   gap: 1rem;
-  padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid #e0e0e0;
+  padding: 1.25rem 1.5rem;
+  background-color: white;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   position: fixed;
-  bottom: 90px; /* Position above the bottom nav bar */
+  bottom: 90px;
   left: 0;
   right: 0;
-  z-index: 1001; /* Just below the nav bar's z-index */
+  z-index: 1001;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
 `;
 
 const MessageInput = styled.input`
   flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #e0e0e0;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 1.5rem;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   outline: none;
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
   
   &:focus {
-    border-color: #007bff;
+    border-color: #0084ff;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(0, 132, 255, 0.1);
+  }
+  
+  &::placeholder {
+    color: #adb5bd;
   }
 `;
 
 const SendButton = styled.button`
-  background-color: #007bff;
+  background-color: #0084ff;
   color: white;
   border: none;
   border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 132, 255, 0.2);
   
   &:hover {
-    background-color: #0056b3;
+    background-color: #0073e6;
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
   }
   
   &:disabled {
-    background-color: #ccc;
+    background-color: #e9ecef;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
 const UserName = styled.span`
   font-weight: 500;
+  font-size: 0.8125rem;
   margin-bottom: 0.25rem;
+  color: ${props => props.color || '#666'};
 `;
 
 const NotificationButton = styled.button`
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  margin-left: 1rem;
+  background-color: #f8f9fa;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 1rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   
   &:hover {
-    background-color: #218838;
+    background-color: #e9ecef;
   }
   
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
+  svg {
+    font-size: 1.125rem;
   }
 `;
 
