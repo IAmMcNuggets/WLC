@@ -32,10 +32,12 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100vh;
+  padding-bottom: 100px; /* Add padding to account for the bottom nav bar */
   background-image: url(${backgroundImage});
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  position: relative;
 `;
 
 const Header = styled.div`
@@ -116,6 +118,11 @@ const InputContainer = styled.form`
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.9);
   border-top: 1px solid #e0e0e0;
+  position: fixed;
+  bottom: 90px; /* Position above the bottom nav bar */
+  left: 0;
+  right: 0;
+  z-index: 1001; /* Just below the nav bar's z-index */
 `;
 
 const MessageInput = styled.input`
