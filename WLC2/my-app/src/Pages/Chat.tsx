@@ -31,17 +31,14 @@ interface ChatProps {
 const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   height: calc(100vh - 90px);
   max-width: 1200px;
   width: 100%;
-  margin: 0 auto;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
-  position: relative;
-  padding-bottom: 120px; /* Increased padding */
-
-  @media (max-width: 768px) {
-    height: calc(100vh - 90px);
-  }
 `;
 
 const Header = styled.div`
@@ -65,10 +62,10 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
+  padding-bottom: 180px; /* Increased to account for input container */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-bottom: 1rem; /* Reduced padding since we have it on the container */
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -85,6 +82,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
+    padding-bottom: 160px;
   }
 `;
 
@@ -171,17 +169,17 @@ const InputContainer = styled.form`
   padding: 1.25rem 1.5rem;
   background-color: white;
   border-top: 1px solid rgba(0, 0, 0, 0.08);
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 1200px;
   z-index: 1001;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
-  margin-bottom: 120px; /* Increased margin */
 
   @media (max-width: 768px) {
     padding: 1rem;
-    margin-bottom: 100px; /* Slightly less on mobile */
   }
 `;
 
