@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { GoogleUser } from '../types/user';
 import backgroundImage from '../Background/86343.jpg';
 import { requestNotificationPermission } from '../services/messaging';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // Define the structure of a chat message
 interface ChatMessage {
@@ -181,36 +182,10 @@ const NotificationButton = styled.button`
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
-  
-  // Check if notifications are enabled
-  useEffect(() => {
-    const checkNotifications = async () => {
-      const enabled = localStorage.getItem('notifications-enabled') === 'true';
-      setNotificationsEnabled(enabled);
-    };
-    
-    checkNotifications();
-  }, []);
-  
-  // Request notification permission
-  const handleEnableNotifications = async () => {
-    try {
-      const enabled = await requestNotificationPermission();
-      if (enabled) {
-        setNotificationsEnabled(true);
-        addToast('Notifications enabled successfully', 'success');
-      } else {
-        addToast('Failed to enable notifications', 'error');
-      }
-    } catch (error) {
-      console.error('Error enabling notifications:', error);
-      addToast('Error enabling notifications', 'error');
-    }
-  };
+  const { notificationsEnabled, enableNotifications } = useNotifications();
   
   // Scroll to bottom when messages change
   const scrollToBottom = useCallback(() => {
@@ -312,7 +287,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       <Header>
         <ChatTitle>Chat</ChatTitle>
         {!notificationsEnabled && (
-          <NotificationButton onClick={handleEnableNotifications}>
+          <NotificationButton onClick={enableNotifications}>
             Enable Notifications
           </NotificationButton>
         )}
