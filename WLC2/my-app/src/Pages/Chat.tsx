@@ -37,7 +37,7 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(255, 255, 255, 0.08); /* More transparent */
+  background: rgba(255, 255, 255, 0.02); /* Almost fully transparent */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 `;
