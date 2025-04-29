@@ -980,7 +980,7 @@ const Events: React.FC<EventsProps> = ({ user }) => {
     <>
       <div>
         <EventsContainer>
-          <EventsTitle>Your Current & Upcoming Activities</EventsTitle>
+          <EventsTitle>Your Events</EventsTitle>
           {filteredActivities.length === 0 && !isLoading ? (
             <EmptyState>
               <FaCalendarTimes size={48} />

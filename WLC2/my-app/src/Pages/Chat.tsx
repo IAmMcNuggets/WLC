@@ -65,12 +65,13 @@ const Header = styled.div`
 `;
 
 const ChatTitle = styled.h1`
-  margin: 0;
-  font-size: 2.5rem;
+  text-align: center;
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 30px;
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  font-weight: 600;
-  text-align: center;
+  font-size: 2.5rem;
 `;
 
 const MessagesContainer = styled.div`
