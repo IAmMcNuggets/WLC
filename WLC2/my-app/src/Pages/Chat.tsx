@@ -209,13 +209,15 @@ const MessageInput = styled.input`
   padding: 0.875rem 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1.5rem;
-  font-size: 0.9375rem;
+  font-size: 16px; /* Minimum size to prevent zoom */
   outline: none;
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   transition: all 0.2s ease;
   color: #1a1a1a;
+  -webkit-appearance: none; /* Prevent iOS default styles */
+  appearance: none;
   
   &:focus {
     border-color: #0084ff;
@@ -225,6 +227,11 @@ const MessageInput = styled.input`
   
   &::placeholder {
     color: rgba(0, 0, 0, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    font-size: 16px; /* Ensure minimum size on mobile */
+    padding: 0.75rem 1rem; /* Slightly smaller padding on mobile */
   }
 `;
 
