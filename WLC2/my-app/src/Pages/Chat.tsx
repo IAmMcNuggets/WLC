@@ -37,7 +37,7 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08); /* More transparent */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 `;
@@ -53,22 +53,26 @@ const ChatInner = styled.div`
 `;
 
 const Header = styled.div`
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border-bottom: none;
+  box-shadow: none;
+  margin-top: 20px;
+  margin-bottom: 30px;
 `;
 
 const ChatTitle = styled.h1`
   margin: 0;
-  font-size: 1.75rem;
-  color: #1a1a1a;
+  font-size: 2.5rem;
+  color: black;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   font-weight: 600;
+  text-align: center;
 `;
 
 const MessagesContainer = styled.div`
