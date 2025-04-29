@@ -44,7 +44,6 @@ const ChatContainer = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   margin: 0 8px;
-  overflow: hidden; /* Prevent content from overflowing */
 `;
 
 const ContentWrapper = styled.div`
@@ -52,6 +51,7 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   height: 100%;
   position: relative;
+  padding-bottom: 120px; /* Space for input + nav margin */
 `;
 
 const Header = styled.div`
@@ -78,12 +78,10 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   background: rgba(255, 255, 255, 0.1);
-  height: calc(100% - 100px); /* Subtract input container height */
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -100,8 +98,6 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 1rem;
-    height: calc(100% - 85px); /* Adjusted for mobile input height */
   }
 `;
 
@@ -199,20 +195,16 @@ const InputContainer = styled.form`
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   position: absolute;
-  bottom: 0;
+  bottom: 20px; /* Space from bottom nav */
   left: 0;
   right: 0;
   z-index: 2;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
   border-radius: 0 0 12px 12px;
-  height: 80px;
-  margin-bottom: 20px;
-  box-sizing: border-box;
 
   @media (max-width: 768px) {
     padding: 1rem;
-    height: 70px;
-    margin-bottom: 15px;
+    bottom: 15px;
   }
 `;
 
