@@ -29,25 +29,27 @@ interface ChatProps {
 }
 
 const ChatContainer = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 90px; /* Height of nav bar */
   display: flex;
   flex-direction: column;
-  position: relative;
-  height: 100vh;
-  max-width: 1200px;
-  width: 100%;
+  align-items: center;
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  margin: 0 auto;
 `;
 
-const ContentWrapper = styled.div`
+const ChatInner = styled.div`
+  width: 100%;
+  max-width: 1200px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
   position: relative;
+  margin: 0 auto;
 `;
 
 const Header = styled.div`
@@ -60,7 +62,6 @@ const Header = styled.div`
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  border-radius: 12px 12px 0 0;
 `;
 
 const ChatTitle = styled.h1`
@@ -74,11 +75,10 @@ const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem;
-  padding-bottom: 130px; /* Height of input + nav bar */
+  padding-bottom: 90px; /* Height of input container */
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
   
   &::-webkit-scrollbar {
     width: 6px;
@@ -95,7 +95,7 @@ const MessagesContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 1rem;
-    padding-bottom: 110px;
+    padding-bottom: 80px;
   }
 `;
 
@@ -192,19 +192,14 @@ const InputContainer = styled.form`
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 70px; /* Height of nav bar + some gap */
-  width: 100%;
-  max-width: 1200px;
-  z-index: 10;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
-  border-radius: 0 0 12px 12px;
 
   @media (max-width: 768px) {
     padding: 1rem;
-    bottom: 65px;
   }
 `;
 
@@ -400,15 +395,15 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   
   return (
     <ChatContainer>
-      <Header>
-        <ChatTitle>Chat</ChatTitle>
-        {!notificationsEnabled && (
-          <NotificationButton onClick={enableNotifications}>
-            Enable Notifications
-          </NotificationButton>
-        )}
-      </Header>
-      <ContentWrapper>
+      <ChatInner>
+        <Header>
+          <ChatTitle>Chat</ChatTitle>
+          {!notificationsEnabled && (
+            <NotificationButton onClick={enableNotifications}>
+              Enable Notifications
+            </NotificationButton>
+          )}
+        </Header>
         <MessagesContainer>
           {Object.entries(groupedMessages).map(([date, messages]) => (
             <MessageGroup key={date}>
@@ -448,7 +443,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             <FiSend size={20} />
           </SendButton>
         </InputContainer>
-      </ContentWrapper>
+      </ChatInner>
     </ChatContainer>
   );
 };
