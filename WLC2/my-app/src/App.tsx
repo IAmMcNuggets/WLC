@@ -162,7 +162,11 @@ function AppContent() {
               } />
               <Route path="/chat" element={
                 <ErrorBoundary>
-                  <Chat user={user} />
+                  {user ? (
+                    <Chat user={user} />
+                  ) : (
+                    <Navigate to="/events" replace />
+                  )}
                 </ErrorBoundary>
               } />
               <Route path="*" element={<Navigate to="/events" replace />} />

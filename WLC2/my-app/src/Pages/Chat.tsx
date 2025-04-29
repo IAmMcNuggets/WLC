@@ -25,7 +25,7 @@ interface ChatMessage {
 }
 
 interface ChatProps {
-  user: GoogleUser;
+  user: GoogleUser | null;
 }
 
 const ChatContainer = styled.div`
@@ -327,9 +327,9 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Type a message..."
-          disabled={!currentUser}
+          disabled={!currentUser || !user}
         />
-        <SendButton type="submit" disabled={!inputValue.trim() || !currentUser}>
+        <SendButton type="submit" disabled={!inputValue.trim() || !currentUser || !user}>
           <FiSend size={20} />
         </SendButton>
       </InputContainer>
