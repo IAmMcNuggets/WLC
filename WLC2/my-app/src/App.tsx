@@ -8,6 +8,9 @@ import Timeclock from './Pages/Timeclock';
 import Profile from './Pages/Profile';
 import Training from './Pages/Training';
 import Chat from './Pages/Chat';
+import Login from './Pages/Login';
+import Signup from './Pages/Signup';
+import ForgotPassword from './Pages/ForgotPassword';
 import BottomNavBar from './components/BottomNavBar';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -216,6 +219,21 @@ function AppContent() {
         </>
       ) : (
         <Routes>
+          <Route path="/login" element={
+            <ErrorBoundary>
+              <Login />
+            </ErrorBoundary>
+          } />
+          <Route path="/signup" element={
+            <ErrorBoundary>
+              <Signup />
+            </ErrorBoundary>
+          } />
+          <Route path="/forgot-password" element={
+            <ErrorBoundary>
+              <ForgotPassword />
+            </ErrorBoundary>
+          } />
           <Route path="/company-signup" element={
             <ErrorBoundary>
               <CompanySignup />
@@ -236,6 +254,17 @@ function AppContent() {
                   fullWidth
                 >
                   Sign in with Google
+                </Button>
+                
+                <OrDivider><span>OR</span></OrDivider>
+                
+                <Button
+                  onClick={() => navigate('/login')}
+                  variant="secondary"
+                  size="large"
+                  fullWidth
+                >
+                  Sign in with Email
                 </Button>
                 
                 <OrDivider><span>OR</span></OrDivider>

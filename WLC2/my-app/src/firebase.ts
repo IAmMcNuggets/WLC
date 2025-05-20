@@ -5,7 +5,12 @@ import {
   Auth, 
   signInWithCredential,
   signInWithPopup,
-  OAuthProvider 
+  OAuthProvider,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
+  User
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
 import { getFirestore, Firestore } from 'firebase/firestore';
@@ -85,6 +90,53 @@ export const signInWithGooglePopup = async () => {
     return result;
   } catch (error) {
     console.error('Error signing in with Google popup:', error);
+    throw error;
+  }
+};
+
+// Email/Password Authentication Functions
+
+// Register a new user with email and password
+export const registerWithEmailAndPassword = async (
+  email: string, 
+  password: string, 
+  displayName: string
+) => {
+  try {
+    // Create the user with email and password
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    
+    // Update the user's profile with display name
+    if (userCredential.user) {
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
+    }
+    
+    return userCredential;
+  } catch (error) {
+    console.error('Error registering with email and password:', error);
+    throw error;
+  }
+};
+
+// Sign in an existing user with email and password
+export const signInWithEmailAndPassword = async (email: string, password: string) => {
+  try {
+    const userCredential = await firebaseSignInWithEmailAndPassword(auth, email, password);
+    return userCredential;
+  } catch (error) {
+    console.error('Error signing in with email and password:', error);
+    throw error;
+  }
+};
+
+// Send a password reset email
+export const sendPasswordReset = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
     throw error;
   }
 };

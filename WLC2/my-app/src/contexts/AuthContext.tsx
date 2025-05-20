@@ -2,22 +2,26 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { 
   onAuthStateChanged, 
   User as FirebaseUser,
-  signOut
+  signOut,
+  UserCredential
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import { GoogleUser } from '../types/user';
 
 // Define the shape of our context
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   loading: boolean;
   logout: () => Promise<void>;
+  getUserData: (user: FirebaseUser) => GoogleUser;
 }
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   loading: true,
-  logout: async () => {}
+  logout: async () => {},
+  getUserData: () => ({ name: '', email: '' })
 });
 
 // Custom hook to use the auth context
@@ -34,10 +38,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Get standardized user data from Firebase User
+  const getUserData = (user: FirebaseUser): GoogleUser => {
+    return {
+      name: user.displayName || 'User',
+      email: user.email || 'No email',
+      picture: user.photoURL || undefined
+    };
+  };
+
   useEffect(() => {
     // Subscribe to auth state changes
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      
+      if (user) {
+        // Update localStorage with the latest user data
+        const userData = getUserData(user);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
       setLoading(false);
     }, (error) => {
       console.error('Firebase Auth state observer error:', error);
@@ -64,7 +84,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = {
     currentUser,
     loading,
-    logout
+    logout,
+    getUserData
   };
 
   return (
