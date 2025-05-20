@@ -1,0 +1,12 @@
+{
+  "name": "firestore-setup",
+  "version": "1.0.0",
+  "description": "Scripts to set up Firestore database for multi-company model",
+  "main": "firestore-init.js",
+  "scripts": {
+    "setup": "node firestore-init.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.10.1"
+  }
+} 

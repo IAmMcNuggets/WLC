@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import logo from './Logos/Logo Color.png';
 import './App.css';
@@ -17,8 +17,11 @@ import { signInWithGooglePopup } from './firebase';
 import { GoogleUser } from './types/user';
 import LoadingSpinner from './components/LoadingSpinner';
 import Button from './components/Button';
-import { FaGoogle } from 'react-icons/fa';
+import { FaGoogle, FaBuilding } from 'react-icons/fa';
 import backgroundImage from './Background/86343.jpg';
+import Dashboard from './Pages/Dashboard';
+import CompanySignup from './Pages/CompanySignup';
+import CompanyManagement from './Pages/CompanyManagement';
 
 const AppContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -56,12 +59,37 @@ const AppTitle = styled.h1`
   font-weight: 600;
 `;
 
+const LoginOptions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+`;
+
+const OrDivider = styled.div`
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  
+  &::before, &::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  span {
+    padding: 0 10px;
+    color: #777;
+  }
+`;
+
 function AppContent() {
   const [user, setUser] = useState<GoogleUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check for stored user info in localStorage
@@ -109,6 +137,9 @@ function AppContent() {
         setIsLoggedIn(true);
         localStorage.setItem('user', JSON.stringify(userData));
         addToast('Successfully logged in', 'success');
+        
+        // Redirect to dashboard
+        navigate('/dashboard');
       }
     } catch (error) {
       console.error('Error with Google sign-in:', error);
@@ -116,13 +147,14 @@ function AppContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, navigate]);
 
   // Handle logout
   const handleLogout = useCallback(() => {
     setUser(null);
     setIsLoggedIn(false);
     localStorage.removeItem('user');
+    localStorage.removeItem('selectedCompanyId');
     addToast('You have been logged out', 'info');
   }, [addToast]);
 
@@ -135,62 +167,94 @@ function AppContent() {
   }
 
   return (
-    <Router>
-      <AppContainer>
-        {isLoggedIn ? (
-          <>
-            <Routes>
-              <Route path="/events" element={
-                <ErrorBoundary>
-                  <Events user={user} />
-                </ErrorBoundary>
-              } />
-              <Route path="/timeclock" element={
-                <ErrorBoundary>
-                  <Timeclock user={user} />
-                </ErrorBoundary>
-              } />
-              <Route path="/profile" element={
-                <ErrorBoundary>
-                  <Profile user={user} setIsLoggedIn={handleLogout} />
-                </ErrorBoundary>
-              } />
-              <Route path="/training" element={
-                <ErrorBoundary>
-                  <Training user={user} />
-                </ErrorBoundary>
-              } />
-              <Route path="/chat" element={
-                <ErrorBoundary>
-                  {user ? (
-                    <Chat user={user} />
-                  ) : (
-                    <Navigate to="/events" replace />
-                  )}
-                </ErrorBoundary>
-              } />
-              <Route path="*" element={<Navigate to="/events" replace />} />
-            </Routes>
-          </>
-        ) : (
-          <LoginContainer>
-            <Logo src={logo} alt="Gigfriend Logo" />
-            <AppTitle>Gigfriend</AppTitle>
-            <Button 
-              onClick={handleGoogleLogin} 
-              variant="primary" 
-              size="large" 
-              leftIcon={<FaGoogle />}
-              isLoading={isLoading}
-              fullWidth
-            >
-              Sign in with Google
-            </Button>
-          </LoginContainer>
-        )}
-        {isLoggedIn && <BottomNavBar />}
-      </AppContainer>
-    </Router>
+    <AppContainer>
+      {isLoggedIn ? (
+        <>
+          <Routes>
+            <Route path="/dashboard" element={
+              <ErrorBoundary>
+                <Dashboard />
+              </ErrorBoundary>
+            } />
+            <Route path="/events" element={
+              <ErrorBoundary>
+                <Events user={user} />
+              </ErrorBoundary>
+            } />
+            <Route path="/timeclock" element={
+              <ErrorBoundary>
+                <Timeclock user={user} />
+              </ErrorBoundary>
+            } />
+            <Route path="/profile" element={
+              <ErrorBoundary>
+                <Profile user={user} setIsLoggedIn={handleLogout} />
+              </ErrorBoundary>
+            } />
+            <Route path="/training" element={
+              <ErrorBoundary>
+                <Training user={user} />
+              </ErrorBoundary>
+            } />
+            <Route path="/chat" element={
+              <ErrorBoundary>
+                {user ? (
+                  <Chat user={user} />
+                ) : (
+                  <Navigate to="/dashboard" replace />
+                )}
+              </ErrorBoundary>
+            } />
+            <Route path="/company-management" element={
+              <ErrorBoundary>
+                <CompanyManagement />
+              </ErrorBoundary>
+            } />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+          <BottomNavBar />
+        </>
+      ) : (
+        <Routes>
+          <Route path="/company-signup" element={
+            <ErrorBoundary>
+              <CompanySignup />
+            </ErrorBoundary>
+          } />
+          <Route path="*" element={
+            <LoginContainer>
+              <Logo src={logo} alt="Gigfriend Logo" />
+              <AppTitle>Gigfriend</AppTitle>
+              
+              <LoginOptions>
+                <Button 
+                  onClick={handleGoogleLogin} 
+                  variant="primary" 
+                  size="large" 
+                  leftIcon={<FaGoogle />}
+                  isLoading={isLoading}
+                  fullWidth
+                >
+                  Sign in with Google
+                </Button>
+                
+                <OrDivider><span>OR</span></OrDivider>
+                
+                <Button
+                  onClick={() => navigate('/company-signup')}
+                  variant="secondary"
+                  size="large"
+                  leftIcon={<FaBuilding />}
+                  fullWidth
+                >
+                  Create a Company Account
+                </Button>
+              </LoginOptions>
+            </LoginContainer>
+          } />
+        </Routes>
+      )}
+    </AppContainer>
   );
 }
 
@@ -199,7 +263,9 @@ function App() {
     <AuthProvider>
       <ToastProvider>
         <NotificationProvider>
-          <AppContent />
+          <Router>
+            <AppContent />
+          </Router>
         </NotificationProvider>
       </ToastProvider>
     </AuthProvider>

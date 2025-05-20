@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaCalendarAlt, FaClock, FaUserCircle, FaBook, FaComments } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUserCircle, FaBook, FaComments, FaTachometerAlt, FaBuilding } from 'react-icons/fa';
+import { auth, firestore } from '../firebase';
+import { useState, useEffect } from 'react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 const NavBar = styled.nav`
   position: fixed;
@@ -21,6 +24,7 @@ const NavBar = styled.nav`
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: transform 0.3s ease, opacity 0.3s ease;
+  overflow-x: auto;
   
   &:hover {
     transform: translateX(-50%) translateY(-5px);
@@ -32,6 +36,13 @@ const NavBar = styled.nav`
     &:hover {
       transform: translateX(-50%);
     }
+  }
+  
+  /* Hide scrollbar */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
   }
 `;
 
@@ -45,13 +56,14 @@ const NavItem = styled(Link)<NavItemProps>`
   align-items: center;
   text-decoration: none;
   color: ${props => props.$isActive ? '#0084ff' : '#6c757d'};
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: ${props => props.$isActive ? '500' : '400'};
-  padding: 8px 12px;
+  padding: 8px 8px;
   border-radius: 12px;
   transition: all 0.2s ease;
   position: relative;
   outline: none;
+  min-width: 60px;
 
   svg {
     font-size: 1.5rem;
@@ -130,8 +142,36 @@ const NavLink: React.FC<NavLinkProps> = ({ to, icon, label }) => {
 };
 
 const BottomNavBar: React.FC = () => {
+  const [isCompanyOwner, setIsCompanyOwner] = useState(false);
+  
+  useEffect(() => {
+    const checkIfCompanyOwner = async () => {
+      if (!auth.currentUser) return;
+      
+      try {
+        // Check if user owns any companies
+        const companiesQuery = query(
+          collection(firestore, 'companies'),
+          where('ownerId', '==', auth.currentUser.uid)
+        );
+        
+        const snapshot = await getDocs(companiesQuery);
+        setIsCompanyOwner(!snapshot.empty);
+      } catch (error) {
+        console.error('Error checking company ownership:', error);
+      }
+    };
+    
+    checkIfCompanyOwner();
+  }, []);
+  
   return (
     <NavBar role="navigation" aria-label="Main Navigation">
+      <NavLink 
+        to="/dashboard" 
+        icon={<FaTachometerAlt aria-hidden="true" />} 
+        label="Dashboard" 
+      />
       <NavLink 
         to="/events" 
         icon={<FaCalendarAlt aria-hidden="true" />} 
@@ -147,6 +187,13 @@ const BottomNavBar: React.FC = () => {
         icon={<FaComments aria-hidden="true" />} 
         label="Chat" 
       />
+      {isCompanyOwner && (
+        <NavLink 
+          to="/company-management" 
+          icon={<FaBuilding aria-hidden="true" />} 
+          label="Manage" 
+        />
+      )}
       <NavLink 
         to="/training" 
         icon={<FaBook aria-hidden="true" />} 

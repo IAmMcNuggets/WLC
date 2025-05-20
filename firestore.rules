@@ -16,6 +16,29 @@ service cloud.firestore {
              get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'admin';
     }
     
+    function isCompanyOwner(companyId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/companies/$(companyId)) &&
+             get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
+    }
+    
+    function isCompanyMember(companyId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/companyMembers/$(request.auth.uid + '_' + companyId)) &&
+             get(/databases/$(database)/documents/companyMembers/$(request.auth.uid + '_' + companyId)).data.status == 'active';
+    }
+    
+    function isChatRoomMember(chatRoomId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/chatRoomMembers/$(chatRoomId + '_' + request.auth.uid));
+    }
+    
+    function isChatRoomAdmin(chatRoomId) {
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/chatRoomMembers/$(chatRoomId + '_' + request.auth.uid)) &&
+             get(/databases/$(database)/documents/chatRoomMembers/$(chatRoomId + '_' + request.auth.uid)).data.isAdmin == true;
+    }
+    
     function hasValidFields(requiredFields) {
       return request.resource.data.keys().hasAll(requiredFields);
     }
@@ -25,54 +48,155 @@ service cloud.firestore {
       allow read, write: if false;
     }
     
-    // Messages collection rules
-    match /messages/{messageId} {
-      // Allow reading messages if user is authenticated
+    // Companies collection
+    match /companies/{companyId} {
+      // Allow reading companies for search and display
+      allow read: if true;
+      
+      // Allow creating companies if user is authenticated
+      allow create: if isAuthenticated();
+      
+      // Allow updates only for company owners
+      allow update: if isCompanyOwner(companyId);
+      
+      // Allow deletion only for company owners
+      allow delete: if isCompanyOwner(companyId);
+    }
+    
+    // Company Members collection
+    match /companyMembers/{memberId} {
+      // Allow reading company members
       allow read: if isAuthenticated();
       
-      // Allow creating messages if:
-      // 1. User is authenticated
-      // 2. The message's user.uid matches the authenticated user's ID
-      // 3. The createdAt field is a valid timestamp
-      // 4. Text is not empty and is a string
-      // 5. Maximum text length is 2000 characters
-      allow create: if isAuthenticated() &&
-                    request.resource.data.user.uid == request.auth.uid &&
-                    request.resource.data.createdAt is timestamp &&
-                    request.resource.data.text is string &&
-                    request.resource.data.text.size() > 0 &&
-                    request.resource.data.text.size() <= 2000;
+      // Allow creating membership requests
+      allow create: if isAuthenticated() && 
+                   request.resource.data.userId == request.auth.uid;
       
-      // Prevent updates and deletes entirely (except for admins)
-      allow update, delete: if isAdmin();
+      // Allow company owners to update member status
+      // Allow users to update their own lastActiveAt
+      allow update: if isCompanyOwner(resource.data.companyId) || 
+                   (resource.data.userId == request.auth.uid && 
+                    request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['lastActiveAt']));
+                    
+      // Allow company owners or the user themselves to delete membership
+      allow delete: if isCompanyOwner(resource.data.companyId) || 
+                    resource.data.userId == request.auth.uid;
+    }
+    
+    // Messages collection rules
+    match /messages/{messageId} {
+      // Allow reading messages if user is authenticated and is a chat room member
+      allow read: if isAuthenticated() &&
+                  resource.data.chatRoomId != null &&
+                  isChatRoomMember(resource.data.chatRoomId) &&
+                  exists(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)) &&
+                  (isCompanyMember(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId) ||
+                   isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId));
+      
+      // Allow creating messages if authenticated and is a chat room member
+      allow create: if isAuthenticated() &&
+                    request.resource.data.senderId == request.auth.uid &&
+                    request.resource.data.createdAt is timestamp &&
+                    request.resource.data.content is string &&
+                    request.resource.data.content.size() > 0 &&
+                    request.resource.data.content.size() <= 2000 &&
+                    isChatRoomMember(request.resource.data.chatRoomId) &&
+                    exists(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)) &&
+                    (isCompanyMember(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId) ||
+                     isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId));
+      
+      // Prevent updates and deletes except for admins, chat room admins or company owners
+      allow update, delete: if isAdmin() || 
+                           isChatRoomAdmin(resource.data.chatRoomId) ||
+                           (resource.data.chatRoomId != null &&
+                           exists(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)) &&
+                           isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId));
+    }
+    
+    // Chat Rooms collection
+    match /chatRooms/{chatRoomId} {
+      // Allow reading chat rooms if user is a member of the company or the chat room
+      allow read: if isAuthenticated() && 
+                 (isCompanyMember(resource.data.companyId) || 
+                  isCompanyOwner(resource.data.companyId) || 
+                  isChatRoomMember(chatRoomId));
+      
+      // Prevent listing ALL chat rooms - must query by company
+      allow list: if isAuthenticated() && 
+                  request.query.limit <= 50 &&
+                  ('companyId' in request.query.filters);
+      
+      // Allow company owners to create chat rooms
+      allow create: if isAuthenticated() && 
+                   isCompanyOwner(request.resource.data.companyId);
+      
+      // Allow chat room admins or company owners to update chat rooms
+      allow update: if isAuthenticated() && 
+                   (isChatRoomAdmin(chatRoomId) || 
+                    isCompanyOwner(resource.data.companyId));
+      
+      // Allow company owners to delete chat rooms
+      allow delete: if isAuthenticated() && 
+                   isCompanyOwner(resource.data.companyId);
+    }
+    
+    // Chat Room Members collection
+    match /chatRoomMembers/{membershipId} {
+      // Allow reading chat room members if user is a member of the chat room
+      allow read: if isAuthenticated() && 
+                 (isChatRoomMember(resource.data.chatRoomId) || 
+                  resource.data.userId == request.auth.uid);
+      
+      // Allow querying by chatRoomId
+      allow list: if isAuthenticated() && 
+                  request.query.limit <= 100 &&
+                  'chatRoomId' in request.query.filters &&
+                  (isChatRoomMember(request.query.filters.chatRoomId) || 
+                   exists(/databases/$(database)/documents/chatRooms/$(request.query.filters.chatRoomId)) &&
+                   isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(request.query.filters.chatRoomId)).data.companyId));
+      
+      // Allow chat room admins or company owners to add members
+      allow create: if isAuthenticated() && 
+                   (isChatRoomAdmin(request.resource.data.chatRoomId) || 
+                    exists(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)) &&
+                    isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId));
+      
+      // Allow chat room admins or company owners to update members
+      allow update: if isAuthenticated() && 
+                   (isChatRoomAdmin(resource.data.chatRoomId) || 
+                    exists(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)) &&
+                    isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId));
+      
+      // Allow chat room admins, company owners, or the member themselves to remove members
+      allow delete: if isAuthenticated() && 
+                   (isChatRoomAdmin(resource.data.chatRoomId) || 
+                    exists(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)) &&
+                    isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId) ||
+                    resource.data.userId == request.auth.uid);
     }
     
     // TimeEntries collection rules
     match /timeEntries/{entryId} {
-      // Allow reading only the user's own time entries (or all for admins)
-      allow read: if isUserOwned(resource.data.userId) || isAdmin();
+      // Allow reading only the user's own time entries, admins, or company owners
+      allow read: if isUserOwned(resource.data.userId) || 
+                  isAdmin() || 
+                  isCompanyOwner(resource.data.companyId);
       
-      // Allow creating time entries if:
-      // 1. User is authenticated
-      // 2. The entry's userId matches the authenticated user's ID
-      // 3. Required fields exist and have correct types
-      // 4. Clock-in time is not in the future
       allow create: if isAuthenticated() &&
                     request.resource.data.userId == request.auth.uid &&
-                    request.resource.data.clockIn is timestamp &&
+                    request.resource.data.startTime is timestamp &&
                     request.resource.data.createdAt is timestamp &&
-                    request.resource.data.clockIn <= request.time &&
-                    hasValidFields(['userId', 'clockIn', 'createdAt', 'status']);
+                    request.resource.data.startTime <= request.time &&
+                    hasValidFields(['userId', 'startTime', 'createdAt', 'status', 'companyId']) &&
+                    isCompanyMember(request.resource.data.companyId);
       
-      // Allow updating only the user's own time entries
-      // Ensure userId cannot be changed
-      allow update: if isUserOwned(resource.data.userId) &&
-                    request.resource.data.userId == resource.data.userId &&
-                    (request.resource.data.clockOut == null || 
-                     request.resource.data.clockOut is timestamp);
+      allow update: if (isUserOwned(resource.data.userId) &&
+                    request.resource.data.userId == resource.data.userId) ||
+                    isCompanyOwner(resource.data.companyId);
       
-      // Allow deleting only the user's own time entries
-      allow delete: if isUserOwned(resource.data.userId);
+      allow delete: if isUserOwned(resource.data.userId) || 
+                    isCompanyOwner(resource.data.companyId);
     }
     
     // User Profiles collection
@@ -100,13 +224,57 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // Notifications collection
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() &&
+                 resource.data.userId == request.auth.uid;
+      
+      // Allow creating notifications for company owners and admins
+      allow create: if isAuthenticated() &&
+                   (isAdmin() || 
+                    (request.resource.data.type == 'event_assignment' && 
+                     exists(/databases/$(database)/documents/events/$(request.resource.data.relatedId)) &&
+                     isCompanyOwner(get(/databases/$(database)/documents/events/$(request.resource.data.relatedId)).data.companyId)));
+      
+      // Users can update their own notifications (only isRead field)
+      allow update: if isAuthenticated() &&
+                   resource.data.userId == request.auth.uid &&
+                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
+      
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated() &&
+                   resource.data.userId == request.auth.uid;
+    }
+    
+    // Events collection
+    match /events/{eventId} {
+      allow read: if isAuthenticated() && 
+                 (isCompanyMember(resource.data.companyId) || 
+                  isCompanyOwner(resource.data.companyId));
+                  
+      allow create: if isAuthenticated() && 
+                   isCompanyOwner(request.resource.data.companyId);
+                   
+      allow update: if isAuthenticated() && 
+                   isCompanyOwner(resource.data.companyId);
+                   
+      allow delete: if isAuthenticated() && 
+                   isCompanyOwner(resource.data.companyId);
+    }
+    
     // Training Materials collection
     match /trainingMaterials/{materialId} {
-      // Anyone authenticated can read training materials
-      allow read: if isAuthenticated();
+      // Materials can be scoped to a company or global
+      allow read: if isAuthenticated() && 
+                 (resource.data.companyId == null || 
+                  isCompanyMember(resource.data.companyId) || 
+                  isCompanyOwner(resource.data.companyId));
       
-      // Only admins can create, update or delete training materials
-      allow create, update, delete: if isAdmin();
+      // Only admins or company owners can create, update or delete training materials
+      allow create, update, delete: if isAdmin() || 
+                                    (request.resource.data.companyId != null && 
+                                     isCompanyOwner(request.resource.data.companyId));
     }
   }
 } 

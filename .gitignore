@@ -1,5 +1,21 @@
-
 WLC2/my-app/secrets.env
 
 # Local Netlify folder
 .netlify
+
+# Firebase service account
+service-account-key.json
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Firebase
+.firebase/
+firebase-debug.log
+
+# Build files
+build/
+dist/

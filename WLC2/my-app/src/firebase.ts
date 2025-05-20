@@ -14,13 +14,13 @@ import { getStorage, FirebaseStorage } from 'firebase/storage';
 // For development, use environment variables
 // For production build on Netlify, use hardcoded values
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBZt7OLIQO-DtLJSDMP8ZERRpIyHfCESkw",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "gigfriend-9b3ea.firebaseapp.com",
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "gigfriend-9b3ea",
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "gigfriend-9b3ea.firebasestorage.app",
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "457762949335",
-  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:457762949335:web:b7023fd07a527bb6774892",
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-47QE5FT56P"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyDpuTcU4IeYnBS89VwjiMQlwT8KbFcQTrE",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "gigfriendv2-3079b.firebaseapp.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "gigfriendv2-3079b",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "gigfriendv2-3079b.firebasestorage.app",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "152295917608",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:152295917608:web:7f1c67ffcc82edf1460d1d",
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-1B37W33FVF"
 };
 
 // Log Firebase configuration for debugging (only apiKey prefix for security)
