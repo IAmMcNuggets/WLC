@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { saveAs } from 'file-saver';
-import { collection, addDoc, updateDoc, doc, query, where, orderBy, onSnapshot, deleteDoc, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, query, where, orderBy, onSnapshot, deleteDoc, Timestamp, serverTimestamp, getDocs, getDoc } from 'firebase/firestore';
 import { firestore } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleUser } from '../types/user';
@@ -28,6 +28,28 @@ const TimeclockTitle = styled.h1`
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   font-size: 2.5rem;
+`;
+
+const CompanySelector = styled.div`
+  margin-bottom: 20px;
+  width: 90%;
+  max-width: 400px;
+  
+  h3 {
+    margin-bottom: 8px;
+    font-size: 1rem;
+    color: #333;
+    text-align: center;
+  }
+  
+  select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 16px;
+  }
 `;
 
 const TimeclockControls = styled.div`
@@ -127,6 +149,25 @@ const ExportButton = styled(Button)`
   }
 `;
 
+const EmptyMessage = styled.div`
+  text-align: center;
+  margin: 20px 0;
+  color: #666;
+  font-style: italic;
+`;
+
+interface Company {
+  id: string;
+  name: string;
+  location?: string;
+}
+
+interface CompanyMembership {
+  companyId: string;
+  status: string;
+  company: Company;
+}
+
 interface TimeEntryData {
   id: string;
   userId: string;
@@ -149,19 +190,86 @@ function Timeclock({ user }: TimeclockProps) {
   const [timeEntries, setTimeEntries] = useState<TimeEntryData[]>([]);
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [companies, setCompanies] = useState<CompanyMembership[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
   const { currentUser } = useAuth();
 
+  // Load user's companies
   useEffect(() => {
-    if (!currentUser || !user) return;
+    const loadUserCompanies = async () => {
+      if (!currentUser) {
+        setLoadingCompanies(false);
+        return;
+      }
+      
+      try {
+        // Get all active company memberships for the user
+        const membershipsQuery = query(
+          collection(firestore, 'companyMembers'),
+          where('userId', '==', currentUser.uid),
+          where('status', '==', 'active')
+        );
+        
+        const snapshot = await getDocs(membershipsQuery);
+        
+        // Fetch company details for each membership
+        const companiesData = await Promise.all(
+          snapshot.docs.map(async (memberDoc) => {
+            const membership = { id: memberDoc.id, ...memberDoc.data() } as Omit<CompanyMembership, 'company'>;
+            const companyDoc = await getDoc(doc(firestore, 'companies', membership.companyId));
+            
+            if (companyDoc.exists()) {
+              const companyData = companyDoc.data();
+              return {
+                ...membership,
+                company: { 
+                  id: companyDoc.id, 
+                  name: companyData.name || 'Unknown Company',
+                  location: companyData.location || ''
+                }
+              } as CompanyMembership;
+            }
+            return null;
+          })
+        );
+        
+        // Filter out null values and set companies
+        const validCompanies = companiesData.filter(c => c !== null) as CompanyMembership[];
+        setCompanies(validCompanies);
+        
+        // Set selected company - first try localStorage, then first company in the list
+        const storedCompanyId = localStorage.getItem('selectedCompanyId');
+        if (storedCompanyId && validCompanies.some(c => c.companyId === storedCompanyId)) {
+          setSelectedCompanyId(storedCompanyId);
+        } else if (validCompanies.length > 0) {
+          setSelectedCompanyId(validCompanies[0].companyId);
+          localStorage.setItem('selectedCompanyId', validCompanies[0].companyId);
+        }
+      } catch (error) {
+        console.error('Error loading user companies:', error);
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+    
+    loadUserCompanies();
+  }, [currentUser]);
+
+  // Load time entries for selected company
+  useEffect(() => {
+    if (!currentUser || !user || !selectedCompanyId) return;
 
     // Subscribe to Firestore for real-time updates of user's time entries
     const timeEntriesRef = collection(firestore, 'timeEntries');
     const userEntriesQuery = query(
       timeEntriesRef,
       where('userId', '==', currentUser.uid),
+      where('companyId', '==', selectedCompanyId),
       orderBy('createdAt', 'desc')
     );
 
+    setIsLoading(true);
     const unsubscribe = onSnapshot(userEntriesQuery, 
       (snapshot) => {
         const entries: TimeEntryData[] = [];
@@ -186,20 +294,25 @@ function Timeclock({ user }: TimeclockProps) {
     );
 
     return () => unsubscribe();
-  }, [currentUser, user]);
+  }, [currentUser, user, selectedCompanyId]);
+
+  const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const companyId = e.target.value;
+    setSelectedCompanyId(companyId);
+    localStorage.setItem('selectedCompanyId', companyId);
+  };
 
   const handleClockIn = async () => {
-    if (!currentUser || !user) return;
+    if (!currentUser || !user || !selectedCompanyId) {
+      console.error('Missing required data: user or company');
+      return;
+    }
     
     try {
-      // For now, using a placeholder companyId. In a real app, this would be selected by the user
-      // or fetched from the current company context
-      const companyId = "placeholder_company_id";
-      
       const newEntry = {
         userId: currentUser.uid,
         userName: user.name,
-        companyId: companyId,
+        companyId: selectedCompanyId,
         startTime: serverTimestamp(),
         endTime: null,
         status: 'in_progress',
@@ -311,31 +424,64 @@ function Timeclock({ user }: TimeclockProps) {
   };
 
   if (!user) return <div>Please log in to use the timeclock.</div>;
+  if (loadingCompanies) return <div>Loading your companies...</div>;
+  if (companies.length === 0) return <div>You need to join a company before using the timeclock. Please go to the Dashboard to find or create a company.</div>;
   if (isLoading) return <div>Loading time entries...</div>;
+
+  // Find the name of the selected company
+  const selectedCompany = companies.find(c => c.companyId === selectedCompanyId);
+  const companyName = selectedCompany ? selectedCompany.company.name : '';
 
   return (
     <TimeclockContainer>
       <TimeclockTitle>Timeclock</TimeclockTitle>
+
+      <CompanySelector>
+        <h3>Select Company</h3>
+        <select 
+          value={selectedCompanyId}
+          onChange={handleCompanyChange}
+        >
+          {companies.map(c => (
+            <option key={c.companyId} value={c.companyId}>
+              {c.company.name}
+            </option>
+          ))}
+        </select>
+      </CompanySelector>
+
       <TimeclockControls>
-        <Button onClick={handleClockIn} disabled={isClockedIn}>Clock In</Button>
-        <Button onClick={handleClockOut} disabled={!isClockedIn} $isClockOut>Clock Out</Button>
+        <Button onClick={handleClockIn} disabled={isClockedIn}>
+          Clock In for {companyName}
+        </Button>
+        <Button onClick={handleClockOut} disabled={!isClockedIn} $isClockOut>
+          Clock Out
+        </Button>
       </TimeclockControls>
+      
       <ExportButton onClick={exportToCSV}>Export to CSV</ExportButton>
+      
       <TimeEntryList>
-        {timeEntries.map((entry) => (
-          <TimeEntry key={entry.id}>
-            <EntryInfo>
-              <EntryHeader>
-                <EntryDate>{entry.startTime ? formatDate(entry.startTime) : 'Loading...'}</EntryDate>
-                <EntryDuration>{calculateDuration(entry.startTime, entry.endTime)}</EntryDuration>
-              </EntryHeader>
-              <EntryTime>Clock In: {entry.startTime ? formatTime(entry.startTime) : 'Loading...'}</EntryTime>
-              <EntryTime>Clock Out: {entry.endTime ? formatTime(entry.endTime) : 'Not clocked out'}</EntryTime>
-              {entry.notes && <EntryTime>Notes: {entry.notes}</EntryTime>}
-            </EntryInfo>
-            <DeleteButton onClick={() => handleDeleteEntry(entry.id)}>Delete</DeleteButton>
-          </TimeEntry>
-        ))}
+        {timeEntries.length === 0 ? (
+          <EmptyMessage>
+            No time entries found for this company
+          </EmptyMessage>
+        ) : (
+          timeEntries.map((entry) => (
+            <TimeEntry key={entry.id}>
+              <EntryInfo>
+                <EntryHeader>
+                  <EntryDate>{entry.startTime ? formatDate(entry.startTime) : 'Loading...'}</EntryDate>
+                  <EntryDuration>{calculateDuration(entry.startTime, entry.endTime)}</EntryDuration>
+                </EntryHeader>
+                <EntryTime>Clock In: {entry.startTime ? formatTime(entry.startTime) : 'Loading...'}</EntryTime>
+                <EntryTime>Clock Out: {entry.endTime ? formatTime(entry.endTime) : 'Not clocked out'}</EntryTime>
+                {entry.notes && <EntryTime>Notes: {entry.notes}</EntryTime>}
+              </EntryInfo>
+              <DeleteButton onClick={() => handleDeleteEntry(entry.id)}>Delete</DeleteButton>
+            </TimeEntry>
+          ))
+        )}
       </TimeEntryList>
     </TimeclockContainer>
   );
