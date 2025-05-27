@@ -130,9 +130,14 @@ const ExportButton = styled(Button)`
 interface TimeEntryData {
   id: string;
   userId: string;
-  userName: string;
-  clockIn: Timestamp;
-  clockOut: Timestamp | null;
+  userName?: string;
+  companyId: string;
+  eventId?: string;
+  startTime: Timestamp;
+  endTime: Timestamp | null;
+  duration?: number;
+  status: string;
+  notes?: string;
   createdAt: Timestamp;
 }
 
@@ -171,7 +176,7 @@ function Timeclock({ user }: TimeclockProps) {
         
         // Check if user is currently clocked in based on latest entry
         const lastEntry = entries[0];
-        setIsClockedIn(lastEntry && !lastEntry.clockOut);
+        setIsClockedIn(lastEntry && !lastEntry.endTime);
         setIsLoading(false);
       },
       (error) => {
@@ -187,13 +192,19 @@ function Timeclock({ user }: TimeclockProps) {
     if (!currentUser || !user) return;
     
     try {
+      // For now, using a placeholder companyId. In a real app, this would be selected by the user
+      // or fetched from the current company context
+      const companyId = "placeholder_company_id";
+      
       const newEntry = {
         userId: currentUser.uid,
         userName: user.name,
-        clockIn: serverTimestamp(),
-        clockOut: null,
-        createdAt: serverTimestamp(),
-        status: 'active'
+        companyId: companyId,
+        startTime: serverTimestamp(),
+        endTime: null,
+        status: 'in_progress',
+        notes: '',
+        createdAt: serverTimestamp()
       };
       
       await addDoc(collection(firestore, 'timeEntries'), newEntry);
@@ -210,8 +221,18 @@ function Timeclock({ user }: TimeclockProps) {
       const latestEntry = timeEntries[0];
       const entryRef = doc(firestore, 'timeEntries', latestEntry.id);
       
+      // Calculate duration if we have a valid startTime
+      let duration = null;
+      if (latestEntry.startTime) {
+        const startDate = latestEntry.startTime.toDate();
+        const endDate = new Date(); // current time
+        duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000); // duration in seconds
+      }
+      
       await updateDoc(entryRef, {
-        clockOut: serverTimestamp()
+        endTime: serverTimestamp(),
+        status: 'completed',
+        duration: duration
       });
       
       setIsClockedIn(false);
@@ -250,12 +271,12 @@ function Timeclock({ user }: TimeclockProps) {
     });
   };
 
-  const calculateDuration = (clockIn: Timestamp, clockOut: Timestamp | null) => {
-    if (!clockIn) return 'Calculating...';
-    if (!clockOut) return 'In progress';
+  const calculateDuration = (startTime: Timestamp, endTime: Timestamp | null) => {
+    if (!startTime) return 'Calculating...';
+    if (!endTime) return 'In progress';
     
-    const start = clockIn.toDate();
-    const end = clockOut.toDate();
+    const start = startTime.toDate();
+    const end = endTime.toDate();
     const diff = end.getTime() - start.getTime();
     const hours = Math.floor(diff / 3600000);
     const minutes = Math.floor((diff % 3600000) / 60000);
@@ -264,11 +285,11 @@ function Timeclock({ user }: TimeclockProps) {
 
   const exportToCSV = () => {
     const csvContent = [
-      ['Date', 'Clock In', 'Clock Out', 'Duration'],
+      ['Date', 'Clock In', 'Clock Out', 'Duration', 'Notes'],
       ...timeEntries.map(entry => {
-        if (!entry.clockIn) return ['Loading...', 'Loading...', 'Loading...', 'Loading...'];
+        if (!entry.startTime) return ['Loading...', 'Loading...', 'Loading...', 'Loading...', ''];
         
-        const date = entry.clockIn.toDate();
+        const date = entry.startTime.toDate();
         const formattedDate = `${date.toLocaleDateString('en-US', { 
           weekday: 'short', 
           month: 'short', 
@@ -276,11 +297,12 @@ function Timeclock({ user }: TimeclockProps) {
           year: 'numeric' 
         })}`;
         
-        const clockIn = entry.clockIn ? formatTime(entry.clockIn) : 'Loading...';
-        const clockOut = entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out';
-        const duration = calculateDuration(entry.clockIn, entry.clockOut);
+        const clockIn = entry.startTime ? formatTime(entry.startTime) : 'Loading...';
+        const clockOut = entry.endTime ? formatTime(entry.endTime) : 'Not clocked out';
+        const duration = calculateDuration(entry.startTime, entry.endTime);
+        const notes = entry.notes || '';
         
-        return [formattedDate, clockIn, clockOut, duration];
+        return [formattedDate, clockIn, clockOut, duration, notes];
       })
     ].map(e => e.map(cell => `"${cell}"`).join(',')).join('\n');
 
@@ -304,11 +326,12 @@ function Timeclock({ user }: TimeclockProps) {
           <TimeEntry key={entry.id}>
             <EntryInfo>
               <EntryHeader>
-                <EntryDate>{entry.clockIn ? formatDate(entry.clockIn) : 'Loading...'}</EntryDate>
-                <EntryDuration>{calculateDuration(entry.clockIn, entry.clockOut)}</EntryDuration>
+                <EntryDate>{entry.startTime ? formatDate(entry.startTime) : 'Loading...'}</EntryDate>
+                <EntryDuration>{calculateDuration(entry.startTime, entry.endTime)}</EntryDuration>
               </EntryHeader>
-              <EntryTime>Clock In: {entry.clockIn ? formatTime(entry.clockIn) : 'Loading...'}</EntryTime>
-              <EntryTime>Clock Out: {entry.clockOut ? formatTime(entry.clockOut) : 'Not clocked out'}</EntryTime>
+              <EntryTime>Clock In: {entry.startTime ? formatTime(entry.startTime) : 'Loading...'}</EntryTime>
+              <EntryTime>Clock Out: {entry.endTime ? formatTime(entry.endTime) : 'Not clocked out'}</EntryTime>
+              {entry.notes && <EntryTime>Notes: {entry.notes}</EntryTime>}
             </EntryInfo>
             <DeleteButton onClick={() => handleDeleteEntry(entry.id)}>Delete</DeleteButton>
           </TimeEntry>
