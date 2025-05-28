@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp, getDocs, doc, getDoc } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
-import { FiSend, FiMessageCircle } from 'react-icons/fi';
+import { FiSend } from 'react-icons/fi';
 import { FaBuilding, FaSpinner } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -139,14 +139,36 @@ const CompanyTab = styled.div<{ isActive: boolean }>`
   }
 `;
 
-const GlobalChatTab = styled(CompanyTab)`
-  background: ${props => props.isActive ? 'rgba(75, 85, 99, 0.1)' : 'rgba(255, 255, 255, 0.4)'};
-  color: ${props => props.isActive ? '#4b5563' : '#333'};
-  border: 1px solid ${props => props.isActive ? 'rgba(75, 85, 99, 0.3)' : 'transparent'};
-  box-shadow: ${props => props.isActive ? '0 2px 10px rgba(75, 85, 99, 0.1)' : 'none'};
+const PrimaryButton = styled.button`
+  background-color: #4a6cf7;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s;
   
   &:hover {
-    background: ${props => props.isActive ? 'rgba(75, 85, 99, 0.15)' : 'rgba(255, 255, 255, 0.6)'};
+    background-color: #3451b2;
+  }
+`;
+
+const NoCompaniesMessage = styled.div`
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  margin: 20px;
+  
+  h3 {
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  p {
+    color: #666;
+    margin-bottom: 15px;
   }
 `;
 
@@ -458,18 +480,18 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
         );
         
         // Filter out null values and set companies
-        const validCompanies = companiesData.filter(c => c !== null) as CompanyMembership[];
+        const validCompanies = companiesData.filter((c): c is CompanyMembership => c !== null);
         setCompanies(validCompanies);
         
         // Set selected company from localStorage or first company
         const storedCompanyId = localStorage.getItem('selectedChatCompanyId');
-        if (storedCompanyId === 'global') {
-          setSelectedCompanyId(null);
-        } else if (storedCompanyId && validCompanies.some(c => c.companyId === storedCompanyId)) {
+        if (storedCompanyId && validCompanies.some(c => c.companyId === storedCompanyId)) {
           setSelectedCompanyId(storedCompanyId);
         } else if (validCompanies.length > 0) {
           setSelectedCompanyId(validCompanies[0].companyId);
+          localStorage.setItem('selectedChatCompanyId', validCompanies[0].companyId);
         } else {
+          // No companies available - keep selectedCompanyId as null
           setSelectedCompanyId(null);
         }
       } catch (error) {
@@ -494,27 +516,18 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   
   // Listen for new messages filtered by company
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !selectedCompanyId) return;
     
     let q;
     let unsubscribe = () => {};
     
     try {
-      if (selectedCompanyId) {
-        // Company specific chat
-        q = query(
-          collection(firestore, 'messages'),
-          where('companyId', '==', selectedCompanyId),
-          orderBy('createdAt', 'asc')
-        );
-      } else {
-        // Global chat
-        q = query(
-          collection(firestore, 'messages'),
-          where('companyId', '==', null),
-          orderBy('createdAt', 'asc')
-        );
-      }
+      // Company specific chat
+      q = query(
+        collection(firestore, 'messages'),
+        where('companyId', '==', selectedCompanyId),
+        orderBy('createdAt', 'asc')
+      );
       
       unsubscribe = onSnapshot(q, (snapshot) => {
         const newMessages: ChatMessage[] = [];
@@ -548,7 +561,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!inputValue.trim() || !currentUser || !user) return;
+    if (!inputValue.trim() || !currentUser || !user || !selectedCompanyId) return;
     
     try {
       // Create message data
@@ -576,15 +589,9 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     }
   };
   
-  const handleCompanySelect = (companyId: string | null) => {
+  const handleCompanySelect = (companyId: string) => {
     setSelectedCompanyId(companyId);
-    
-    // Store selection in localStorage
-    if (companyId === null) {
-      localStorage.setItem('selectedChatCompanyId', 'global');
-    } else {
-      localStorage.setItem('selectedChatCompanyId', companyId);
-    }
+    localStorage.setItem('selectedChatCompanyId', companyId);
   };
   
   const formatDate = (timestamp: Timestamp) => {
@@ -624,13 +631,33 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   }, {});
   
   const getChannelTitle = () => {
-    if (selectedCompanyId === null) {
-      return 'Global Chat';
+    if (!selectedCompanyId) {
+      return 'Company Chat';
     }
     
     const company = companies.find(c => c.companyId === selectedCompanyId);
     return company ? `${company.company.name} Chat` : 'Company Chat';
   };
+  
+  // Show a message when user has no companies
+  if (!isLoadingCompanies && companies.length === 0) {
+    return (
+      <ChatContainer>
+        <ChatInner>
+          <Header>
+            <ChatTitle>Company Chat</ChatTitle>
+          </Header>
+          <NoCompaniesMessage>
+            <h3>No Company Access</h3>
+            <p>You are not a member of any companies. Join a company to use the chat feature.</p>
+            <PrimaryButton onClick={() => window.location.href = '/dashboard'}>
+              Go to Dashboard
+            </PrimaryButton>
+          </NoCompaniesMessage>
+        </ChatInner>
+      </ChatContainer>
+    );
+  }
   
   return (
     <ChatContainer>
@@ -645,13 +672,6 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             </LoadingState>
           ) : (
             <CompanySelector>
-              <GlobalChatTab 
-                isActive={selectedCompanyId === null}
-                onClick={() => handleCompanySelect(null)}
-              >
-                <FiMessageCircle /> Global
-              </GlobalChatTab>
-              
               {companies.map(company => (
                 <CompanyTab
                   key={company.companyId}
@@ -705,9 +725,9 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={`Type a message in ${getChannelTitle()}...`}
-            disabled={!currentUser || !user}
+            disabled={!currentUser || !user || !selectedCompanyId}
           />
-          <SendButton type="submit" disabled={!inputValue.trim() || !currentUser || !user}>
+          <SendButton type="submit" disabled={!inputValue.trim() || !currentUser || !user || !selectedCompanyId}>
             <FiSend size={20} />
           </SendButton>
         </InputContainer>
