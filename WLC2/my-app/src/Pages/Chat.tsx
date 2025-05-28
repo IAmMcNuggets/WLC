@@ -350,16 +350,19 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     if (!inputValue.trim() || !currentUser || !user) return;
     
     try {
-      await addDoc(collection(firestore, 'messages'), {
+      // Create message data, ensuring picture is always a string or null (not undefined)
+      const messageData = {
         text: inputValue.trim(),
         createdAt: serverTimestamp(),
         user: {
           uid: currentUser.uid,
           name: user.name,
           email: user.email,
-          picture: user.picture
+          picture: user.picture || null // Ensure picture is not undefined
         }
-      });
+      };
+      
+      await addDoc(collection(firestore, 'messages'), messageData);
       
       setInputValue('');
     } catch (error) {

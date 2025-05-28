@@ -86,25 +86,33 @@ service cloud.firestore {
     
     // Messages collection rules
     match /messages/{messageId} {
-      // Allow reading messages if user is authenticated and is a chat room member
-      allow read: if isAuthenticated() &&
-                  resource.data.chatRoomId != null &&
-                  isChatRoomMember(resource.data.chatRoomId) &&
-                  exists(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)) &&
-                  (isCompanyMember(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId) ||
-                   isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId));
+      // Allow reading messages if user is authenticated
+      allow read: if isAuthenticated() && (
+                  // General chat (no chatRoomId)
+                  resource.data.chatRoomId == null ||
+                  // Chat room specific messages
+                  (resource.data.chatRoomId != null &&
+                   isChatRoomMember(resource.data.chatRoomId) &&
+                   exists(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)) &&
+                   (isCompanyMember(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId) ||
+                    isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(resource.data.chatRoomId)).data.companyId)))
+                  );
       
-      // Allow creating messages if authenticated and is a chat room member
-      allow create: if isAuthenticated() &&
-                    request.resource.data.senderId == request.auth.uid &&
-                    request.resource.data.createdAt is timestamp &&
-                    request.resource.data.content is string &&
-                    request.resource.data.content.size() > 0 &&
-                    request.resource.data.content.size() <= 2000 &&
-                    isChatRoomMember(request.resource.data.chatRoomId) &&
-                    exists(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)) &&
-                    (isCompanyMember(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId) ||
-                     isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId));
+      // Allow creating messages if authenticated
+      allow create: if isAuthenticated() && (
+                    // General chat (no chatRoomId)
+                    request.resource.data.chatRoomId == null ||
+                    // Chat room specific messages
+                    (request.resource.data.senderId == request.auth.uid &&
+                     request.resource.data.createdAt is timestamp &&
+                     request.resource.data.content is string &&
+                     request.resource.data.content.size() > 0 &&
+                     request.resource.data.content.size() <= 2000 &&
+                     isChatRoomMember(request.resource.data.chatRoomId) &&
+                     exists(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)) &&
+                     (isCompanyMember(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId) ||
+                      isCompanyOwner(get(/databases/$(database)/documents/chatRooms/$(request.resource.data.chatRoomId)).data.companyId)))
+                    );
       
       // Prevent updates and deletes except for admins, chat room admins or company owners
       allow update, delete: if isAdmin() || 
