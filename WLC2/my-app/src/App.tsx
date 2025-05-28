@@ -118,9 +118,16 @@ function AppContent() {
         email: currentUser.email || 'No email',
         picture: currentUser.photoURL || undefined
       };
-      setUser(userData);
-      setIsLoggedIn(true);
-      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // If we're in the middle of company signup, don't redirect to dashboard
+      const isCompanySignupProcess = window.location.pathname === '/company-signup' && 
+        localStorage.getItem('shouldMoveToStep2') === 'true';
+      
+      if (!isCompanySignupProcess) {
+        setUser(userData);
+        setIsLoggedIn(true);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
     }
   }, [currentUser, user]);
 
@@ -177,6 +184,11 @@ function AppContent() {
             <Route path="/dashboard" element={
               <ErrorBoundary>
                 <Dashboard />
+              </ErrorBoundary>
+            } />
+            <Route path="/company-signup" element={
+              <ErrorBoundary>
+                <CompanySignup />
               </ErrorBoundary>
             } />
             <Route path="/events" element={
