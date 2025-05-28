@@ -11,6 +11,7 @@ import { GoogleUser } from '../types/user';
 import backgroundImage from '../Background/86343.jpg';
 import { requestNotificationPermission } from '../services/messaging';
 import { useNotifications } from '../contexts/NotificationContext';
+import { FirebaseError } from 'firebase/app';
 
 // Define company membership interface
 interface CompanyMembership {
@@ -495,40 +496,53 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     if (!currentUser) return;
     
     let q;
+    let unsubscribe = () => {};
     
-    if (selectedCompanyId) {
-      // Company specific chat
-      q = query(
-        collection(firestore, 'messages'),
-        where('companyId', '==', selectedCompanyId),
-        orderBy('createdAt', 'asc')
-      );
-    } else {
-      // Global chat
-      q = query(
-        collection(firestore, 'messages'),
-        where('companyId', '==', null),
-        orderBy('createdAt', 'asc')
-      );
+    try {
+      if (selectedCompanyId) {
+        // Company specific chat
+        q = query(
+          collection(firestore, 'messages'),
+          where('companyId', '==', selectedCompanyId),
+          orderBy('createdAt', 'asc')
+        );
+      } else {
+        // Global chat
+        q = query(
+          collection(firestore, 'messages'),
+          where('companyId', '==', null),
+          orderBy('createdAt', 'asc')
+        );
+      }
+      
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const newMessages: ChatMessage[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          newMessages.push({
+            id: doc.id,
+            text: data.text,
+            createdAt: data.createdAt,
+            companyId: data.companyId || null,
+            user: data.user
+          });
+        });
+        setMessages(newMessages);
+      }, (error: FirebaseError) => {
+        console.error("Error in chat snapshot:", error);
+        // Clear messages if permission denied
+        if (error.code === 'permission-denied') {
+          setMessages([]);
+          addToast('You do not have permission to view these messages', 'error');
+        }
+      });
+    } catch (error) {
+      console.error("Error setting up chat listener:", error);
+      setMessages([]);
     }
     
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const newMessages: ChatMessage[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        newMessages.push({
-          id: doc.id,
-          text: data.text,
-          createdAt: data.createdAt,
-          companyId: data.companyId || null,
-          user: data.user
-        });
-      });
-      setMessages(newMessages);
-    });
-    
     return () => unsubscribe();
-  }, [currentUser, selectedCompanyId]);
+  }, [currentUser, selectedCompanyId, addToast]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -550,11 +564,14 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       };
       
       await addDoc(collection(firestore, 'messages'), messageData);
-      
       setInputValue('');
     } catch (error) {
       console.error("Error sending message:", error);
-      addToast('Failed to send message', 'error');
+      if (error instanceof FirebaseError && error.code === 'permission-denied') {
+        addToast('You do not have permission to send messages in this chat', 'error');
+      } else {
+        addToast('Failed to send message', 'error');
+      }
     }
   };
   
