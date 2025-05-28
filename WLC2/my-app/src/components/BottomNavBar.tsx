@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaCalendarAlt, FaClock, FaUserCircle, FaBook, FaComments, FaTachometerAlt, FaBuilding } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaUserCircle, FaBook, FaComments, FaTachometerAlt } from 'react-icons/fa';
 import { auth, firestore } from '../firebase';
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -142,29 +142,6 @@ const NavLink: React.FC<NavLinkProps> = ({ to, icon, label }) => {
 };
 
 const BottomNavBar: React.FC = () => {
-  const [isCompanyOwner, setIsCompanyOwner] = useState(false);
-  
-  useEffect(() => {
-    const checkIfCompanyOwner = async () => {
-      if (!auth.currentUser) return;
-      
-      try {
-        // Check if user owns any companies
-        const companiesQuery = query(
-          collection(firestore, 'companies'),
-          where('ownerId', '==', auth.currentUser.uid)
-        );
-        
-        const snapshot = await getDocs(companiesQuery);
-        setIsCompanyOwner(!snapshot.empty);
-      } catch (error) {
-        console.error('Error checking company ownership:', error);
-      }
-    };
-    
-    checkIfCompanyOwner();
-  }, []);
-  
   return (
     <NavBar role="navigation" aria-label="Main Navigation">
       <NavLink 
@@ -187,13 +164,6 @@ const BottomNavBar: React.FC = () => {
         icon={<FaComments aria-hidden="true" />} 
         label="Chat" 
       />
-      {isCompanyOwner && (
-        <NavLink 
-          to="/company-management" 
-          icon={<FaBuilding aria-hidden="true" />} 
-          label="Manage" 
-        />
-      )}
       <NavLink 
         to="/training" 
         icon={<FaBook aria-hidden="true" />} 

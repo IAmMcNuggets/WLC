@@ -4,7 +4,9 @@ import { GoogleUser } from '../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
-import { FaBell, FaBellSlash } from 'react-icons/fa';
+import { FaBell, FaBellSlash, FaBuilding } from 'react-icons/fa';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { firestore, auth } from '../firebase';
 
 const ProfileContainer = styled.div`
   min-height: 100vh;
@@ -71,25 +73,7 @@ const InfoLabel = styled.span`
   margin-bottom: 5px;
 `;
 
-const LogoutButton = styled.button`
-  background-color: #f44336;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  width: 100%;
-  max-width: 200px;
-
-  &:hover {
-    background-color: #d32f2f;
-  }
-`;
-
-const NotificationButton = styled.button`
-  background-color: #4caf50;
+const ActionButton = styled.button`
   color: white;
   border: none;
   padding: 10px 20px;
@@ -104,6 +88,23 @@ const NotificationButton = styled.button`
   align-items: center;
   justify-content: center;
 
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const ManageButton = styled(ActionButton)`
+  background-color: #4a6cf7;
+  margin-top: 10px;
+  
+  &:hover {
+    background-color: #3451b2;
+  }
+`;
+
+const NotificationButton = styled(ActionButton)`
+  background-color: #4caf50;
+  
   &:hover {
     background-color: #388e3c;
   }
@@ -127,6 +128,15 @@ const InfoMessage = styled.p`
   text-align: center;
 `;
 
+const LogoutButton = styled(ActionButton)`
+  background-color: #f44336;
+  margin-top: 15px;
+  
+  &:hover {
+    background-color: #d32f2f;
+  }
+`;
+
 interface ProfileProps {
   user: GoogleUser | null;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
@@ -136,6 +146,7 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<boolean>(false);
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
+  const [isCompanyOwner, setIsCompanyOwner] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { 
@@ -145,6 +156,28 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
     isPWA,
     showIOSInstructions 
   } = useNotifications();
+
+  // Check if user is a company owner
+  useEffect(() => {
+    const checkIfCompanyOwner = async () => {
+      if (!auth.currentUser) return;
+      
+      try {
+        // Check if user owns any companies
+        const companiesQuery = query(
+          collection(firestore, 'companies'),
+          where('ownerId', '==', auth.currentUser.uid)
+        );
+        
+        const snapshot = await getDocs(companiesQuery);
+        setIsCompanyOwner(!snapshot.empty);
+      } catch (error) {
+        console.error('Error checking company ownership:', error);
+      }
+    };
+    
+    checkIfCompanyOwner();
+  }, []);
 
   useEffect(() => {
     if (user && user.picture) {
@@ -204,6 +237,10 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
     }
   };
 
+  const handleManageCompanies = () => {
+    navigate('/company-management');
+  };
+
   if (!user) {
     return <ProfileContainer>No user data available</ProfileContainer>;
   }
@@ -249,10 +286,19 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
             ? 'Notifications Enabled' 
             : isEnablingNotifications 
               ? 'Enabling...' 
-              : 'Enable Notifications'}
+              : 'Enable Notifications'
+          }
         </NotificationButton>
         
-        <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+        {isCompanyOwner && (
+          <ManageButton onClick={handleManageCompanies}>
+            <FaBuilding style={{ marginRight: '8px' }} /> Manage Companies
+          </ManageButton>
+        )}
+        
+        <LogoutButton onClick={handleLogout}>
+          Logout
+        </LogoutButton>
       </ProfileCard>
     </ProfileContainer>
   );
