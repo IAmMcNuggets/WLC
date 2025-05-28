@@ -16,10 +16,10 @@ const NavBar = styled.nav`
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 25px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  padding: 15px 10px;
+  padding: 12px 8px;
   z-index: 1002;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -44,6 +44,12 @@ const NavBar = styled.nav`
   &::-webkit-scrollbar {
     display: none;  /* Chrome, Safari, Opera */
   }
+  
+  /* Mobile optimizations */
+  @media (max-width: 480px) {
+    padding: 10px 6px;
+    width: 98%; /* Slightly wider on very small screens */
+  }
 `;
 
 interface NavItemProps {
@@ -56,18 +62,19 @@ const NavItem = styled(Link)<NavItemProps>`
   align-items: center;
   text-decoration: none;
   color: ${props => props.$isActive ? '#0084ff' : '#6c757d'};
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: ${props => props.$isActive ? '500' : '400'};
-  padding: 8px 8px;
+  padding: 6px 6px;
   border-radius: 12px;
   transition: all 0.2s ease;
   position: relative;
   outline: none;
-  min-width: 60px;
-
+  min-width: 48px;
+  flex: 1;
+  
   svg {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
+    font-size: 1.25rem;
+    margin-bottom: 4px;
     transition: transform 0.2s ease;
   }
   
@@ -105,6 +112,33 @@ const NavItem = styled(Link)<NavItemProps>`
     
     svg {
       transition: none;
+    }
+  }
+  
+  /* Mobile optimizations */
+  @media (max-width: 480px) {
+    font-size: 0.7rem;
+    padding: 4px 4px;
+    min-width: 40px;
+    
+    svg {
+      font-size: 1.2rem;
+      margin-bottom: 3px;
+    }
+    
+    &::after {
+      width: 16px;
+      height: 2px;
+    }
+  }
+  
+  /* Very small screens */
+  @media (max-width: 360px) {
+    min-width: 36px;
+    
+    svg {
+      font-size: 1.1rem;
+      margin-bottom: 2px;
     }
   }
 `;
