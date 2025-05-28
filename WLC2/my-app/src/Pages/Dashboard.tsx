@@ -174,7 +174,16 @@ function Dashboard() {
         // Fetch company details for each membership
         const companiesData = await Promise.all(
           snapshot.docs.map(async (memberDoc) => {
-            const membership = { id: memberDoc.id, ...memberDoc.data() } as Omit<CompanyMembership, 'company'>;
+            const memberData = memberDoc.data();
+            const membership = { 
+              id: memberDoc.id, 
+              userId: memberData.userId,
+              companyId: memberData.companyId,
+              status: memberData.status,
+              role: memberData.role,
+              ...memberData 
+            } as Omit<CompanyMembership, 'company'>;
+            
             const companyDoc = await getDoc(doc(firestore, 'companies', membership.companyId));
             
             if (companyDoc.exists()) {
@@ -240,7 +249,16 @@ function Dashboard() {
         // Fetch company details for each membership
         const companiesData = await Promise.all(
           snapshot.docs.map(async (memberDoc) => {
-            const membership = { id: memberDoc.id, ...memberDoc.data() } as Omit<CompanyMembership, 'company'>;
+            const memberData = memberDoc.data();
+            const membership = { 
+              id: memberDoc.id, 
+              userId: memberData.userId,
+              companyId: memberData.companyId,
+              status: memberData.status,
+              role: memberData.role,
+              ...memberData 
+            } as Omit<CompanyMembership, 'company'>;
+            
             const companyDoc = await getDoc(doc(firestore, 'companies', membership.companyId));
             
             if (companyDoc.exists()) {

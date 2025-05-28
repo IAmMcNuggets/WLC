@@ -216,7 +216,15 @@ function Timeclock({ user }: TimeclockProps) {
         // Fetch company details for each membership
         const companiesData = await Promise.all(
           snapshot.docs.map(async (memberDoc) => {
-            const membership = { id: memberDoc.id, ...memberDoc.data() } as Omit<CompanyMembership, 'company'>;
+            // Extract all document data to ensure we have companyId and status
+            const memberData = memberDoc.data();
+            const membership = { 
+              id: memberDoc.id, 
+              companyId: memberData.companyId,
+              status: memberData.status,
+              ...memberData
+            } as Omit<CompanyMembership, 'company'>;
+            
             const companyDoc = await getDoc(doc(firestore, 'companies', membership.companyId));
             
             if (companyDoc.exists()) {
