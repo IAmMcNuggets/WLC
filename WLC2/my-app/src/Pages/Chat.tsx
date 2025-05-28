@@ -9,6 +9,7 @@ import { useToast } from '../contexts/ToastContext';
 import { format } from 'date-fns';
 import { GoogleUser } from '../types/user';
 import backgroundImage from '../Background/86343.jpg';
+import defaultAvatar from '../Logos/default-avatar.svg';
 import { requestNotificationPermission } from '../services/messaging';
 import { useNotifications } from '../contexts/NotificationContext';
 import { FirebaseError } from 'firebase/app';
@@ -683,7 +684,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
                   isOwn={message.user.uid === currentUser?.uid}
                 >
                   <UserAvatar 
-                    src={message.user.picture || 'https://via.placeholder.com/40'} 
+                    src={message.user.picture || defaultAvatar} 
                     alt={message.user.name}
                   />
                   <MessageContent isOwn={message.user.uid === currentUser?.uid}>
