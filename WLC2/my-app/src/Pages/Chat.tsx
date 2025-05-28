@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp } from 'firebase/firestore';
-import { firestore } from '../firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, where, Timestamp, getDocs, doc, getDoc } from 'firebase/firestore';
+import { firestore, auth } from '../firebase';
 import { FiSend, FiMessageCircle } from 'react-icons/fi';
+import { FaBuilding, FaSpinner } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { format } from 'date-fns';
@@ -11,11 +12,24 @@ import backgroundImage from '../Background/86343.jpg';
 import { requestNotificationPermission } from '../services/messaging';
 import { useNotifications } from '../contexts/NotificationContext';
 
+// Define company membership interface
+interface CompanyMembership {
+  id: string;
+  companyId: string;
+  status: string;
+  company: {
+    id: string;
+    name: string;
+    location: string;
+  };
+}
+
 // Define the structure of a chat message
 interface ChatMessage {
   id: string;
   text: string;
   createdAt: Timestamp;
+  companyId: string | null;
   user: {
     uid: string;
     name: string;
@@ -61,17 +75,77 @@ const Header = styled.div`
   border-bottom: none;
   box-shadow: none;
   margin-top: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 `;
 
 const ChatTitle = styled.h1`
   text-align: center;
   width: 100%;
   margin-top: 20px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   color: black;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   font-size: 2.5rem;
+`;
+
+const CompanySelector = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding: 0 10px;
+  
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+  }
+`;
+
+const CompanyTab = styled.div<{ isActive: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  margin: 0 6px;
+  background: ${props => props.isActive ? 'rgba(0, 132, 255, 0.1)' : 'rgba(255, 255, 255, 0.4)'};
+  color: ${props => props.isActive ? '#0084ff' : '#333'};
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  border: 1px solid ${props => props.isActive ? 'rgba(0, 132, 255, 0.3)' : 'transparent'};
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: ${props => props.isActive ? '0 2px 10px rgba(0, 132, 255, 0.1)' : 'none'};
+  
+  &:hover {
+    background: ${props => props.isActive ? 'rgba(0, 132, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)'};
+    transform: translateY(-2px);
+  }
+  
+  svg {
+    margin-right: 8px;
+  }
+`;
+
+const GlobalChatTab = styled(CompanyTab)`
+  background: ${props => props.isActive ? 'rgba(75, 85, 99, 0.1)' : 'rgba(255, 255, 255, 0.4)'};
+  color: ${props => props.isActive ? '#4b5563' : '#333'};
+  border: 1px solid ${props => props.isActive ? 'rgba(75, 85, 99, 0.3)' : 'transparent'};
+  box-shadow: ${props => props.isActive ? '0 2px 10px rgba(75, 85, 99, 0.1)' : 'none'};
+  
+  &:hover {
+    background: ${props => props.isActive ? 'rgba(75, 85, 99, 0.15)' : 'rgba(255, 255, 255, 0.6)'};
+  }
 `;
 
 const MessagesContainer = styled.div`
@@ -301,6 +375,29 @@ const NotificationButton = styled.button`
   }
 `;
 
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  
+  svg {
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+    color: #0084ff;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  p {
+    color: #666;
+  }
+`;
+
 const Chat: React.FC<ChatProps> = ({ user }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -308,6 +405,81 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
   const { currentUser } = useAuth();
   const { addToast } = useToast();
   const { notificationsEnabled, enableNotifications } = useNotifications();
+  
+  const [companies, setCompanies] = useState<CompanyMembership[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
+  
+  // Load user's companies
+  useEffect(() => {
+    const loadUserCompanies = async () => {
+      if (!auth.currentUser) {
+        setIsLoadingCompanies(false);
+        return;
+      }
+      
+      try {
+        // Get all companies the user is a member of with active status
+        const membershipsQuery = query(
+          collection(firestore, 'companyMembers'),
+          where('userId', '==', auth.currentUser.uid),
+          where('status', '==', 'active')
+        );
+        
+        const snapshot = await getDocs(membershipsQuery);
+        
+        // Fetch company details for each membership
+        const companiesData = await Promise.all(
+          snapshot.docs.map(async (memberDoc) => {
+            const memberData = memberDoc.data();
+            const membership = { 
+              id: memberDoc.id, 
+              companyId: memberData.companyId,
+              status: memberData.status
+            } as Omit<CompanyMembership, 'company'>;
+            
+            const companyDoc = await getDoc(doc(firestore, 'companies', membership.companyId));
+            
+            if (companyDoc.exists()) {
+              const companyData = companyDoc.data();
+              return {
+                ...membership,
+                company: { 
+                  id: companyDoc.id, 
+                  name: companyData.name || 'Unknown Company',
+                  location: companyData.location || ''
+                }
+              } as CompanyMembership;
+            }
+            return null;
+          })
+        );
+        
+        // Filter out null values and set companies
+        const validCompanies = companiesData.filter(c => c !== null) as CompanyMembership[];
+        setCompanies(validCompanies);
+        
+        // Set selected company from localStorage or first company
+        const storedCompanyId = localStorage.getItem('selectedChatCompanyId');
+        if (storedCompanyId === 'global') {
+          setSelectedCompanyId(null);
+        } else if (storedCompanyId && validCompanies.some(c => c.companyId === storedCompanyId)) {
+          setSelectedCompanyId(storedCompanyId);
+        } else if (validCompanies.length > 0) {
+          setSelectedCompanyId(validCompanies[0].companyId);
+        } else {
+          setSelectedCompanyId(null);
+        }
+      } catch (error) {
+        console.error('Error loading user companies:', error);
+        addToast('Error loading your companies', 'error');
+      } finally {
+        setIsLoadingCompanies(false);
+      }
+    };
+    
+    loadUserCompanies();
+  }, [addToast]);
   
   // Scroll to bottom when messages change
   const scrollToBottom = useCallback(() => {
@@ -318,14 +490,27 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
   
-  // Listen for new messages
+  // Listen for new messages filtered by company
   useEffect(() => {
     if (!currentUser) return;
     
-    const q = query(
-      collection(firestore, 'messages'),
-      orderBy('createdAt', 'asc')
-    );
+    let q;
+    
+    if (selectedCompanyId) {
+      // Company specific chat
+      q = query(
+        collection(firestore, 'messages'),
+        where('companyId', '==', selectedCompanyId),
+        orderBy('createdAt', 'asc')
+      );
+    } else {
+      // Global chat
+      q = query(
+        collection(firestore, 'messages'),
+        where('companyId', '==', null),
+        orderBy('createdAt', 'asc')
+      );
+    }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newMessages: ChatMessage[] = [];
@@ -335,6 +520,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           id: doc.id,
           text: data.text,
           createdAt: data.createdAt,
+          companyId: data.companyId || null,
           user: data.user
         });
       });
@@ -342,7 +528,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     });
     
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedCompanyId]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -350,10 +536,11 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     if (!inputValue.trim() || !currentUser || !user) return;
     
     try {
-      // Create message data, ensuring picture is always a string or null (not undefined)
+      // Create message data
       const messageData = {
         text: inputValue.trim(),
         createdAt: serverTimestamp(),
+        companyId: selectedCompanyId,
         user: {
           uid: currentUser.uid,
           name: user.name,
@@ -368,6 +555,17 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     } catch (error) {
       console.error("Error sending message:", error);
       addToast('Failed to send message', 'error');
+    }
+  };
+  
+  const handleCompanySelect = (companyId: string | null) => {
+    setSelectedCompanyId(companyId);
+    
+    // Store selection in localStorage
+    if (companyId === null) {
+      localStorage.setItem('selectedChatCompanyId', 'global');
+    } else {
+      localStorage.setItem('selectedChatCompanyId', companyId);
     }
   };
   
@@ -407,17 +605,54 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     return groups;
   }, {});
   
+  const getChannelTitle = () => {
+    if (selectedCompanyId === null) {
+      return 'Global Chat';
+    }
+    
+    const company = companies.find(c => c.companyId === selectedCompanyId);
+    return company ? `${company.company.name} Chat` : 'Company Chat';
+  };
+  
   return (
     <ChatContainer>
       <ChatInner>
         <Header>
-          <ChatTitle>Chat</ChatTitle>
+          <ChatTitle>{getChannelTitle()}</ChatTitle>
+          
+          {isLoadingCompanies ? (
+            <LoadingState>
+              <FaSpinner size={24} />
+              <p>Loading your companies...</p>
+            </LoadingState>
+          ) : (
+            <CompanySelector>
+              <GlobalChatTab 
+                isActive={selectedCompanyId === null}
+                onClick={() => handleCompanySelect(null)}
+              >
+                <FiMessageCircle /> Global
+              </GlobalChatTab>
+              
+              {companies.map(company => (
+                <CompanyTab
+                  key={company.companyId}
+                  isActive={selectedCompanyId === company.companyId}
+                  onClick={() => handleCompanySelect(company.companyId)}
+                >
+                  <FaBuilding /> {company.company.name}
+                </CompanyTab>
+              ))}
+            </CompanySelector>
+          )}
+          
           {!notificationsEnabled && (
             <NotificationButton onClick={enableNotifications}>
               Enable Notifications
             </NotificationButton>
           )}
         </Header>
+        
         <MessagesContainer>
           {Object.entries(groupedMessages).map(([date, messages]) => (
             <MessageGroup key={date}>
@@ -445,12 +680,13 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
           ))}
           <div ref={messagesEndRef} />
         </MessagesContainer>
+        
         <InputContainer onSubmit={handleSubmit}>
           <MessageInput
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={`Type a message in ${getChannelTitle()}...`}
             disabled={!currentUser || !user}
           />
           <SendButton type="submit" disabled={!inputValue.trim() || !currentUser || !user}>

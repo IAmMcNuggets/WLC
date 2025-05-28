@@ -87,7 +87,10 @@ service cloud.firestore {
     // Messages collection rules
     match /messages/{messageId} {
       // Allow reading messages if user is authenticated
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && 
+                  (resource.data.companyId == null || 
+                   (resource.data.companyId != null && 
+                    isCompanyMember(resource.data.companyId)));
       
       // Allow creating messages if authenticated
       allow create: if isAuthenticated() && 
@@ -95,7 +98,9 @@ service cloud.firestore {
                     request.resource.data.text.size() > 0 &&
                     request.resource.data.text.size() <= 2000 &&
                     request.resource.data.createdAt is timestamp &&
-                    request.resource.data.user.uid == request.auth.uid;
+                    request.resource.data.user.uid == request.auth.uid &&
+                    (request.resource.data.companyId == null || 
+                     isCompanyMember(request.resource.data.companyId));
       
       // Prevent updates and deletes except for admins or message owners
       allow update, delete: if isAdmin() || 
