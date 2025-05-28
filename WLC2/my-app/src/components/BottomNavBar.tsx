@@ -16,10 +16,10 @@ const NavBar = styled.nav`
   background-color: rgba(255, 255, 255, 0.95);
   border-radius: 25px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  padding: 12px 8px;
+  padding: 12px 6px;
   z-index: 1002;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-evenly;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -47,7 +47,7 @@ const NavBar = styled.nav`
   
   /* Mobile optimizations */
   @media (max-width: 480px) {
-    padding: 10px 6px;
+    padding: 10px 5px;
     width: 98%; /* Slightly wider on very small screens */
   }
 `;
@@ -62,19 +62,20 @@ const NavItem = styled(Link)<NavItemProps>`
   align-items: center;
   text-decoration: none;
   color: ${props => props.$isActive ? '#0084ff' : '#6c757d'};
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: ${props => props.$isActive ? '500' : '400'};
-  padding: 6px 6px;
+  padding: 5px;
   border-radius: 12px;
   transition: all 0.2s ease;
   position: relative;
   outline: none;
-  min-width: 48px;
+  min-width: 45px;
   flex: 1;
+  margin: 0 2px;
   
   svg {
-    font-size: 1.25rem;
-    margin-bottom: 4px;
+    font-size: 1.4rem;
+    margin-bottom: 3px;
     transition: transform 0.2s ease;
   }
   
@@ -117,12 +118,12 @@ const NavItem = styled(Link)<NavItemProps>`
   
   /* Mobile optimizations */
   @media (max-width: 480px) {
-    font-size: 0.7rem;
-    padding: 4px 4px;
-    min-width: 40px;
+    font-size: 0.65rem;
+    padding: 4px 2px;
+    min-width: 42px;
     
     svg {
-      font-size: 1.2rem;
+      font-size: 1.35rem;
       margin-bottom: 3px;
     }
     
@@ -134,10 +135,11 @@ const NavItem = styled(Link)<NavItemProps>`
   
   /* Very small screens */
   @media (max-width: 360px) {
-    min-width: 36px;
+    min-width: 38px;
+    margin: 0 1px;
     
     svg {
-      font-size: 1.1rem;
+      font-size: 1.3rem;
       margin-bottom: 2px;
     }
   }
