@@ -119,10 +119,17 @@ function CompanySignup() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       console.log('Auth state changed:', user ? `User authenticated: ${user.uid}` : 'No user');
-      if (user && step === 2) {
-        // If we're on step 2 and user auth state is available, update userId
+      if (user) {
+        // If user auth state is available, update userId
         console.log('Setting userId from auth state:', user.uid);
         setUserId(user.uid);
+        
+        // If we're on step 1 and there's a logged in user, check if we should move to step 2
+        if (step === 1 && localStorage.getItem('shouldMoveToStep2') === 'true') {
+          console.log('Moving to step 2 based on localStorage flag');
+          setStep(2);
+          localStorage.removeItem('shouldMoveToStep2');
+        }
       }
     });
 
@@ -210,12 +217,13 @@ function CompanySignup() {
         });
         console.log('User profile created');
         
-        // Move to step 2 - use a small timeout to ensure state updates
+        // Set a flag in localStorage to ensure step 2 transition happens
+        localStorage.setItem('shouldMoveToStep2', 'true');
+        
+        // Move to step 2
         console.log('Changing to step 2...');
-        setTimeout(() => {
-          setStep(2);
-          console.log('Step state should now be 2');
-        }, 100);
+        setStep(2);
+        console.log('Step state should now be 2');
       }
     } catch (error: any) {
       console.error('Error during signup:', error);
