@@ -13,7 +13,7 @@ import {
   User
 } from 'firebase/auth';
 import { getAnalytics, isSupported, Analytics } from 'firebase/analytics';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getFirestore, Firestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // For development, use environment variables
@@ -68,6 +68,41 @@ try {
   throw error;
 }
 
+// Function to create or update a user profile in Firestore
+export const createUserProfile = async (user: User) => {
+  try {
+    if (!user) {
+      console.error('No user provided to createUserProfile');
+      return null;
+    }
+    
+    const userProfileRef = doc(firestore, 'userProfiles', user.uid);
+    const userProfileSnap = await getDoc(userProfileRef);
+    
+    // Only create a new profile if it doesn't exist
+    if (!userProfileSnap.exists()) {
+      const userData = {
+        displayName: user.displayName || 'User',
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+        createdAt: serverTimestamp(),
+        uid: user.uid
+      };
+      
+      console.log('Creating user profile for:', user.uid);
+      await setDoc(userProfileRef, userData);
+      console.log('User profile created successfully');
+      return userData;
+    } else {
+      console.log('User profile already exists for:', user.uid);
+      return userProfileSnap.data();
+    }
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    throw error;
+  }
+};
+
 // Function to sign in with Google OAuth credential
 export const signInWithGoogleCredential = async (idToken: string) => {
   try {
@@ -76,6 +111,12 @@ export const signInWithGoogleCredential = async (idToken: string) => {
     
     // Sign in with the credential
     const result = await signInWithCredential(auth, credential);
+    
+    // Create user profile in Firestore
+    if (result.user) {
+      await createUserProfile(result.user);
+    }
+    
     return result;
   } catch (error) {
     console.error('Error signing in with Google credential:', error);
@@ -87,6 +128,12 @@ export const signInWithGoogleCredential = async (idToken: string) => {
 export const signInWithGooglePopup = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
+    
+    // Create user profile in Firestore
+    if (result.user) {
+      await createUserProfile(result.user);
+    }
+    
     return result;
   } catch (error) {
     console.error('Error signing in with Google popup:', error);
@@ -111,6 +158,9 @@ export const registerWithEmailAndPassword = async (
       await updateProfile(userCredential.user, {
         displayName: displayName
       });
+      
+      // Create user profile in Firestore
+      await createUserProfile(userCredential.user);
     }
     
     return userCredential;
@@ -124,6 +174,12 @@ export const registerWithEmailAndPassword = async (
 export const signInWithEmailAndPassword = async (email: string, password: string) => {
   try {
     const userCredential = await firebaseSignInWithEmailAndPassword(auth, email, password);
+    
+    // Ensure user profile exists in Firestore
+    if (userCredential.user) {
+      await createUserProfile(userCredential.user);
+    }
+    
     return userCredential;
   } catch (error) {
     console.error('Error signing in with email and password:', error);
