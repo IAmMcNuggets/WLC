@@ -16,6 +16,18 @@ service cloud.firestore {
              get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'admin';
     }
     
+    function isCompanyOwner(companyId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/companies/$(companyId)) && 
+             get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
+    }
+    
+    function isCompanyMember(companyId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/companyMembers/$(companyId + '_' + request.auth.uid)) && 
+             get(/databases/$(database)/documents/companyMembers/$(companyId + '_' + request.auth.uid)).data.status == 'active';
+    }
+    
     function hasValidFields(requiredFields) {
       return request.resource.data.keys().hasAll(requiredFields);
     }
@@ -77,8 +89,15 @@ service cloud.firestore {
     
     // User Profiles collection
     match /userProfiles/{userId} {
-      // Users can read their own profile and admins can read all
-      allow read: if isUserOwned(userId) || isAdmin();
+      // Users can read their own profile, admins can read all, and company owners can read profiles of company members
+      allow read: if isUserOwned(userId) || 
+                    isAdmin() || 
+                    exists(/databases/$(database)/documents/companyMembers) && 
+                    (
+                      // Allow company owners to read user profiles for members/requests in their companies
+                      exists(/databases/$(database)/documents/companyMembers/$(userId)) && 
+                      isCompanyOwner(get(/databases/$(database)/documents/companyMembers/$(userId)).data.companyId)
+                    );
       
       // Users can only create their own profile
       allow create: if isAuthenticated() && 
@@ -103,6 +122,57 @@ service cloud.firestore {
       
       // Only admins can create, update or delete training materials
       allow create, update, delete: if isAdmin();
+    }
+    
+    // Companies collection
+    match /companies/{companyId} {
+      // Allow reading companies if user is authenticated
+      allow read: if isAuthenticated();
+      
+      // Allow creating companies if:
+      // 1. User is authenticated
+      // 2. The company's ownerId matches the authenticated user's ID
+      allow create: if isAuthenticated() &&
+                    request.resource.data.ownerId == request.auth.uid &&
+                    hasValidFields(['name', 'location', 'ownerId', 'createdAt']);
+      
+      // Allow updating only if user is the company owner
+      allow update: if isCompanyOwner(companyId);
+      
+      // Allow deleting only if user is the company owner
+      allow delete: if isCompanyOwner(companyId);
+    }
+    
+    // Company Members collection
+    match /companyMembers/{memberId} {
+      // Allow reading if user is authenticated and:
+      // 1. The record belongs to the user
+      // 2. The user is the company owner
+      // 3. The user is an admin
+      allow read: if isAuthenticated() &&
+                  (resource.data.userId == request.auth.uid ||
+                   isCompanyOwner(resource.data.companyId) ||
+                   isAdmin());
+      
+      // Allow creating if:
+      // 1. User is authenticated
+      // 2. The member's userId matches the authenticated user's ID (joining a company)
+      // 3. Required fields exist
+      allow create: if isAuthenticated() &&
+                    request.resource.data.userId == request.auth.uid &&
+                    hasValidFields(['userId', 'companyId', 'status', 'role', 'requestedAt']);
+      
+      // Allow updating if:
+      // 1. User is the company owner and updating someone else's status
+      // 2. User is updating their own record but not changing certain fields
+      allow update: if (isCompanyOwner(resource.data.companyId) && 
+                      resource.data.userId != request.auth.uid) ||
+                    (resource.data.userId == request.auth.uid && 
+                     !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'role']));
+      
+      // Allow deleting if user is the company owner or deleting their own record
+      allow delete: if isCompanyOwner(resource.data.companyId) || 
+                     resource.data.userId == request.auth.uid;
     }
   }
 } 
