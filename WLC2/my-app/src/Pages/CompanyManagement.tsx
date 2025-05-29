@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc, serverTimestamp, DocumentData } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, serverTimestamp, DocumentData, deleteDoc } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 import styled from 'styled-components';
 import Button from '../components/Button';
 import { useToast } from '../contexts/ToastContext';
-import { FaUser, FaCheck, FaTimes, FaBuilding, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaCheck, FaTimes, FaBuilding, FaSpinner, FaUserMinus, FaUserCog } from 'react-icons/fa';
 
 const Container = styled.div`
   padding: 1rem;
@@ -131,6 +131,20 @@ const LoadingState = styled.div`
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+  }
+`;
+
+const RoleSelect = styled.select`
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-right: 0.5rem;
+  background-color: white;
+  
+  &:focus {
+    outline: none;
+    border-color: #4a6cf7;
+    box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
   }
 `;
 
@@ -273,6 +287,52 @@ function CompanyManagement() {
     }
   };
   
+  const handleRemoveMember = async (memberId: string) => {
+    // Ask for confirmation before removing the member
+    if (!window.confirm('Are you sure you want to remove this member from your company?')) {
+      return;
+    }
+    
+    try {
+      // Delete the company member document
+      await deleteDoc(doc(firestore, 'companyMembers', memberId));
+      
+      // Update local state to remove the member from the list
+      setMembers(prevMembers => 
+        prevMembers.filter(member => member.id !== memberId)
+      );
+      
+      addToast('Member removed successfully', 'success');
+    } catch (error) {
+      console.error('Error removing member:', error);
+      addToast('Error removing member', 'error');
+    }
+  };
+  
+  const handleRoleChange = async (memberId: string, newRole: string) => {
+    try {
+      // Update the member's role in Firestore
+      await updateDoc(doc(firestore, 'companyMembers', memberId), {
+        role: newRole,
+        updatedAt: serverTimestamp()
+      });
+      
+      // Update local state
+      setMembers(prevMembers => 
+        prevMembers.map(member => 
+          member.id === memberId 
+            ? { ...member, role: newRole as 'owner' | 'admin' | 'worker' } 
+            : member
+        )
+      );
+      
+      addToast(`Member role updated to ${newRole}`, 'success');
+    } catch (error) {
+      console.error('Error updating member role:', error);
+      addToast('Error updating member role', 'error');
+    }
+  };
+  
   if (isLoading && companies.length === 0) {
     return (
       <Container>
@@ -375,7 +435,12 @@ function CompanyManagement() {
                   <div className="details">
                     <h3>{member.user?.displayName || 'Unknown User'}</h3>
                     <p>{member.user?.email || 'No email'}</p>
-                    <p>Requested: {member.requestedAt?.toDate().toLocaleDateString() || 'Unknown date'}</p>
+                    <p>
+                      {activeTab === 'active' ? 
+                        `Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}` : 
+                        `Requested: ${member.requestedAt?.toDate().toLocaleDateString() || 'Unknown date'}`
+                      }
+                    </p>
                   </div>
                 </UserInfo>
                 
@@ -396,6 +461,31 @@ function CompanyManagement() {
                       leftIcon={<FaTimes />}
                     >
                       Reject
+                    </Button>
+                  </Actions>
+                )}
+                
+                {activeTab === 'active' && (
+                  <Actions>
+                    {/* Don't allow changing owner role */}
+                    {member.role !== 'owner' && (
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <RoleSelect
+                          value={member.role}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                        >
+                          <option value="worker">Worker</option>
+                          <option value="admin">Admin</option>
+                        </RoleSelect>
+                      </div>
+                    )}
+                    <Button
+                      onClick={() => handleRemoveMember(member.id)}
+                      variant="danger"
+                      size="small"
+                      leftIcon={<FaUserMinus />}
+                    >
+                      Remove
                     </Button>
                   </Actions>
                 )}
