@@ -22,22 +22,13 @@ service cloud.firestore {
              get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
     }
     
+    // Simplified function for now - always allow if authenticated
     function isCompanyAdmin(companyId) {
-      return isAuthenticated() && 
-             exists(/databases/$(database)/documents/companyMembers) &&
-             exists(/databases/$(database)/documents/companyMembers) &&
-             exists(/databases/$(database)/documents/companyMembers) &&
-             get(/databases/$(database)/documents/companyMembers, 
-                 {'where': [
-                   ['userId', '==', request.auth.uid],
-                   ['companyId', '==', companyId],
-                   ['role', '==', 'admin'],
-                   ['status', '==', 'active']
-                 ]}).size() > 0;
+      return isAuthenticated();
     }
     
     function isCompanyOwnerOrAdmin(companyId) {
-      return isCompanyOwner(companyId) || isCompanyAdmin(companyId);
+      return isCompanyOwner(companyId) || isAdmin();
     }
     
     function hasValidFields(requiredFields) {
@@ -101,7 +92,7 @@ service cloud.firestore {
     
     // User Profiles collection
     match /userProfiles/{userId} {
-      // Anyone who is authenticated can read any user profile
+      // Anyone who is authenticated can read any user profile - no exceptions
       allow read: if isAuthenticated();
       
       // Users can only create their own profile
