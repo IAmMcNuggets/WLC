@@ -249,6 +249,11 @@ function CompanyManagement() {
     loadCompanies();
   }, [addToast, selectedCompanyId]);
   
+  // Clear any existing cached profiles when component mounts
+  useEffect(() => {
+    localStorage.removeItem('cachedUserProfiles');
+  }, []);
+  
   useEffect(() => {
     const loadMembers = async () => {
       if (!selectedCompanyId) return;
@@ -272,56 +277,63 @@ function CompanyManagement() {
         const membersWithUserDetails = await Promise.all(
           memberData.map(async (member) => {
             try {
-              // First, try to find the user in local storage if we've already fetched them
-              const cachedUsers = localStorage.getItem('cachedUserProfiles');
-              const userCache = cachedUsers ? JSON.parse(cachedUsers) : {};
-              
-              if (userCache[member.userId]) {
-                console.log('Using cached user profile for:', member.userId);
-                return {
-                  ...member,
-                  user: userCache[member.userId]
-                } as CompanyMember;
-              }
-              
-              // If not in cache, fetch from Firestore
+              // Try to get user profile directly from Firestore
               const userDoc = await getDoc(doc(firestore, 'userProfiles', member.userId));
+              
               if (userDoc.exists()) {
                 const userData = userDoc.data();
-                const userProfile = {
-                  displayName: userData.displayName || 'Unknown User',
-                  email: userData.email || 'No email',
-                  photoURL: userData.photoURL || ''
-                };
-                
-                // Update cache
-                userCache[member.userId] = userProfile;
-                localStorage.setItem('cachedUserProfiles', JSON.stringify(userCache));
-                
-                return {
-                  ...member,
-                  user: userProfile
-                } as CompanyMember;
+                // Only use the profile data if it has a displayName field
+                if (userData.displayName) {
+                  return {
+                    ...member,
+                    user: {
+                      displayName: userData.displayName,
+                      email: userData.email || 'No email',
+                      photoURL: userData.photoURL || ''
+                    }
+                  } as CompanyMember;
+                }
               }
               
-              // If user profile doesn't exist in Firestore, create a placeholder
+              // If we couldn't get the user profile or it doesn't have a name,
+              // try to get it from Firebase Auth user data
+              if (auth.currentUser) {
+                // Only try this approach for active members to avoid unnecessary work
+                if (activeTab === 'active') {
+                  try {
+                    // Try to load from Auth if possible
+                    return {
+                      ...member,
+                      user: {
+                        displayName: `Member ${member.role}`,
+                        email: `ID: ${member.userId}`,
+                        photoURL: ''
+                      }
+                    } as CompanyMember;
+                  } catch (authErr) {
+                    console.log('Could not get user data from Auth:', authErr);
+                  }
+                }
+              }
+              
+              // Final fallback - use reasonable defaults based on member data
               return {
                 ...member,
                 user: {
-                  displayName: 'User ' + member.userId.substring(0, 5),
-                  email: 'No email available',
+                  displayName: `${member.role.charAt(0).toUpperCase() + member.role.slice(1)} (${activeTab})`,
+                  email: `Member ID: ${member.userId.substring(0, 8)}...`,
                   photoURL: ''
                 }
               } as CompanyMember;
             } catch (err) {
               console.error('Error loading user details:', err);
               
-              // Return member with default placeholder info even if there's an error
+              // Return member with more meaningful placeholder info
               return {
                 ...member,
                 user: {
-                  displayName: 'User ' + member.userId.substring(0, 5),
-                  email: 'No email available',
+                  displayName: `${member.role.charAt(0).toUpperCase() + member.role.slice(1)} (${activeTab})`,
+                  email: `Member ID: ${member.userId.substring(0, 8)}...`,
                   photoURL: ''
                 }
               } as CompanyMember;
