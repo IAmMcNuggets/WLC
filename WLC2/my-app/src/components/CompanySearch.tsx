@@ -185,12 +185,17 @@ function CompanySearch({ onComplete }: CompanySearchProps) {
       // Create a unique ID that combines userId and companyId
       const membershipId = `${auth.currentUser.uid}_${companyId}`;
       
+      // Include user's display name and email directly in the companyMembers document
+      // This ensures we can see user info even if profile access fails later
       await setDoc(doc(firestore, 'companyMembers', membershipId), {
         userId: auth.currentUser.uid,
         companyId,
         role: 'worker',
         status: 'pending',
-        requestedAt: serverTimestamp()
+        requestedAt: serverTimestamp(),
+        // Add user info directly to the request
+        userDisplayName: auth.currentUser.displayName || 'Unknown User',
+        userEmail: auth.currentUser.email || 'No email'
       });
       
       setRequestedCompanies(prev => [...prev, companyId]);

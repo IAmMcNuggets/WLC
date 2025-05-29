@@ -155,6 +155,8 @@ interface CompanyMember {
   status: 'active' | 'pending' | 'rejected';
   role: 'owner' | 'admin' | 'worker';
   requestedAt: any;
+  userDisplayName?: string;
+  userEmail?: string;
   user?: {
     displayName: string;
     email: string;
@@ -277,6 +279,19 @@ function CompanyManagement() {
         const membersWithUserDetails = await Promise.all(
           memberData.map(async (member) => {
             try {
+              // First, check if the member document already has the user info embedded
+              if (member.userDisplayName && member.userEmail) {
+                console.log('Using embedded user info for:', member.userId);
+                return {
+                  ...member,
+                  user: {
+                    displayName: member.userDisplayName,
+                    email: member.userEmail,
+                    photoURL: ''
+                  }
+                } as CompanyMember;
+              }
+              
               // Try to get user profile directly from Firestore
               const userDoc = await getDoc(doc(firestore, 'userProfiles', member.userId));
               
@@ -320,8 +335,8 @@ function CompanyManagement() {
               return {
                 ...member,
                 user: {
-                  displayName: `${member.role.charAt(0).toUpperCase() + member.role.slice(1)} (${activeTab})`,
-                  email: `Member ID: ${member.userId.substring(0, 8)}...`,
+                  displayName: member.userDisplayName || `${member.role.charAt(0).toUpperCase() + member.role.slice(1)} (${activeTab})`,
+                  email: member.userEmail || `Member ID: ${member.userId.substring(0, 8)}...`,
                   photoURL: ''
                 }
               } as CompanyMember;
@@ -332,8 +347,8 @@ function CompanyManagement() {
               return {
                 ...member,
                 user: {
-                  displayName: `${member.role.charAt(0).toUpperCase() + member.role.slice(1)} (${activeTab})`,
-                  email: `Member ID: ${member.userId.substring(0, 8)}...`,
+                  displayName: member.userDisplayName || `${member.role.charAt(0).toUpperCase() + member.role.slice(1)} (${activeTab})`,
+                  email: member.userEmail || `Member ID: ${member.userId.substring(0, 8)}...`,
                   photoURL: ''
                 }
               } as CompanyMember;
