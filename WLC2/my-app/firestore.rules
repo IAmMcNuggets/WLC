@@ -89,15 +89,10 @@ service cloud.firestore {
     
     // User Profiles collection
     match /userProfiles/{userId} {
-      // Users can read their own profile, admins can read all, and company owners can read profiles of company members
+      // Users can read their own profile, admins can read all, and any authenticated user
       allow read: if isUserOwned(userId) || 
                     isAdmin() || 
-                    exists(/databases/$(database)/documents/companyMembers) && 
-                    (
-                      // Allow company owners to read user profiles for members/requests in their companies
-                      exists(/databases/$(database)/documents/companyMembers/$(userId)) && 
-                      isCompanyOwner(get(/databases/$(database)/documents/companyMembers/$(userId)).data.companyId)
-                    );
+                    isAuthenticated();
       
       // Users can only create their own profile
       allow create: if isAuthenticated() && 
