@@ -124,9 +124,9 @@ function AppContent() {
         localStorage.getItem('shouldMoveToStep2') === 'true';
       
       if (!isCompanySignupProcess) {
-        setUser(userData);
-        setIsLoggedIn(true);
-        localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      setIsLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
       }
     }
   }, [currentUser, user]);
@@ -177,10 +177,10 @@ function AppContent() {
   }
 
   return (
-    <AppContainer>
-      {isLoggedIn ? (
-        <>
-          <Routes>
+      <AppContainer>
+        {isLoggedIn ? (
+          <>
+            <Routes>
             <Route path="/dashboard" element={
               <ErrorBoundary>
                 <Dashboard />
@@ -191,45 +191,45 @@ function AppContent() {
                 <CompanySignup />
               </ErrorBoundary>
             } />
-            <Route path="/events" element={
-              <ErrorBoundary>
-                <Events user={user} />
-              </ErrorBoundary>
-            } />
-            <Route path="/timeclock" element={
-              <ErrorBoundary>
-                <Timeclock user={user} />
-              </ErrorBoundary>
-            } />
-            <Route path="/profile" element={
-              <ErrorBoundary>
-                <Profile user={user} setIsLoggedIn={handleLogout} />
-              </ErrorBoundary>
-            } />
-            <Route path="/training" element={
-              <ErrorBoundary>
-                <Training user={user} />
-              </ErrorBoundary>
-            } />
-            <Route path="/chat" element={
-              <ErrorBoundary>
-                {user ? (
-                  <Chat user={user} />
-                ) : (
+              <Route path="/events" element={
+                <ErrorBoundary>
+                  <Events user={user} />
+                </ErrorBoundary>
+              } />
+              <Route path="/timeclock" element={
+                <ErrorBoundary>
+                  <Timeclock user={user} />
+                </ErrorBoundary>
+              } />
+              <Route path="/profile" element={
+                <ErrorBoundary>
+                  <Profile user={user} setIsLoggedIn={handleLogout} />
+                </ErrorBoundary>
+              } />
+              <Route path="/training" element={
+                <ErrorBoundary>
+                  <Training user={user} />
+                </ErrorBoundary>
+              } />
+              <Route path="/chat" element={
+                <ErrorBoundary>
+                  {user ? (
+                    <Chat user={user} />
+                  ) : (
                   <Navigate to="/dashboard" replace />
-                )}
-              </ErrorBoundary>
-            } />
+                  )}
+                </ErrorBoundary>
+              } />
             <Route path="/company-management" element={
               <ErrorBoundary>
                 <CompanyManagement />
               </ErrorBoundary>
             } />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+            </Routes>
           <BottomNavBar />
-        </>
-      ) : (
+          </>
+        ) : (
         <Routes>
           <Route path="/login" element={
             <ErrorBoundary>
@@ -252,21 +252,21 @@ function AppContent() {
             </ErrorBoundary>
           } />
           <Route path="*" element={
-            <LoginContainer>
-              <Logo src={logo} alt="Gigfriend Logo" />
-              <AppTitle>Gigfriend</AppTitle>
+          <LoginContainer>
+            <Logo src={logo} alt="Gigfriend Logo" />
+            <AppTitle>Gigfriend</AppTitle>
               
               <LoginOptions>
-                <Button 
-                  onClick={handleGoogleLogin} 
-                  variant="primary" 
-                  size="large" 
-                  leftIcon={<FaGoogle />}
-                  isLoading={isLoading}
-                  fullWidth
-                >
-                  Sign in with Google
-                </Button>
+            <Button 
+              onClick={handleGoogleLogin} 
+              variant="primary" 
+              size="large" 
+              leftIcon={<FaGoogle />}
+              isLoading={isLoading}
+              fullWidth
+            >
+              Sign in with Google
+            </Button>
                 
                 <OrDivider><span>OR</span></OrDivider>
                 
@@ -291,11 +291,11 @@ function AppContent() {
                   Create a Company Account
                 </Button>
               </LoginOptions>
-            </LoginContainer>
+          </LoginContainer>
           } />
         </Routes>
-      )}
-    </AppContainer>
+        )}
+      </AppContainer>
   );
 }
 
@@ -305,7 +305,7 @@ function App() {
       <ToastProvider>
         <NotificationProvider>
           <Router>
-            <AppContent />
+          <AppContent />
           </Router>
         </NotificationProvider>
       </ToastProvider>

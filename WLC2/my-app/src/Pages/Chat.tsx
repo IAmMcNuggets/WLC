@@ -524,24 +524,24 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
     try {
       // Company specific chat
       q = query(
-        collection(firestore, 'messages'),
+      collection(firestore, 'messages'),
         where('companyId', '==', selectedCompanyId),
-        orderBy('createdAt', 'asc')
-      );
-      
+      orderBy('createdAt', 'asc')
+    );
+    
       unsubscribe = onSnapshot(q, (snapshot) => {
-        const newMessages: ChatMessage[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          newMessages.push({
-            id: doc.id,
-            text: data.text,
-            createdAt: data.createdAt,
+      const newMessages: ChatMessage[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        newMessages.push({
+          id: doc.id,
+          text: data.text,
+          createdAt: data.createdAt,
             companyId: data.companyId || null,
-            user: data.user
-          });
+          user: data.user
         });
-        setMessages(newMessages);
+      });
+      setMessages(newMessages);
       }, (error: FirebaseError) => {
         console.error("Error in chat snapshot:", error);
         // Clear messages if permission denied
@@ -584,7 +584,7 @@ const Chat: React.FC<ChatProps> = ({ user }) => {
       if (error instanceof FirebaseError && error.code === 'permission-denied') {
         addToast('You do not have permission to send messages in this chat', 'error');
       } else {
-        addToast('Failed to send message', 'error');
+      addToast('Failed to send message', 'error');
       }
     }
   };

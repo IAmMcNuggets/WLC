@@ -104,7 +104,7 @@ const ManageButton = styled(ActionButton)`
 
 const NotificationButton = styled(ActionButton)`
   background-color: #4caf50;
-  
+
   &:hover {
     background-color: #388e3c;
   }

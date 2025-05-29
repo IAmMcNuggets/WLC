@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, updateDoc, doc, getDoc, serverTimestamp, DocumentData, deleteDoc } from 'firebase/firestore';
-import { firestore, auth } from '../firebase';
+import { firestore, auth, createUserProfile } from '../firebase';
 import styled from 'styled-components';
 import Button from '../components/Button';
 import { useToast } from '../contexts/ToastContext';
@@ -272,22 +272,59 @@ function CompanyManagement() {
         const membersWithUserDetails = await Promise.all(
           memberData.map(async (member) => {
             try {
+              // First, try to find the user in local storage if we've already fetched them
+              const cachedUsers = localStorage.getItem('cachedUserProfiles');
+              const userCache = cachedUsers ? JSON.parse(cachedUsers) : {};
+              
+              if (userCache[member.userId]) {
+                console.log('Using cached user profile for:', member.userId);
+                return {
+                  ...member,
+                  user: userCache[member.userId]
+                } as CompanyMember;
+              }
+              
+              // If not in cache, fetch from Firestore
               const userDoc = await getDoc(doc(firestore, 'userProfiles', member.userId));
               if (userDoc.exists()) {
                 const userData = userDoc.data();
+                const userProfile = {
+                  displayName: userData.displayName || 'Unknown User',
+                  email: userData.email || 'No email',
+                  photoURL: userData.photoURL || ''
+                };
+                
+                // Update cache
+                userCache[member.userId] = userProfile;
+                localStorage.setItem('cachedUserProfiles', JSON.stringify(userCache));
+                
                 return {
                   ...member,
-                  user: {
-                    displayName: userData.displayName || 'Unknown User',
-                    email: userData.email || 'No email',
-                    photoURL: userData.photoURL || ''
-                  }
+                  user: userProfile
                 } as CompanyMember;
               }
-              return member;
+              
+              // If user profile doesn't exist in Firestore, create a placeholder
+              return {
+                ...member,
+                user: {
+                  displayName: 'User ' + member.userId.substring(0, 5),
+                  email: 'No email available',
+                  photoURL: ''
+                }
+              } as CompanyMember;
             } catch (err) {
               console.error('Error loading user details:', err);
-              return member;
+              
+              // Return member with default placeholder info even if there's an error
+              return {
+                ...member,
+                user: {
+                  displayName: 'User ' + member.userId.substring(0, 5),
+                  email: 'No email available',
+                  photoURL: ''
+                }
+              } as CompanyMember;
             }
           })
         );
