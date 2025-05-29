@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { FaBell, FaBellSlash, FaBuilding } from 'react-icons/fa';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 
 const ProfileContainer = styled.div`
@@ -147,6 +147,7 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
   const [imageError, setImageError] = useState<boolean>(false);
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
   const [isCompanyOwner, setIsCompanyOwner] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { 
@@ -157,9 +158,9 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
     showIOSInstructions 
   } = useNotifications();
 
-  // Check if user is a company owner
+  // Check if user is a company owner or admin
   useEffect(() => {
-    const checkIfCompanyOwner = async () => {
+    const checkUserRoles = async () => {
       if (!auth.currentUser) return;
       
       try {
@@ -171,12 +172,31 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
         
         const snapshot = await getDocs(companiesQuery);
         setIsCompanyOwner(!snapshot.empty);
+        
+        // Check if user is an admin in any companies
+        const adminMembershipsQuery = query(
+          collection(firestore, 'companyMembers'),
+          where('userId', '==', auth.currentUser.uid),
+          where('role', '==', 'admin'),
+          where('status', '==', 'active')
+        );
+        
+        const adminSnapshot = await getDocs(adminMembershipsQuery);
+        setIsAdmin(!adminSnapshot.empty);
+        
+        // Also check user profile for system admin role
+        const userProfileRef = doc(firestore, 'userProfiles', auth.currentUser.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+        
+        if (userProfileSnap.exists() && userProfileSnap.data().role === 'admin') {
+          setIsAdmin(true);
+        }
       } catch (error) {
-        console.error('Error checking company ownership:', error);
+        console.error('Error checking user roles:', error);
       }
     };
     
-    checkIfCompanyOwner();
+    checkUserRoles();
   }, []);
 
   useEffect(() => {
@@ -290,7 +310,7 @@ function Profile({ user, setIsLoggedIn }: ProfileProps) {
           }
         </NotificationButton>
         
-        {isCompanyOwner && (
+        {(isCompanyOwner || isAdmin) && (
           <ManageButton onClick={handleManageCompanies}>
             <FaBuilding style={{ marginRight: '8px' }} /> Manage Companies
           </ManageButton>
