@@ -22,6 +22,24 @@ service cloud.firestore {
              get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
     }
     
+    function isCompanyAdmin(companyId) {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/companyMembers) &&
+             exists(/databases/$(database)/documents/companyMembers) &&
+             exists(/databases/$(database)/documents/companyMembers) &&
+             get(/databases/$(database)/documents/companyMembers, 
+                 {'where': [
+                   ['userId', '==', request.auth.uid],
+                   ['companyId', '==', companyId],
+                   ['role', '==', 'admin'],
+                   ['status', '==', 'active']
+                 ]}).size() > 0;
+    }
+    
+    function isCompanyOwnerOrAdmin(companyId) {
+      return isCompanyOwner(companyId) || isCompanyAdmin(companyId);
+    }
+    
     function hasValidFields(requiredFields) {
       return request.resource.data.keys().hasAll(requiredFields);
     }
@@ -123,8 +141,8 @@ service cloud.firestore {
                     request.resource.data.ownerId == request.auth.uid &&
                     hasValidFields(['name', 'location', 'ownerId', 'createdAt']);
       
-      // Allow updating only if user is the company owner
-      allow update: if isCompanyOwner(companyId);
+      // Allow updating if user is the company owner or an admin
+      allow update: if isCompanyOwnerOrAdmin(companyId);
       
       // Allow deleting only if user is the company owner
       allow delete: if isCompanyOwner(companyId);
@@ -134,12 +152,10 @@ service cloud.firestore {
     match /companyMembers/{memberId} {
       // Allow reading if user is authenticated and:
       // 1. The record belongs to the user
-      // 2. The user is the company owner
-      // 3. The user is an admin
+      // 2. The user is the company owner or an admin
       allow read: if isAuthenticated() &&
                   (resource.data.userId == request.auth.uid ||
-                   isCompanyOwner(resource.data.companyId) ||
-                   isAdmin());
+                   isCompanyOwnerOrAdmin(resource.data.companyId));
       
       // Allow creating if:
       // 1. User is authenticated
@@ -150,15 +166,15 @@ service cloud.firestore {
                     hasValidFields(['userId', 'companyId', 'status', 'role', 'requestedAt']);
       
       // Allow updating if:
-      // 1. User is the company owner and updating someone else's status
+      // 1. User is the company owner or admin and updating someone else's status
       // 2. User is updating their own record but not changing certain fields
-      allow update: if (isCompanyOwner(resource.data.companyId) && 
-                      resource.data.userId != request.auth.uid) ||
+      allow update: if (isCompanyOwnerOrAdmin(resource.data.companyId) && 
+                       resource.data.userId != request.auth.uid) ||
                     (resource.data.userId == request.auth.uid && 
                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'role']));
       
-      // Allow deleting if user is the company owner or deleting their own record
-      allow delete: if isCompanyOwner(resource.data.companyId) || 
+      // Allow deleting if user is the company owner, company admin, or deleting their own record
+      allow delete: if isCompanyOwnerOrAdmin(resource.data.companyId) || 
                      resource.data.userId == request.auth.uid;
     }
   }

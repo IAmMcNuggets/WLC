@@ -182,23 +182,61 @@ function CompanyManagement() {
       if (!auth.currentUser) return;
       
       try {
-        // Get companies owned by current user
-        const companiesQuery = query(
+        setIsLoading(true);
+        
+        // First, get companies owned by current user
+        const ownedCompaniesQuery = query(
           collection(firestore, 'companies'),
           where('ownerId', '==', auth.currentUser.uid)
         );
         
-        const snapshot = await getDocs(companiesQuery);
-        const companyData = snapshot.docs.map(doc => ({ 
+        const ownedSnapshot = await getDocs(ownedCompaniesQuery);
+        const ownedCompanies = ownedSnapshot.docs.map(doc => ({ 
           id: doc.id, 
           ...doc.data() 
         })) as Company[];
         
-        setCompanies(companyData);
+        // Then, get companies where user is an admin
+        const adminMembershipsQuery = query(
+          collection(firestore, 'companyMembers'),
+          where('userId', '==', auth.currentUser.uid),
+          where('role', '==', 'admin'),
+          where('status', '==', 'active')
+        );
+        
+        const adminMembershipsSnapshot = await getDocs(adminMembershipsQuery);
+        
+        // Get company IDs where user is an admin
+        const adminCompanyIds = adminMembershipsSnapshot.docs.map(doc => doc.data().companyId);
+        
+        // Fetch the actual company details for admin companies
+        const adminCompanies: Company[] = [];
+        
+        if (adminCompanyIds.length > 0) {
+          for (const companyId of adminCompanyIds) {
+            const companyDoc = await getDoc(doc(firestore, 'companies', companyId));
+            if (companyDoc.exists()) {
+              adminCompanies.push({
+                id: companyDoc.id,
+                ...companyDoc.data()
+              } as Company);
+            }
+          }
+        }
+        
+        // Combine owned and admin companies
+        const allCompanies = [...ownedCompanies, ...adminCompanies];
+        
+        // Remove duplicates in case user is both owner and admin
+        const uniqueCompanies = allCompanies.filter((company, index, self) =>
+          index === self.findIndex(c => c.id === company.id)
+        );
+        
+        setCompanies(uniqueCompanies);
         
         // Select the first company by default
-        if (companyData.length > 0 && !selectedCompanyId) {
-          setSelectedCompanyId(companyData[0].id);
+        if (uniqueCompanies.length > 0 && !selectedCompanyId) {
+          setSelectedCompanyId(uniqueCompanies[0].id);
         }
       } catch (error) {
         console.error('Error loading companies:', error);
