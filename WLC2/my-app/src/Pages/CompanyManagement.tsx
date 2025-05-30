@@ -591,6 +591,19 @@ function CompanyManagement() {
                     </Button>
                   </Actions>
                 )}
+                
+                {activeTab === 'rejected' && (
+                  <Actions>
+                    <Button
+                      onClick={() => handleRemoveMember(member.id)}
+                      variant="danger"
+                      size="small"
+                      leftIcon={<FaUserMinus />}
+                    >
+                      Remove
+                    </Button>
+                  </Actions>
+                )}
               </RequestItem>
             ))
           )}
