@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import logo from './Logos/Logo Color.png';
 import './App.css';
 import Events from './Pages/Events';
 import Timeclock from './Pages/Timeclock';
@@ -19,12 +18,12 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { signInWithGooglePopup } from './firebase';
 import { GoogleUser } from './types/user';
 import LoadingSpinner from './components/LoadingSpinner';
-import Button from './components/Button';
-import { FaGoogle, FaBuilding } from 'react-icons/fa';
 import backgroundImage from './Background/86343.jpg';
 import Dashboard from './Pages/Dashboard';
 import CompanySignup from './Pages/CompanySignup';
 import CompanyManagement from './Pages/CompanyManagement';
+import LandingPage from './Pages/LandingPage';
+import SignupOptions from './Pages/SignupOptions';
 
 const AppContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -241,6 +240,11 @@ function AppContent() {
               <Signup />
             </ErrorBoundary>
           } />
+          <Route path="/signup-options" element={
+            <ErrorBoundary>
+              <SignupOptions />
+            </ErrorBoundary>
+          } />
           <Route path="/forgot-password" element={
             <ErrorBoundary>
               <ForgotPassword />
@@ -252,46 +256,9 @@ function AppContent() {
             </ErrorBoundary>
           } />
           <Route path="*" element={
-          <LoginContainer>
-            <Logo src={logo} alt="Gigfriend Logo" />
-            <AppTitle>Gigfriend</AppTitle>
-              
-              <LoginOptions>
-            <Button 
-              onClick={handleGoogleLogin} 
-              variant="primary" 
-              size="large" 
-              leftIcon={<FaGoogle />}
-              isLoading={isLoading}
-              fullWidth
-            >
-              Sign in with Google
-            </Button>
-                
-                <OrDivider><span>OR</span></OrDivider>
-                
-                <Button
-                  onClick={() => navigate('/login')}
-                  variant="secondary"
-                  size="large"
-                  fullWidth
-                >
-                  Sign in with Email
-                </Button>
-                
-                <OrDivider><span>OR</span></OrDivider>
-                
-                <Button
-                  onClick={() => navigate('/company-signup')}
-                  variant="secondary"
-                  size="large"
-                  leftIcon={<FaBuilding />}
-                  fullWidth
-                >
-                  Create a Company Account
-                </Button>
-              </LoginOptions>
-          </LoginContainer>
+            <ErrorBoundary>
+              <LandingPage />
+            </ErrorBoundary>
           } />
         </Routes>
         )}
