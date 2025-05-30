@@ -24,6 +24,8 @@ import CompanySignup from './Pages/CompanySignup';
 import CompanyManagement from './Pages/CompanyManagement';
 import LandingPage from './Pages/LandingPage';
 import SignupOptions from './Pages/SignupOptions';
+import SuperAdmin from './Pages/SuperAdmin';
+import SuperAdminSetup from './Pages/SuperAdminSetup';
 
 const AppContainer = styled.div`
   background-image: url(${backgroundImage});
@@ -224,6 +226,16 @@ function AppContent() {
                 <CompanyManagement />
               </ErrorBoundary>
             } />
+            <Route path="/super-admin" element={
+              <ErrorBoundary>
+                <SuperAdmin />
+              </ErrorBoundary>
+            } />
+            <Route path="/super-admin-setup" element={
+              <ErrorBoundary>
+                <SuperAdminSetup />
+              </ErrorBoundary>
+            } />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           <BottomNavBar />
@@ -253,6 +265,16 @@ function AppContent() {
           <Route path="/company-signup" element={
             <ErrorBoundary>
               <CompanySignup />
+            </ErrorBoundary>
+          } />
+          <Route path="/super-admin" element={
+            <ErrorBoundary>
+              <Login />
+            </ErrorBoundary>
+          } />
+          <Route path="/super-admin-setup" element={
+            <ErrorBoundary>
+              <SuperAdminSetup />
             </ErrorBoundary>
           } />
           <Route path="*" element={

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { auth, firestore } from '../firebase';
-import { doc, setDoc, serverTimestamp, collection, getDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, getDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
 import { registerWithEmailAndPassword } from '../firebase';
 import Button from '../components/Button';
 import { useToast } from '../contexts/ToastContext';
@@ -111,8 +111,12 @@ function CompanySignup() {
   const [companyData, setCompanyData] = useState({
     name: '',
     location: '',
-    currentRmsApiKey: ''
+    currentRmsApiKey: '',
+    registrationCode: ''
   });
+  const [codeValidated, setCodeValidated] = useState(false);
+  const [codeId, setCodeId] = useState('');
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
   const { addToast } = useToast();
   
   // Effect to check authentication state
@@ -155,6 +159,12 @@ function CompanySignup() {
       ...prev,
       [name]: value
     }));
+    
+    // Reset code validation when code changes
+    if (name === 'registrationCode') {
+      setCodeValidated(false);
+      setCodeId('');
+    }
   };
   
   const validateUserData = () => {
@@ -237,8 +247,53 @@ function CompanySignup() {
     }
   };
   
+  const validateCompanyCode = async () => {
+    if (!companyData.registrationCode) {
+      addToast('Please enter a company registration code', 'error');
+      return false;
+    }
+    
+    setIsValidatingCode(true);
+    
+    try {
+      // Check if code exists and is unused
+      const codeQuery = query(
+        collection(firestore, 'companyCodes'),
+        where('code', '==', companyData.registrationCode),
+        where('used', '==', false)
+      );
+      
+      const snapshot = await getDocs(codeQuery);
+      
+      if (snapshot.empty) {
+        addToast('Invalid or already used registration code', 'error');
+        setIsValidatingCode(false);
+        return false;
+      }
+      
+      // Store the code document ID for later
+      const codeDoc = snapshot.docs[0];
+      setCodeId(codeDoc.id);
+      setCodeValidated(true);
+      addToast('Registration code validated', 'success');
+      setIsValidatingCode(false);
+      return true;
+    } catch (error) {
+      console.error('Error validating company code:', error);
+      addToast('Error validating registration code', 'error');
+      setIsValidatingCode(false);
+      return false;
+    }
+  };
+  
   const handleCompanyInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate company code first if not already validated
+    if (!codeValidated) {
+      const isValid = await validateCompanyCode();
+      if (!isValid) return;
+    }
     
     // Use stored userId, localStorage backup, or current auth user
     const tempUserId = localStorage.getItem('tempUserId');
@@ -298,7 +353,8 @@ function CompanySignup() {
             currentRmsApiKey: companyData.currentRmsApiKey,
             ownerId: currentUserId,
             createdAt: serverTimestamp(),
-            status: 'active'
+            status: 'active',
+            registrationCode: companyData.registrationCode
           });
           console.log('Company document created:', companyRef.id);
           break; // Success, exit the retry loop
@@ -328,6 +384,17 @@ function CompanySignup() {
         requestedAt: serverTimestamp()
       });
       console.log('Company membership created');
+      
+      // Mark the registration code as used
+      const codeRef = doc(firestore, 'companyCodes', codeId);
+      await updateDoc(codeRef, {
+        used: true,
+        usedBy: currentUserId,
+        usedByName: userData.displayName || auth.currentUser?.displayName || 'Unknown',
+        usedAt: serverTimestamp(),
+        companyId: companyRef.id
+      });
+      console.log('Registration code marked as used');
       
       // Clean up temporary storage
       localStorage.removeItem('tempUserId');
@@ -373,7 +440,8 @@ function CompanySignup() {
             ownerId: currentUserId,
             createdAt: new Date(), // Use JS Date instead of serverTimestamp
             status: 'active',
-            debug_created: true
+            debug_created: true,
+            registrationCode: companyData.registrationCode
           }, { merge: true });
           
           // Create membership differently
@@ -387,6 +455,22 @@ function CompanySignup() {
             requestedAt: new Date(),
             debug_created: true
           }, { merge: true });
+          
+          // Try to mark the code as used
+          if (codeId) {
+            try {
+              const codeRef = doc(firestore, 'companyCodes', codeId);
+              await setDoc(codeRef, {
+                used: true,
+                usedBy: currentUserId,
+                usedByName: userData.displayName || auth.currentUser?.displayName || 'Unknown',
+                usedAt: new Date(),
+                companyId: debugCompanyRef.id
+              }, { merge: true });
+            } catch (codeError) {
+              console.error('Failed to mark code as used in debug mode:', codeError);
+            }
+          }
           
           addToast('Alternative company creation successful!', 'success');
           navigate('/dashboard');
@@ -526,12 +610,44 @@ function CompanySignup() {
                 />
               </FormGroup>
               
+              <FormGroup>
+                <Label>Company Registration Code</Label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <Input
+                    name="registrationCode"
+                    value={companyData.registrationCode}
+                    onChange={handleCompanyInputChange}
+                    placeholder="Enter your registration code"
+                    required
+                    style={{ flex: 1 }}
+                    disabled={codeValidated}
+                  />
+                  {!codeValidated && (
+                    <Button 
+                      type="button"
+                      variant="secondary"
+                      size="small"
+                      onClick={validateCompanyCode}
+                      isLoading={isValidatingCode}
+                    >
+                      Validate
+                    </Button>
+                  )}
+                </div>
+                {codeValidated && (
+                  <div style={{ color: 'green', fontSize: '0.8rem', marginTop: '5px' }}>
+                    ✓ Valid registration code
+                  </div>
+                )}
+              </FormGroup>
+              
               <Button
                 type="submit"
                 variant="primary"
                 size="large"
                 isLoading={isLoading}
                 fullWidth
+                disabled={!codeValidated}
               >
                 Create Company
               </Button>

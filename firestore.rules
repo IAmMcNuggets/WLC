@@ -16,6 +16,12 @@ service cloud.firestore {
              get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.role == 'admin';
     }
     
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.isSuperAdmin == true;
+    }
+    
     function isCompanyOwner(companyId) {
       return isAuthenticated() && 
              exists(/databases/$(database)/documents/companies/$(companyId)) &&
@@ -267,6 +273,24 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin() || 
                                     (request.resource.data.companyId != null && 
                                      isCompanyOwner(request.resource.data.companyId));
+    }
+    
+    // Company Codes collection
+    match /companyCodes/{codeId} {
+      // Allow reading for authenticated users to validate codes
+      allow read: if isAuthenticated();
+      
+      // Only super admins can create new codes
+      allow create: if isSuperAdmin();
+      
+      // Allow updating to mark a code as used
+      // Only allow updating the 'used', 'usedBy', 'usedByName', 'usedAt', and 'companyId' fields
+      allow update: if isAuthenticated() && 
+                   request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['used', 'usedBy', 'usedByName', 'usedAt', 'companyId']);
+      
+      // Only super admins can delete codes
+      allow delete: if isSuperAdmin();
     }
   }
 } 

@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 
 /**
@@ -99,6 +99,48 @@ export const getUserProfile = async () => {
     
   } catch (error) {
     console.error('Error getting user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Set a user as a super admin
+ * @param userId The ID of the user to make a super admin
+ * @returns Promise that resolves when the operation is complete
+ */
+export const setSuperAdmin = async (userId: string): Promise<void> => {
+  try {
+    // Check if current user is already a super admin
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('No authenticated user');
+    }
+    
+    // First check if the current user is a super admin
+    const currentUserProfileRef = doc(firestore, 'userProfiles', currentUser.uid);
+    const currentUserProfileSnap = await getDoc(currentUserProfileRef);
+    
+    if (!currentUserProfileSnap.exists() || !currentUserProfileSnap.data().isSuperAdmin) {
+      throw new Error('Only existing super admins can create other super admins');
+    }
+    
+    // Update the target user's profile
+    const userProfileRef = doc(firestore, 'userProfiles', userId);
+    const userProfileSnap = await getDoc(userProfileRef);
+    
+    if (!userProfileSnap.exists()) {
+      throw new Error('User profile does not exist');
+    }
+    
+    await updateDoc(userProfileRef, {
+      isSuperAdmin: true,
+      role: 'admin'
+    });
+    
+    console.log(`User ${userId} set as super admin`);
+    
+  } catch (error) {
+    console.error('Error setting super admin:', error);
     throw error;
   }
 }; 
