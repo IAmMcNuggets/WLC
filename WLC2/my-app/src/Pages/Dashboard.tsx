@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 import { firestore, auth } from '../firebase';
 import styled from 'styled-components';
-import { FaBuilding, FaPlus, FaSpinner } from 'react-icons/fa';
+import { FaBuilding, FaPlus, FaSpinner, FaSignOutAlt } from 'react-icons/fa';
 import Button from '../components/Button';
 import { useNavigate } from 'react-router-dom';
 import CompanySearch from '../components/CompanySearch';
@@ -100,6 +100,32 @@ const StatusBadge = styled.span<{ status: string }>`
       default: return '#c62828';
     }
   }};
+`;
+
+const CompanyActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+`;
+
+const LeaveButton = styled.button`
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  
+  &:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+  }
+  
+  svg {
+    margin-right: 0.25rem;
+  }
 `;
 
 const EmptyState = styled.div`
@@ -227,6 +253,42 @@ function Dashboard() {
     navigate('/events');
   };
   
+  const handleLeaveCompany = async (event: React.MouseEvent, membershipId: string, companyName: string) => {
+    // Stop propagation to prevent navigation when clicking the leave button
+    event.stopPropagation();
+    
+    // Confirm before leaving
+    if (!window.confirm(`Are you sure you want to leave ${companyName}?`)) {
+      return;
+    }
+    
+    if (!auth.currentUser) {
+      addToast('You must be logged in to leave a company', 'error');
+      return;
+    }
+    
+    try {
+      // Delete the membership document
+      await deleteDoc(doc(firestore, 'companyMembers', membershipId));
+      
+      // Remove from local state
+      setCompanies(companies.filter(company => company.id !== membershipId));
+      
+      // Clear selectedCompanyId if it was this company
+      const selectedCompanyId = localStorage.getItem('selectedCompanyId');
+      const companyData = companies.find(company => company.id === membershipId);
+      
+      if (selectedCompanyId && companyData && companyData.companyId === selectedCompanyId) {
+        localStorage.removeItem('selectedCompanyId');
+      }
+      
+      addToast(`You have left ${companyName}`, 'success');
+    } catch (error) {
+      console.error('Error leaving company:', error);
+      addToast('Failed to leave company', 'error');
+    }
+  };
+  
   const handleCompanySearchComplete = () => {
     setShowCompanySearch(false);
     // Reload companies
@@ -343,7 +405,7 @@ function Dashboard() {
       ) : (
         <>
           <CompanyList>
-            {companies.map(({ company, status }) => (
+            {companies.map(({ id, company, status }) => (
               <CompanyCard 
                 key={company?.id}
                 isActive={status === 'active'}
@@ -356,10 +418,22 @@ function Dashboard() {
                   <h3>{company?.name}</h3>
                   <p>{company?.location}</p>
                 </CompanyDetails>
-                <StatusBadge status={status}>
-                  {status === 'active' ? 'Active' : 
-                   status === 'pending' ? 'Pending' : 'Rejected'}
-                </StatusBadge>
+                
+                {status === 'active' ? (
+                  <CompanyActions>
+                    <LeaveButton 
+                      onClick={(e) => handleLeaveCompany(e, id, company?.name || 'this company')}
+                      title="Leave company"
+                    >
+                      <FaSignOutAlt /> Leave
+                    </LeaveButton>
+                    <StatusBadge status={status}>Active</StatusBadge>
+                  </CompanyActions>
+                ) : (
+                  <StatusBadge status={status}>
+                    {status === 'pending' ? 'Pending' : 'Rejected'}
+                  </StatusBadge>
+                )}
               </CompanyCard>
             ))}
           </CompanyList>
